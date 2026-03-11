@@ -21,26 +21,26 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // Dodajemy Usera
-                db.Users.Add(new DBUser { Id = 1, Login = "Kass", Email = "k@k.pl", Password = "123", Role = SystemRole.Guest, HouseId = null });
+                db.Users.Add(new DBEmployee { Id = 1, Login = "Kass", Email = "k@k.pl", Password = "123", Role = SystemRole.Guest, CompanyId = null });
 
                 // Dodajemy Kategorie
-                var catFood = new DBCategory { Id = 1, Name = "Jedzenie", UserId = 1 };
-                var catFuel = new DBCategory { Id = 2, Name = "Paliwo", UserId = 1 };
+                var catFood = new DBTransactionCategories { Id = 1, Name = "Jedzenie", UserId = 1 };
+                var catFuel = new DBTransactionCategories { Id = 2, Name = "Paliwo", UserId = 1 };
                 db.Categories.AddRange(catFood, catFuel);
 
                 // Dodajemy Transakcje (W tym miesiącu)
                 db.Transactions.AddRange(
                     // 2x Jedzenie po 50zł = 100zł
-                    new DBTransaction { UserId = 1, CategoryId = 1, Value = -50m, TransactionType = TransactionType.expense, Date = DateTime.Now, Title = "Obiad" },
-                    new DBTransaction { UserId = 1, CategoryId = 1, Value = -50m, TransactionType = TransactionType.expense, Date = DateTime.Now, Title = "Kolacja" },
+                    new DBFinancialOperations { CompanyId = 1, CategoryId = 1, Value = -50m, TransactionType = TransactionType.expense, Date = DateTime.Now, Title = "Obiad" },
+                    new DBFinancialOperations { CompanyId = 1, CategoryId = 1, Value = -50m, TransactionType = TransactionType.expense, Date = DateTime.Now, Title = "Kolacja" },
 
                     // 1x Paliwo po 50zł = 50zł
-                    new DBTransaction { UserId = 1, CategoryId = 2, Value = -50m, TransactionType = TransactionType.expense, Date = DateTime.Now, Title = "Paliwo" }
+                    new DBFinancialOperations { CompanyId = 1, CategoryId = 2, Value = -50m, TransactionType = TransactionType.expense, Date = DateTime.Now, Title = "Paliwo" }
                 );
 
                 // Dodajemy transakcję spoza zakresu (STARY ROK) - nie powinna być policzona!
                 db.Transactions.Add(
-                    new DBTransaction { UserId = 1, CategoryId = 1, Value = -999m, TransactionType = TransactionType.expense, Date = DateTime.Now.AddYears(-2), Title = "Stare" }
+                    new DBFinancialOperations { CompanyId = 1, CategoryId = 1, Value = -999m, TransactionType = TransactionType.expense, Date = DateTime.Now.AddYears(-2), Title = "Stare" }
                 );
 
                 db.SaveChanges();

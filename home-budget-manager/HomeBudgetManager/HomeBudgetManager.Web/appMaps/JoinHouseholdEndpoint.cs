@@ -47,7 +47,7 @@ namespace HomeBudgetManager.Web.appMaps
                 var login = context.Request.Cookies["logged_user"];
 
                 var user = await db.Users.FirstOrDefaultAsync(u => u.Login == login);
-                if (user == null || user.HouseId != null)
+                if (user == null || user.CompanyId != null)
                 {
                     return Results.Content("<div class='error'>Nie możesz dołączyć do nowego domostwa.</div>", "text/html");
                 }
@@ -63,7 +63,7 @@ namespace HomeBudgetManager.Web.appMaps
                 {
                     adminBtnHtml = "<button class=\"sidebar-link\" onclick=\"window.location.href='/adminConsole'\"><i class=\"fas fa-fw fa-cogs\"></i> &nbsp; Ustawienia Admina</button>";
                 }
-                user.HouseId = house.Id;
+                user.CompanyId = house.Id;
                 
                 if (user.Role != SystemRole.SystemAdmin)
                 {

@@ -26,7 +26,7 @@ namespace HomeBudgetManager.Web.appMaps
 
                 
                 var balance = await db.Transactions
-                                    .Where(t => t.UserId == user.Id)
+                                    .Where(t => t.CompanyId == user.Id)
                                     .SumAsync(t => t.Value);
                 
 

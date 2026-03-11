@@ -22,20 +22,20 @@ namespace HomeBudgetManager.Web.appMaps
                 {
                     return Results.Content("<div class='error'>Błąd: użytkownik nie istnieje.</div>", "text/html");
                 }
-                if (user.HouseId == null)
+                if (user.CompanyId == null)
                 {
                     return Results.Content("<div class='error'>Nie należysz do żadnego domostwa.</div>", "text/html");
                 }
 
                 // load household
-                var house = await db.Houses.FirstOrDefaultAsync(h => h.Id == user.HouseId);
+                var house = await db.Houses.FirstOrDefaultAsync(h => h.Id == user.CompanyId);
                 if (house == null)
                 {
                     return Results.Content("<div class='error'>Domostwo nie istnieje.</div>", "text/html");
                 }
 
                 // check if user is admin
-                if (user.Id == house.AdminId)
+                if (user.Id == house.CompanyAdminId)
                 {
                     // set household id to null
                     var houseTransactions = await db.Transactions
@@ -48,10 +48,10 @@ namespace HomeBudgetManager.Web.appMaps
                     }
 
                     // reset for all members
-                    var members = await db.Users.Where(u => u.HouseId == house.Id).ToListAsync();
+                    var members = await db.Users.Where(u => u.CompanyId == house.Id).ToListAsync();
                     foreach (var member in members)
                     {
-                        member.HouseId = null;
+                        member.CompanyId = null;
                         if (member.Role != SystemRole.SystemAdmin)
                         {
                             member.Role = SystemRole.Guest;
@@ -77,8 +77,8 @@ namespace HomeBudgetManager.Web.appMaps
                 else
                 {
                     // regular user leaves household
-                    int houseId = user.HouseId.Value;
-                    user.HouseId = null;
+                    int houseId = user.CompanyId.Value;
+                    user.CompanyId = null;
                     
                     if (user.Role != SystemRole.SystemAdmin)
                     {
@@ -88,7 +88,7 @@ namespace HomeBudgetManager.Web.appMaps
                     await db.SaveChangesAsync();
 
                     // if house empty -> delete it
-                    bool anyLeft = await db.Users.AnyAsync(u => u.HouseId == houseId);
+                    bool anyLeft = await db.Users.AnyAsync(u => u.CompanyId == houseId);
                     if (!anyLeft)
                     {
                         db.Houses.Remove(house);

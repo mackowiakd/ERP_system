@@ -13,16 +13,16 @@ namespace HomeBudgetManager.Core
         private String username;
         private String email;
         private String password;
-        private List<DBTransaction> transactions;
-        private List<DBCategory> categories;
+        private List<DBFinancialOperations> transactions;
+        private List<DBTransactionCategories> categories;
         private int? houseId;
 
         public User()
         {
             this.id = 0;
             this.username = "guest";
-            this.transactions = new List<DBTransaction>();
-            this.categories = new List<DBCategory>();
+            this.transactions = new List<DBFinancialOperations>();
+            this.categories = new List<DBTransactionCategories>();
         }
 
         public User(String username)
@@ -30,12 +30,12 @@ namespace HomeBudgetManager.Core
             // Add id generator
             this.id = 0;
             this.username = username;
-            this.transactions = new List<DBTransaction>();
+            this.transactions = new List<DBFinancialOperations>();
             // Add default categories
-            this.categories = new List<DBCategory>();
+            this.categories = new List<DBTransactionCategories>();
         }
 
-        public User(String username, List<DBTransaction> transactions, List<DBCategory> categories)
+        public User(String username, List<DBFinancialOperations> transactions, List<DBTransactionCategories> categories)
         {
             this.id = 0;
             this.username = username;
@@ -43,7 +43,7 @@ namespace HomeBudgetManager.Core
             this.categories = categories;
         }
 
-        public User(int id, string username, List<DBTransaction> transactions, List<DBCategory> categories)
+        public User(int id, string username, List<DBFinancialOperations> transactions, List<DBTransactionCategories> categories)
         {
             this.id = id;
             this.username = username;

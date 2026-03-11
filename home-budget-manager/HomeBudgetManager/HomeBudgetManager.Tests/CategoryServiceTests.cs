@@ -36,7 +36,7 @@ namespace HomeBudgetManager.Tests
             using var context = new AppDbContext(_contextOptions);
             
             // Add User
-            var user = new DBUser { Login = "user1", Email = "u1@test.com", Password = "pwd" };
+            var user = new DBEmployee { Login = "user1", Email = "u1@test.com", Password = "pwd" };
             context.Users.Add(user);
             context.SaveChanges();
             int userId = user.Id;
@@ -61,8 +61,8 @@ namespace HomeBudgetManager.Tests
         {
              using var context = new AppDbContext(_contextOptions);
             
-            var user1 = new DBUser { Login = "user1", Email = "u1@test.com", Password = "pwd" };
-            var user2 = new DBUser { Login = "user2", Email = "u2@test.com", Password = "pwd" };
+            var user1 = new DBEmployee { Login = "user1", Email = "u1@test.com", Password = "pwd" };
+            var user2 = new DBEmployee { Login = "user2", Email = "u2@test.com", Password = "pwd" };
             context.Users.AddRange(user1, user2);
             context.SaveChanges();
             
@@ -81,11 +81,11 @@ namespace HomeBudgetManager.Tests
         {
             using var context = new AppDbContext(_contextOptions);
             
-            var user = new DBUser { Login = "user1", Email = "u1@test.com", Password = "pwd" };
+            var user = new DBEmployee { Login = "user1", Email = "u1@test.com", Password = "pwd" };
             context.Users.Add(user);
             
             // Manually add a global category
-            context.Categories.Add(new DBCategory { Name = "Jedzenie", UserId = null });
+            context.Categories.Add(new DBTransactionCategories { Name = "Jedzenie", UserId = null });
             context.SaveChanges();
 
             var service = new CategoryService(context);

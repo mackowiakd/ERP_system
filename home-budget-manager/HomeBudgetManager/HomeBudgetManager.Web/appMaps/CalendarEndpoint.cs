@@ -49,10 +49,10 @@ namespace HomeBudgetManager.Web.appMaps
                     return Results.Unauthorized();
 
                 List<int> userIds = new List<int>();
-                if (user.HouseId.HasValue)
+                if (user.CompanyId.HasValue)
                 {
                     userIds = await db.Users
-                        .Where(u => u.HouseId == user.HouseId.Value)
+                        .Where(u => u.CompanyId == user.CompanyId.Value)
                         .Select(u => u.Id)
                         .ToListAsync();
                 }
@@ -65,7 +65,7 @@ namespace HomeBudgetManager.Web.appMaps
 
                 var regularTransactions = await db.Transactions
                     .Include(t => t.User) // Include User to get Login
-                    .Where(t => userIds.Contains(t.UserId))
+                    .Where(t => userIds.Contains(t.CompanyId))
                     .OrderBy(t => t.Date) // Sort by date/time
                     .Select(t => new
                     {
@@ -105,7 +105,7 @@ namespace HomeBudgetManager.Web.appMaps
                             title = $"Cykliczna: {baseTitle}",
                             startTime = nextDate.ToString("yyyy-MM-ddTHH:mm:ss"),
                             endTime = nextDate.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
-                            amount = rt.Value,
+                            amount = rt.IntervalValue,
                             description = rt.Description ?? "",
                             categoryId = rt.CategoryId,
                             color = "#f6c23e", // Yellow for recurring

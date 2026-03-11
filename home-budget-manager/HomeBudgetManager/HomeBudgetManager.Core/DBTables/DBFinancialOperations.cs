@@ -12,8 +12,8 @@ namespace HomeBudgetManager.Core.DBTables
         income = 1
     }
 
-    [Table("transactions")]
-    public class DBTransaction
+    [Table("FinancialOperations")]
+    public class DBFinancialOperations
     {
         [Key]
         [Column("transaction_id")]
@@ -23,13 +23,19 @@ namespace HomeBudgetManager.Core.DBTables
         public required int CategoryId { get; set; }
 
         [ForeignKey(nameof(CategoryId))]
-        public DBCategory? Category { get; set; }
+        public DBTransactionCategories? Category { get; set; }
 
-        [Column("user_id")]
-        public required int UserId { get; set; }
+        [Column("company_id")]
+        public required int CompanyId { get; set; }
 
-        [ForeignKey(nameof(UserId))]
-        public DBUser? User { get; set; }
+        [ForeignKey(nameof(CompanyId))]
+        public DBEmployee? Company { get; set; }
+
+        [Column("employee_id")]
+        public required int EmployeeId { get; set; }
+
+        [ForeignKey(nameof(EmployeeId))]
+        public DBEmployee? Employee { get; set; }
 
         [Required]
         [Column("transaction_value")]
@@ -47,9 +53,7 @@ namespace HomeBudgetManager.Core.DBTables
         [Column("transaction_description")]
         public string? Description { get; set; }
 
-        [Column("transaction_for_house_id")] // Czy potrzebne? można to pobrać od użytkownika
-        public int? HouseId { get; set; }
-        public DBHouse? House { get; set; }
+       
 
         [Required]
         [DataType(DataType.DateTime)]
@@ -60,6 +64,15 @@ namespace HomeBudgetManager.Core.DBTables
         [Column("transaction_is_repeatable")]
         public bool IsRepeatable { get; set; }
 
-        public virtual DBRepetableTransaction? RepetableTransaction { get; set; }
+        public virtual DBRecurringOperations? RepetableTransaction { get; set; }
+
+        // --- NOWOŚĆ: Relacja do faktury ---
+        [Column("invoice_id")]
+        public int? InvoiceId { get; set; } // Nullable, bo nie każdy wydatek to faktura (np. kawa z kasy)
+
+        [ForeignKey(nameof(InvoiceId))]
+        public DBInvoice? Invoice { get; set; }
+        // ----------------------------------
+
     }
 }

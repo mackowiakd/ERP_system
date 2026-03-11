@@ -27,7 +27,7 @@ namespace HomeBudgetManager.Core
 
             try
             {
-                var newCategory = new DBCategory { Name = name, Description = description, UserId = userId };
+                var newCategory = new DBTransactionCategories { Name = name, Description = description, UserId = userId };
                 db.Categories.Add(newCategory);
                 db.SaveChanges();
                 return "Poprawnie dodano kategorię";
@@ -60,7 +60,7 @@ namespace HomeBudgetManager.Core
             }
         }
 
-        public List<DBCategory> listAllUserCategories(int userId)
+        public List<DBTransactionCategories> listAllUserCategories(int userId)
         {
             return db.Categories.Where(c => c.UserId == userId || c.UserId == null).OrderByDescending(c => c.UserId).ToList();
         }
@@ -83,19 +83,19 @@ namespace HomeBudgetManager.Core
 
         public string addDefaultCategories()
         {
-            var zakupy = new DBCategory { UserId = null, Name = "Zakupy spożywcze", Description = "Opłaty za codzienne zakupy domowe" };
-            var rachunki = new DBCategory { UserId = null, Name = "Rachunki", Description = "Opłaty za wodę, gaz, prąd itp." };
-            var transport = new DBCategory { UserId = null, Name = "Transport", Description = "Opłaty za komunikację miejską lub paliwo" };
-            var finanse = new DBCategory { UserId = null, Name = "Finanse", Description = "Kategoria dla finansów" };
-            var rozrywka = new DBCategory {UserId = null, Name = "Rozrywka", Description = "Kategoria dla rozrywki" };
-            var inne = new DBCategory { UserId = null, Name = "Inne" , Description = "Kategoria dla innych wydatków"};
+            var zakupy = new DBTransactionCategories { UserId = null, Name = "Zakupy spożywcze", Description = "Opłaty za codzienne zakupy domowe" };
+            var rachunki = new DBTransactionCategories { UserId = null, Name = "Rachunki", Description = "Opłaty za wodę, gaz, prąd itp." };
+            var transport = new DBTransactionCategories { UserId = null, Name = "Transport", Description = "Opłaty za komunikację miejską lub paliwo" };
+            var finanse = new DBTransactionCategories { UserId = null, Name = "Finanse", Description = "Kategoria dla finansów" };
+            var rozrywka = new DBTransactionCategories {UserId = null, Name = "Rozrywka", Description = "Kategoria dla rozrywki" };
+            var inne = new DBTransactionCategories { UserId = null, Name = "Inne" , Description = "Kategoria dla innych wydatków"};
 
-            List<DBCategory> categories = new List<DBCategory> { zakupy, rachunki, transport, finanse, rozrywka, inne };
+            List<DBTransactionCategories> categories = new List<DBTransactionCategories> { zakupy, rachunki, transport, finanse, rozrywka, inne };
 
             try
             {
 
-                foreach (DBCategory category in categories)
+                foreach (DBTransactionCategories category in categories)
                 {
                     if (!db.Categories.Any(c => c.UserId == null && c.Name == category.Name))
                     {

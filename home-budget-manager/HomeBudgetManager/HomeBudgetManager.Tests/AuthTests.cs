@@ -50,7 +50,7 @@ namespace HomeBudgetManager.Tests
         //    using (var db = new AppDbContext(options))
         //    {
         //        var registerService = new RegisterService(db);
-        //        registerService.RegisterUser("admin@test.pl", "Admin", "Tajne123");
+        //        registerService.RegisterUser("admin@test.pl", "CompanyAdmin", "Tajne123");
         //    }
 
         //    // Teraz próbujemy się zalogować

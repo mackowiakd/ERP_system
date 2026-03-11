@@ -178,7 +178,7 @@ namespace HomeBudgetManager.Web.appMaps
 
                 try
                 {
-                    tranService.addTransaction(user.Id, category, amount, type, finalDate, isRecurring, transactionInterval, title, description, user.HouseId, frequencyUnit);
+                    tranService.addTransaction(user.Id, category, amount, type, finalDate, isRecurring, transactionInterval, title, description, user.CompanyId, frequencyUnit);
                     return Results.Content("<div class='success'>transakcja dodana</div>", "text/html");
                 }
                 catch (Exception ex)

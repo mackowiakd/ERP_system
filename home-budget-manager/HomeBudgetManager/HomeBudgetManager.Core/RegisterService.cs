@@ -20,7 +20,7 @@ public class RegisterService
 
     public void RegisterUser(string email, string username, string password)
     {
-        var user = new DBUser
+        var user = new DBEmployee
         {
             Email = email,
             Login = username,

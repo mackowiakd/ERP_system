@@ -28,7 +28,7 @@ namespace HomeBudgetManager.Core
             // 1. Fetch Real Transactions
             var transactions = _db.Transactions
                 .Include(t => t.Category)
-                .Where(t => userIds.Contains(t.UserId) && t.Date >= startDate && t.Date <= endDate)
+                .Where(t => userIds.Contains(t.CompanyId) && t.Date >= startDate && t.Date <= endDate)
                 .ToList();
 
             // 2. Fetch Active Recurring Rules
@@ -50,16 +50,16 @@ namespace HomeBudgetManager.Core
                     if (currentDate >= startDate)
                     {
                         // Create a transient transaction object for calculation
-                        var projected = new DBTransaction
+                        var projected = new DBFinancialOperations
                         {
-                            // Required fields for DBTransaction (though not saved to DB)
+                            // Required fields for DBFinancialOperations (though not saved to DB)
                             Id = 0, // transient
-                            UserId = rule.UserId,
+                            CompanyId = rule.UserId,
                             CategoryId = rule.CategoryId,
                             Category = rule.Category, // Important for grouping
-                            Value = rule.Value,
+                            Value = rule.IntervalValue,
                             Title = "Projected", // Dummy
-                            TransactionType = (rule.Value < 0) ? TransactionType.expense : TransactionType.income,
+                            TransactionType = (rule.IntervalValue < 0) ? TransactionType.expense : TransactionType.income,
                             Date = currentDate,
                             IsRepeatable = false
                         };
@@ -133,9 +133,9 @@ namespace HomeBudgetManager.Core
             if (includeHousehold)
             {
                 var user = _db.Users.FirstOrDefault(u => u.Id == userId);
-                if (user != null && user.HouseId.HasValue)
+                if (user != null && user.CompanyId.HasValue)
                 {
-                    userIds = _db.Users.Where(u => u.HouseId == user.HouseId).Select(u => u.Id).ToList();
+                    userIds = _db.Users.Where(u => u.CompanyId == user.CompanyId).Select(u => u.Id).ToList();
                 }
             }
 

@@ -25,12 +25,12 @@ public class AuthService
         return $"Witaj w HomeBudgetManager, {username}! Twoje finanse są pod kontrolą.";
     }
 
-    public DBUser? GetUserByUsername(string username)
+    public DBEmployee? GetUserByUsername(string username)
     {
         return _context.Users.FirstOrDefault(u => u.Login == username);
     }
 
-    public DBUser? GetUserByEmail(string email)
+    public DBEmployee? GetUserByEmail(string email)
     {
         return _context.Users.FirstOrDefault(u => u.Email == email);
     }

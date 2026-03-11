@@ -51,15 +51,15 @@ namespace HomeBudgetManager.Web.appMaps
                     return Results.Text("Błąd: użytkownik niezalogowany", "text/plain");
 
                 var adminUser = await db.Users.FirstOrDefaultAsync(u => u.Login == login);
-                if (adminUser == null || adminUser.Role != SystemRole.HouseholdAdmin || adminUser.HouseId == null)
+                if (adminUser == null || adminUser.Role != SystemRole.HouseholdAdmin || adminUser.CompanyId == null)
                     return Results.Text("Błąd: brak uprawnień", "text/plain");
 
                 var targetUser = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
-                if (targetUser == null || targetUser.HouseId != adminUser.HouseId)
+                if (targetUser == null || targetUser.CompanyId != adminUser.CompanyId)
                     return Results.Text("Błąd: użytkownik nie należy do Twojego domostwa", "text/plain");
 
                 // Delete user
-                targetUser.HouseId = null;
+                targetUser.CompanyId = null;
                 targetUser.Role = SystemRole.Guest;
                 await db.SaveChangesAsync();
 
@@ -70,7 +70,7 @@ namespace HomeBudgetManager.Web.appMaps
         private static async Task<IResult> RenderHouseholdView(AppDbContext db, string login)
         {
             var user = await db.Users
-                .Include(u => u.House)
+                .Include(u => u.Company)
                 .FirstOrDefaultAsync(u => u.Login == login);
 
             if (user == null)
@@ -80,7 +80,7 @@ namespace HomeBudgetManager.Web.appMaps
             {
                 string cssLink = "<link rel='stylesheet' href='/css/householdView.css'>";
 
-                if (user.HouseId is null)
+                if (user.CompanyId is null)
                 {
                     var html = $@"
                         {cssLink}
@@ -100,7 +100,7 @@ namespace HomeBudgetManager.Web.appMaps
                 }
                 else
                 {
-                    var house = user.House!;
+                    var house = user.Company!;
                     bool iAmAdmin = user.Role == SystemRole.HouseholdAdmin;
 
                     var confirmText = iAmAdmin
@@ -109,9 +109,9 @@ namespace HomeBudgetManager.Web.appMaps
 
                     var buttonClass = "btn-danger";
 
-                    // sort:  Admin on top, the rest alphabetically
+                    // sort:  CompanyAdmin on top, the rest alphabetically
                     var members = await db.Users
-                        .Where(u => u.HouseId == house.Id)
+                        .Where(u => u.CompanyId == house.Id)
                         .OrderByDescending(u => u.Role == SystemRole.HouseholdAdmin)
                         .ThenBy(u => u.Login)
                         .ToListAsync();

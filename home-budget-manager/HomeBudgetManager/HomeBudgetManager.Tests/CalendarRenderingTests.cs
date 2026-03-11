@@ -21,25 +21,25 @@ namespace HomeBudgetManager.Tests
             // Wrzucamy dane testowe: 1 Przychód (Zielony) i 1 Wydatek (Czerwony)
             using (var db = new AppDbContext(options))
             {
-                var user = new DBUser
+                var user = new DBEmployee
                 {
                     Id = 1,
                     Login = "TestUser",
                     Email = "t@t.com",
                     Password = "x",
                     Role = SystemRole.HouseholdAdmin,
-                    HouseId = null
+                    CompanyId = null
                 };
                 db.Users.Add(user);
 
-                var cat = new DBCategory { Id = 1, Name = "General", UserId = 1 };
+                var cat = new DBTransactionCategories { Id = 1, Name = "General", UserId = 1 };
                 db.Categories.Add(cat);
 
                 db.Transactions.AddRange(
-                    new DBTransaction
+                    new DBFinancialOperations
                     {
                         Id = 1,
-                        UserId = 1,
+                        CompanyId = 1,
                         CategoryId = 1,
                         Value = 100.00m, // Przychód
                         TransactionType = TransactionType.income,
@@ -47,10 +47,10 @@ namespace HomeBudgetManager.Tests
                         Title = "Zysk operacyjny",
                         Description = "Zysk"
                     },
-                    new DBTransaction
+                    new DBFinancialOperations
                     {
                         Id = 2,
-                        UserId = 1,
+                        CompanyId = 1,
                         CategoryId = 1,
                         Value = -50.00m, // Wydatek
                         TransactionType = TransactionType.expense,
@@ -69,7 +69,7 @@ namespace HomeBudgetManager.Tests
                 // Testujemy, czy ta logika poprawnie przygotowuje dane dla JavaScriptu
                 var events = await db.Transactions
                     .Include(t => t.User)
-                    .Where(t => t.UserId == 1)
+                    .Where(t => t.CompanyId == 1)
                     .OrderBy(t => t.Date)
                     .Select(t => new
                     {

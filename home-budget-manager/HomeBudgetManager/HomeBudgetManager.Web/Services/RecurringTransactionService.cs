@@ -38,9 +38,9 @@ namespace HomeBudgetManager.Web.Services
                             if (rule.Transaction == null) continue; // Zabezpieczenie
 
                             // 2. Stwórz NOWĄ transakcję na podstawie WZORCA
-                            var newTransaction = new DBTransaction
+                            var newTransaction = new DBFinancialOperations
                             {
-                                UserId = rule.Transaction.UserId,
+                                CompanyId = rule.Transaction.CompanyId,
                                 CategoryId = rule.Transaction.CategoryId,
                                 HouseId = rule.Transaction.HouseId,
                                 Value = rule.Transaction.Value,
@@ -55,9 +55,9 @@ namespace HomeBudgetManager.Web.Services
                             db.Transactions.Add(newTransaction);
 
                             // 3. Oblicz następną datę wykonania
-                            rule.NextRunDate = CalculateNextDate(rule.NextRunDate, rule.TransactionInterval, (TransactionIntervalType)rule.FrequencyUnit);
+                            rule.NextRunDate = CalculateNextDate(rule.NextRunDate, rule.TransactionInterval, (TransactionIntervalType)rule.IntervalType);
                             
-                            _logger.LogInformation($"Wygenerowano transakcję cykliczną dla User ID: {rule.Transaction.UserId}");
+                            _logger.LogInformation($"Wygenerowano transakcję cykliczną dla User ID: {rule.Transaction.CompanyId}");
                         }
 
                         if (tasksToRun.Any())

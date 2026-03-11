@@ -21,16 +21,16 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // Musimy mieć Usera i Kategorię
-                db.Users.Add(new DBUser
+                db.Users.Add(new DBEmployee
                 {
                     Id = 1,
                     Login = "Tomek",
                     Email = "t@t.com",
                     Password = "123",
                     Role = SystemRole.Guest,
-                    HouseId = null
+                    CompanyId = null
                 });
-                db.Categories.Add(new DBCategory { Id = 10, Name = "Jedzenie", UserId = 1 });
+                db.Categories.Add(new DBTransactionCategories { Id = 10, Name = "Jedzenie", UserId = 1 });
                 db.SaveChanges();
             }
 
@@ -67,11 +67,11 @@ namespace HomeBudgetManager.Tests
 
             using (var db = new AppDbContext(options))
             {
-                // UWAGA: UserId i CategoryId są REQUIRED w Twoim kodzie DBTransaction.cs
-                db.Transactions.Add(new DBTransaction
+                // UWAGA: CompanyId i CategoryId są REQUIRED w Twoim kodzie DBFinancialOperations.cs
+                db.Transactions.Add(new DBFinancialOperations
                 {
                     Id = 100,
-                    UserId = 1,      // Wymagane!
+                    CompanyId = 1,      // Wymagane!
                     CategoryId = 10, // Wymagane!
                     Value = 100m,
                     Title = "Do usunięcia",
@@ -108,10 +108,10 @@ namespace HomeBudgetManager.Tests
 
             using (var db = new AppDbContext(options))
             {
-                db.Transactions.Add(new DBTransaction
+                db.Transactions.Add(new DBFinancialOperations
                 {
                     Id = 200,
-                    UserId = 1,
+                    CompanyId = 1,
                     CategoryId = 10,
                     Value = 10m,
                     Title = "Stara cena",
@@ -135,12 +135,12 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // Uwaga: Jeśli test tu padnie, to znaczy, że wykryłeś buga w kodzie programisty w TransactionService.cs 
-                // (linia 'transaction = new DBTransaction...' w editTransaction może nie zapisywać zmian w EF Core).
+                // (linia 'transaction = new DBFinancialOperations...' w editTransaction może nie zapisywać zmian w EF Core).
                 // Ale spróbujmy!
                 var trans = db.Transactions.First(t => t.Id == 200);
 
                 // Zakomentuj asercję poniżej, jeśli kod developera jest zbugowany i nie chcesz się teraz tym martwić
-                // Assert.Equal(999m, trans.Value); 
+                // Assert.Equal(999m, trans.IntervalValue); 
             }
         }
     }

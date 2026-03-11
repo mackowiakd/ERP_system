@@ -26,9 +26,9 @@ namespace HomeBudgetManager.Core
             List<int> userIds = new List<int>();
             string scopeTitle = "Raport Indywidualny";
 
-            if (includeHousehold && requestingUser.HouseId.HasValue)
+            if (includeHousehold && requestingUser.CompanyId.HasValue)
             {
-                userIds = _db.Users.Where(u => u.HouseId == requestingUser.HouseId).Select(u => u.Id).ToList();
+                userIds = _db.Users.Where(u => u.CompanyId == requestingUser.CompanyId).Select(u => u.Id).ToList();
                 scopeTitle = "Raport Domostwa";
             }
             else
@@ -39,7 +39,7 @@ namespace HomeBudgetManager.Core
             // 2. Fetch Real Transactions
             var realTransactions = _db.Transactions
                 .Include(t => t.Category)
-                .Where(t => userIds.Contains(t.UserId) && t.Date >= startDate && t.Date <= endDate)
+                .Where(t => userIds.Contains(t.CompanyId) && t.Date >= startDate && t.Date <= endDate)
                 .ToList();
 
             // 3. Fetch Recurring Rules & Project Virtual Transactions
@@ -48,7 +48,7 @@ namespace HomeBudgetManager.Core
                 .Where(rt => userIds.Contains(rt.UserId) && rt.IsActive)
                 .ToList();
 
-            var virtualTransactions = new List<DBTransaction>();
+            var virtualTransactions = new List<DBFinancialOperations>();
 
             foreach (var rule in recurringRules)
             {
@@ -60,17 +60,17 @@ namespace HomeBudgetManager.Core
                 {
                     if (iterDate >= startDate)
                     {
-                        virtualTransactions.Add(new DBTransaction
+                        virtualTransactions.Add(new DBFinancialOperations
                         {
                             Id = 0, // Virtual
-                            UserId = rule.UserId,
+                            CompanyId = rule.UserId,
                             CategoryId = rule.CategoryId,
                             Category = rule.Category,
-                            Value = rule.Value,
+                            Value = rule.IntervalValue,
                             Title = rule.Title + " (Plan)",
                             Description = rule.Description,
                             Date = iterDate,
-                            TransactionType = (rule.Value < 0) ? TransactionType.expense : TransactionType.income
+                            TransactionType = (rule.IntervalValue < 0) ? TransactionType.expense : TransactionType.income
                         });
                     }
                     iterDate = CalculateNextDate(iterDate, rule.TransactionInterval, rule.FrequencyUnit);
@@ -83,7 +83,7 @@ namespace HomeBudgetManager.Core
             var usersData = userIds.Select(uid => new
             {
                 User = _db.Users.FirstOrDefault(u => u.Id == uid),
-                Transactions = allTransactions.Where(t => t.UserId == uid).ToList()
+                Transactions = allTransactions.Where(t => t.CompanyId == uid).ToList()
             })
             .Where(d => d.User != null)
             .ToList();
@@ -132,7 +132,7 @@ namespace HomeBudgetManager.Core
             return document.GeneratePdf();
         }
 
-        private void GenerateUserSection(ColumnDescriptor column, string username, List<DBTransaction> transactions)
+        private void GenerateUserSection(ColumnDescriptor column, string username, List<DBFinancialOperations> transactions)
         {
             // Ustawiamy kulturę polską
             var pl = new CultureInfo("pl-PL");

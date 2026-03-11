@@ -18,7 +18,7 @@ namespace HomeBudgetManager.Core
             this.db = db;
         }
 
-        public void addTransaction(DBTransaction transaction)
+        public void addTransaction(DBFinancialOperations transaction)
         {
             try
             {
@@ -33,7 +33,7 @@ namespace HomeBudgetManager.Core
 
         public void addTransaction(int userId, int categoryId, decimal value, TransactionType type, DateTime date, bool isRepeatable, int? transactionInterval, string title, string? description,  int? houseId, int? frequencyUnit)
         {
-            var newTransaction = new DBTransaction { UserId = userId, CategoryId = categoryId, Value = value, TransactionType = type, Date = date, IsRepeatable = isRepeatable, Title = title, Description = description, HouseId = houseId };
+            var newTransaction = new DBFinancialOperations { CompanyId = userId, CategoryId = categoryId, Value = value, TransactionType = type, Date = date, IsRepeatable = isRepeatable, Title = title, Description = description, HouseId = houseId };
             db.Add(newTransaction);
             db.SaveChanges();
 
@@ -53,12 +53,12 @@ namespace HomeBudgetManager.Core
                         _ => date.AddMonths(transactionInterval.Value)
                     };
 
-                    var newRepTransaction = new DBRepetableTransaction
+                    var newRepTransaction = new DBRecurringOperations
                     {
-                        TransactionId = newTransaction.Id,
+                        TransactionPatternId = newTransaction.Id,
                         TransactionInterval = transactionInterval.Value,
-                        FrequencyUnit = frequencyUnit.Value,
-                        Value = value,
+                        IntervalType = frequencyUnit.Value,
+                        IntervalValue = value,
                         UserId = userId,
                         CategoryId = categoryId,
                         NextRunDate = nextRunDate, 
@@ -108,7 +108,7 @@ namespace HomeBudgetManager.Core
 
         public void deleteTransaction(int transactionId, int userId)
         {
-            var transaction = db.Transactions.FirstOrDefault(t => t.Id == transactionId && t.UserId == userId);
+            var transaction = db.Transactions.FirstOrDefault(t => t.Id == transactionId && t.CompanyId == userId);
 
             if (transaction == null)
             {
@@ -125,7 +125,7 @@ namespace HomeBudgetManager.Core
             }
         }
 
-        public StringBuilder listTransactionsForDashboard(List<DBTransaction> transactions)
+        public StringBuilder listTransactionsForDashboard(List<DBFinancialOperations> transactions)
         {
             var sb = new System.Text.StringBuilder();
 
@@ -160,22 +160,22 @@ namespace HomeBudgetManager.Core
             return sb;
         }
 
-        public List<DBTransaction> AllUserTransactions(int userId)
+        public List<DBFinancialOperations> AllUserTransactions(int userId)
         {
-            return db.Transactions.Where(t => t.UserId == userId).OrderByDescending(t => t.Date).ToList();
+            return db.Transactions.Where(t => t.CompanyId == userId).OrderByDescending(t => t.Date).ToList();
         }
 
-        public List<DBTransaction> SomeUserTransactions(int userId, int amount)
+        public List<DBFinancialOperations> SomeUserTransactions(int userId, int amount)
         {
-            return db.Transactions.Where(t => t.UserId == userId && t.Date <= DateTime.Now).OrderByDescending(t => t.Date).Take(amount).ToList();
+            return db.Transactions.Where(t => t.CompanyId == userId && t.Date <= DateTime.Now).OrderByDescending(t => t.Date).Take(amount).ToList();
         }
 
-        public List<DBTransaction> allHouseTransactions(int houseId)
+        public List<DBFinancialOperations> allHouseTransactions(int houseId)
         {
             return db.Transactions.Where(t => t.HouseId == houseId).OrderByDescending(t => t.Date).ToList();
         }
 
-        public List<DBTransaction> someHouseTransactions(int houseId, int amount)
+        public List<DBFinancialOperations> someHouseTransactions(int houseId, int amount)
         {
             return db.Transactions.Where(t => t.HouseId == houseId).OrderByDescending(t => t.Date).ToList();
         }

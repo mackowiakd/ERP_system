@@ -12,27 +12,27 @@ namespace HomeBudgetManager.Core
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public DbSet<DBHouse> Houses { get; set; }
-        public DbSet<DBTransaction> Transactions { get; set; }
-        public DbSet<DBCategory> Categories { get; set; }
-        public DbSet<DBUser> Users { get; set; }
+        public DbSet<DBCompany> Company { get; set; }
+        public DbSet<DBFinancialOperations> Transactions { get; set; }
+        public DbSet<DBTransactionCategories> Categories { get; set; }
+        public DbSet<DBEmployee> Users { get; set; }
         public DbSet<DBRole> Roles { get; set; }
 
-        public DbSet<DBRepetableTransaction> RepetableTransactions { get; set; }
+        public DbSet<DBRecurringOperations> RepetableTransactions { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<DBUser>()
-                .HasOne(u => u.House)
+            modelBuilder.Entity<DBEmployee>()
+                .HasOne<DBCompany>() // Fix: Specify the related entity type, not the foreign key property type
                 .WithMany(h => h.Members)
-                .HasForeignKey(u => u.HouseId)
+                .HasForeignKey(u => u.CompanyId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<DBTransaction>()
-                .HasOne(a => a.RepetableTransaction) // Jeśli masz to pole w DBTransaction
-                .WithOne()         // Wskazujemy na właściwość w DBRepetableTransaction
-                .HasForeignKey<DBRepetableTransaction>(b => b.TransactionId); // TU JEST KLUCZ: Wymuszamy użycie TransactionId
+            modelBuilder.Entity<DBFinancialOperations>()
+                .HasOne(a => a.RepetableTransaction)
+                .WithOne()
+                .HasForeignKey<DBRecurringOperations>(b => b.TransactionPatternId);
 
             // Seed Roles
             modelBuilder.Entity<DBRole>().HasData(

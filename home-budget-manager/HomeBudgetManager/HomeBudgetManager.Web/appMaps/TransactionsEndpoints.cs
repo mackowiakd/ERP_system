@@ -84,7 +84,7 @@ public class TransactionsEndpoints : IEndpoint
             }
 
             var transaction = await db.Transactions
-                        .FirstOrDefaultAsync(t => t.Id == id && t.UserId == user.Id);
+                        .FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == user.Id);
 
             if (transaction == null)
             {
@@ -109,7 +109,7 @@ public class TransactionsEndpoints : IEndpoint
             }
 
             var transaction = await db.Transactions
-                            .FirstOrDefaultAsync(t => t.Id == id && t.UserId == user.Id);
+                            .FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == user.Id);
             
             if (transaction == null)
             {

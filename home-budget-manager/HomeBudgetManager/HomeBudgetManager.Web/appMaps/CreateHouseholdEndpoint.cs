@@ -53,25 +53,25 @@ namespace HomeBudgetManager.Web.appMaps
                     return Results.Content("<div class='error'>Błąd: użytkownik niezalogowany.</div>", "text/html");
                 }
 
-                if (user.HouseId != null)
+                if (user.CompanyId != null)
                 {
                     return Results.Content("<div class='error'>Błąd: użytkownik należy już do domostwa.</div>", "text/html");
                 }
 
                 // create household
-                var house = new DBHouse
+                var house = new DBEmployee
                 {
                     Name = name,
-                    Admin = user,
+                    CompanyAdmin = user,
                     Description = description,
-                    AdminId = user.Id,
+                    CompanyAdminId = user.Id,
                     JoinCode = Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper() // ex. "A1B2C3"
                 };
                 db.Houses.Add(house);
                 await db.SaveChangesAsync();
 
                 // set user as household admin
-                user.HouseId = house.Id;
+                user.CompanyId = house.Id;
                 
                 if (user.Role != SystemRole.SystemAdmin)
                 {

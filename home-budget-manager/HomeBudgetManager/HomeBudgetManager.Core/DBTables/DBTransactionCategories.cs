@@ -10,18 +10,19 @@ using System.Threading.Tasks;
 namespace HomeBudgetManager.Core.DBTables
 {
 
-    [Table("categories")]
-    public class DBCategory
+    [Table("transaction_categories")]
+    public class DBTransactionCategories
+
     {
         [Key]
         [Column("category_id")]
         public int Id { get; set; }
 
-        [Column("user_id")]
-        public int? UserId { get; set; } // Nullable, bo systemowe kategorie nie mają usera
+        [Column("company_id")]
+        public int? CompanyId { get; set; } // Nullable, bo systemowe kategorie nie mają usera
 
-        [ForeignKey(nameof(UserId))]
-        public DBUser? User { get; set; }
+        [ForeignKey(nameof(CompanyId))]
+        public DBEmployee? Company { get; set; }
 
         [Required]
         [Column("category_name")]

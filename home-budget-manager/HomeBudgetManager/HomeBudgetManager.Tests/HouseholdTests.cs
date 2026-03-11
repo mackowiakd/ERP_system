@@ -22,14 +22,14 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // Mamy użytkownika "bezdomnego" (Guest)
-                db.Users.Add(new DBUser
+                db.Users.Add(new DBEmployee
                 {
                     Id = 1,
                     Login = "Ojciec",
                     Email = "t@t.com",
                     Password = "123",
                     Role = SystemRole.Guest,
-                    HouseId = null
+                    CompanyId = null
                 });
                 await db.SaveChangesAsync();
             }
@@ -40,12 +40,12 @@ namespace HomeBudgetManager.Tests
                 var user = await db.Users.FirstOrDefaultAsync(u => u.Id == 1);
 
                 // Logika z endpointu:
-                var house = new DBHouse
+                var house = new DBEmployee
                 {
                     Name = "Nasza Chata",
-                    Admin = user,
+                    CompanyAdmin = user,
                     Description = "Opis testowy",
-                    AdminId = user.Id,
+                    CompanyAdminId = user.Id,
                     // Symulacja generowania kodu (jak w endpoincie)
                     JoinCode = "ABCDEF"
                 };
@@ -54,7 +54,7 @@ namespace HomeBudgetManager.Tests
                 await db.SaveChangesAsync(); // Zapis domu, żeby dostał ID
 
                 // Aktualizacja usera (to co robi endpoint)
-                user.HouseId = house.Id;
+                user.CompanyId = house.Id;
                 user.Role = SystemRole.HouseholdAdmin;
 
                 await db.SaveChangesAsync();
@@ -70,7 +70,7 @@ namespace HomeBudgetManager.Tests
                 Assert.Equal("Nasza Chata", house.Name);
 
                 // Czy User jest przypisany?
-                Assert.Equal(house.Id, user.HouseId);
+                Assert.Equal(house.Id, user.CompanyId);
 
                 // Czy User awansował na Admina Domu?
                 Assert.Equal(SystemRole.HouseholdAdmin, user.Role);
@@ -92,17 +92,17 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // Tworzymy istniejący dom
-                db.Houses.Add(new DBHouse { Id = 99, Name = "Dom Istniejący", JoinCode = secretCode });
+                db.Houses.Add(new DBEmployee { Id = 99, Name = "Dom Istniejący", JoinCode = secretCode });
 
                 // Tworzymy usera, który chce dołączyć
-                db.Users.Add(new DBUser
+                db.Users.Add(new DBEmployee
                 {
                     Id = 2,
                     Login = "Syn",
                     Email = "s@s.com",
                     Password = "123",
                     Role = SystemRole.Guest,
-                    HouseId = null
+                    CompanyId = null
                 });
                 await db.SaveChangesAsync();
             }
@@ -116,7 +116,7 @@ namespace HomeBudgetManager.Tests
 
                 if (house != null && user != null)
                 {
-                    user.HouseId = house.Id;
+                    user.CompanyId = house.Id;
                     // Rola zostaje Guest (bo to tylko domownik), chyba że logika jest inna
                     await db.SaveChangesAsync();
                 }
@@ -126,7 +126,7 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 var user = await db.Users.FirstOrDefaultAsync(u => u.Id == 2);
-                Assert.Equal(99, user.HouseId); // Czy trafił do dobrego domu?
+                Assert.Equal(99, user.CompanyId); // Czy trafił do dobrego domu?
             }
         }
     }
