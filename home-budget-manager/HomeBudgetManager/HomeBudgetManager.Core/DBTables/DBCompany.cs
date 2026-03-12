@@ -12,12 +12,15 @@ namespace HomeBudgetManager.Core.DBTables
         [Column("company_id")]
         public int Id { get; set; }
 
+        [Column("company_name")]
+        public int name { get; set; }
+
         [Required]
         [Column("company_admin_id")]
         public int CompanyAdminId { get; set; }
 
         [ForeignKey(nameof(CompanyAdminId))]
-        public DBEmployee CompanyAdmin { get; set; }
+        public DBEmployee ? CompanyAdmin { get; set; }
 
         [Required]
         [Column("company_name")]

@@ -3,6 +3,9 @@ using HomeBudgetManager.Core.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 using System.Globalization;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HomeBudgetManager.Core
 {
@@ -25,41 +28,41 @@ namespace HomeBudgetManager.Core
 
         public (List<CategoryStat> Expenses, List<CategoryStat> Incomes) GetStatistics(List<int> userIds, DateTime startDate, DateTime endDate)
         {
-            // 1. Fetch Real Transactions
-            var transactions = _db.Transactions
+            // 1. Fetch Real Transactions (ZMIANA: FinancialOperations zamiast Transactions, EmployeeId zamiast CompanyId/UserId)
+            var transactions = _db.FinancialOperations
                 .Include(t => t.Category)
-                .Where(t => userIds.Contains(t.CompanyId) && t.Date >= startDate && t.Date <= endDate)
+                .Where(t => userIds.Contains(t.EmployeeId) && t.Date >= startDate && t.Date <= endDate)
                 .ToList();
 
-            // 2. Fetch Active Recurring Rules
-            var recurringRules = _db.RepetableTransactions
-                .Include(rt => rt.Category)
-                .Where(rt => userIds.Contains(rt.UserId) && rt.IsActive)
+            // 2. Fetch Active Recurring Rules (ZMIANA: RecurringOperations i przejœcie przez relacjê .Transaction)
+            var recurringRules = _db.RecurringOperations
+                .Include(rt => rt.Transaction)
+                    .ThenInclude(t => t.Category) // Pobieramy kategoriê z podpiêtej operacji!
+                .Where(rt => rt.Transaction != null && userIds.Contains(rt.Transaction.EmployeeId) && rt.IsActive)
                 .ToList();
 
             // 3. Project Future Transactions
             foreach (var rule in recurringRules)
             {
                 var currentDate = rule.NextRunDate;
-                var unit = (TransactionIntervalType)rule.FrequencyUnit;
+                var unit = (TransactionIntervalType)rule.IntervalType; // ZMIANA z FrequencyUnit
 
                 // Loop to find all occurrences within the requested range
                 while (currentDate <= endDate)
                 {
-                    // Only include if it falls within the start-end range
                     if (currentDate >= startDate)
                     {
                         // Create a transient transaction object for calculation
                         var projected = new DBFinancialOperations
                         {
-                            // Required fields for DBFinancialOperations (though not saved to DB)
                             Id = 0, // transient
-                            CompanyId = rule.UserId,
-                            CategoryId = rule.CategoryId,
-                            Category = rule.Category, // Important for grouping
-                            Value = rule.IntervalValue,
-                            Title = "Projected", // Dummy
-                            TransactionType = (rule.IntervalValue < 0) ? TransactionType.expense : TransactionType.income,
+                            CompanyId = rule.Transaction!.CompanyId,   // POPRAWKA
+                            EmployeeId = rule.Transaction.EmployeeId, // POPRAWKA
+                            CategoryId = rule.Transaction.CategoryId,
+                            Category = rule.Transaction.Category,
+                            Value = rule.Transaction.Value,           // POPRAWKA: Pobieramy kwotê z transakcji, nie z regu³y
+                            Title = "Projected",
+                            TransactionType = rule.Transaction.TransactionType,
                             Date = currentDate,
                             IsRepeatable = false
                         };
@@ -67,13 +70,13 @@ namespace HomeBudgetManager.Core
                         transactions.Add(projected);
                     }
 
-                    // Advance to next occurrence
+                    // Advance to next occurrence (ZMIANA z TransactionInterval na IntervalValue)
                     currentDate = unit switch
                     {
-                        TransactionIntervalType.Days => currentDate.AddDays(rule.TransactionInterval),
-                        TransactionIntervalType.Weeks => currentDate.AddDays(rule.TransactionInterval * 7),
-                        TransactionIntervalType.Months => currentDate.AddMonths(rule.TransactionInterval),
-                        TransactionIntervalType.Years => currentDate.AddYears(rule.TransactionInterval),
+                        TransactionIntervalType.Days => currentDate.AddDays(rule.IntervalValue),
+                        TransactionIntervalType.Weeks => currentDate.AddDays(rule.IntervalValue * 7),
+                        TransactionIntervalType.Months => currentDate.AddMonths(rule.IntervalValue),
+                        TransactionIntervalType.Years => currentDate.AddYears(rule.IntervalValue),
                         _ => currentDate.AddMonths(1)
                     };
                 }
@@ -110,14 +113,8 @@ namespace HomeBudgetManager.Core
 
             // Simple color palette
             string[] colors = [
-                "#124708", // green
-                "#d66d24", // orange
-                "#efc766", // yellow-beige
-                "#005f73", // teal
-                "#ae2012", // red
-                "#94d2bd", // light teal
-                "#e9d8a6", // light beige
-                "#6b705c"  // olive
+                "#124708", "#d66d24", "#efc766", "#005f73",
+                "#ae2012", "#94d2bd", "#e9d8a6", "#6b705c"
             ];
 
             for (int i = 0; i < expenseStats.Count; i++) expenseStats[i].Color = colors[i % colors.Length];
@@ -129,37 +126,34 @@ namespace HomeBudgetManager.Core
         public string GenerateChartsHtml(int userId, DateTime startDate, DateTime endDate, bool includeHousehold = false)
         {
             List<int> userIds = new List<int> { userId };
-            
+
             if (includeHousehold)
             {
-                var user = _db.Users.FirstOrDefault(u => u.Id == userId);
+                // ZMIANA z Users na Employees
+                var user = _db.Employees.FirstOrDefault(u => u.Id == userId);
                 if (user != null && user.CompanyId.HasValue)
                 {
-                    userIds = _db.Users.Where(u => u.CompanyId == user.CompanyId).Select(u => u.Id).ToList();
+                    userIds = _db.Employees.Where(u => u.CompanyId == user.CompanyId).Select(u => u.Id).ToList();
                 }
             }
 
             var (expenses, incomes) = GetStatistics(userIds, startDate, endDate);
             var sb = new StringBuilder();
 
-            // Inject simple tooltip CSS and JS
             sb.Append(GetTooltipAssets());
-
             sb.Append("<div class='charts-container' style='display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px;'>");
-
-            sb.Append(GenerateSingleChartHtml(includeHousehold ? "Wydatki (Domostwo)" : "Wydatki (Moje)", expenses));
-            sb.Append(GenerateSingleChartHtml(includeHousehold ? "Przychody (Domostwo)" : "Przychody (Moje)", incomes));
-
+            sb.Append(GenerateSingleChartHtml(includeHousehold ? "Wydatki (Firma)" : "Wydatki (Moje)", expenses));
+            sb.Append(GenerateSingleChartHtml(includeHousehold ? "Przychody (Firma)" : "Przychody (Moje)", incomes));
             sb.Append("</div>");
             return sb.ToString();
         }
 
         public string GenerateDashboardChartsHtml(int userId)
         {
-             var now = DateTime.Now;
-             var startDate = new DateTime(now.Year, now.Month, 1);
-             var endDate = now.Date.AddDays(1).AddTicks(-1);
-             return GenerateChartsHtml(userId, startDate, endDate, false);
+            var now = DateTime.Now;
+            var startDate = new DateTime(now.Year, now.Month, 1);
+            var endDate = now.Date.AddDays(1).AddTicks(-1);
+            return GenerateChartsHtml(userId, startDate, endDate, false);
         }
 
         private string GetTooltipAssets()
@@ -224,21 +218,19 @@ namespace HomeBudgetManager.Core
                 <div class='pie-chart-wrapper' style='display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 20px;'>
             ");
 
-            // SVG Generation
-            double currentAngle = -90; // Start at top
+            double currentAngle = -90;
             double radius = 100;
             double centerX = 100;
             double centerY = 100;
             var culture = new CultureInfo("pl-PL");
 
             sb.Append($"<svg width='200' height='200' viewBox='0 0 200 200' style='transform: rotate(0deg);'>");
-            
-            // Check if single slice 100%
+
             if (stats.Count == 1)
             {
-                 var stat = stats[0];
-                 string amountStr = stat.TotalAmount.ToString("C2", culture);
-                 sb.Append($"<circle cx='100' cy='100' r='100' fill='{stat.Color}' class='pie-slice' data-name='{stat.CategoryName}' data-value='{amountStr}' data-percent='100' />");
+                var stat = stats[0];
+                string amountStr = stat.TotalAmount.ToString("C2", culture);
+                sb.Append($"<circle cx='100' cy='100' r='100' fill='{stat.Color}' class='pie-slice' data-name='{stat.CategoryName}' data-value='{amountStr}' data-percent='100' />");
             }
             else
             {
@@ -247,25 +239,21 @@ namespace HomeBudgetManager.Core
                     double sliceAngle = (stat.Percentage / 100.0) * 360.0;
                     double x1 = centerX + radius * Math.Cos(currentAngle * Math.PI / 180.0);
                     double y1 = centerY + radius * Math.Sin(currentAngle * Math.PI / 180.0);
-                    
+
                     double endAngle = currentAngle + sliceAngle;
                     double x2 = centerX + radius * Math.Cos(endAngle * Math.PI / 180.0);
                     double y2 = centerY + radius * Math.Sin(endAngle * Math.PI / 180.0);
 
                     int largeArcFlag = sliceAngle > 180 ? 1 : 0;
-                    
-                    // M startX startY A radius radius 0 largeArcFlag 1 endX endY L centerX centerY Z
+
                     string pathData = $"M {x1.ToString(CultureInfo.InvariantCulture)} {y1.ToString(CultureInfo.InvariantCulture)} A {radius} {radius} 0 {largeArcFlag} 1 {x2.ToString(CultureInfo.InvariantCulture)} {y2.ToString(CultureInfo.InvariantCulture)} L {centerX} {centerY} Z";
-                    
                     string amountStr = stat.TotalAmount.ToString("C2", culture);
-                    
+
                     sb.Append($"<path d='{pathData}' fill='{stat.Color}' stroke='white' stroke-width='1' class='pie-slice' data-name='{stat.CategoryName}' data-value='{amountStr}' data-percent='{stat.Percentage:F1}' />");
-                    
                     currentAngle += sliceAngle;
                 }
             }
             sb.Append("</svg>");
-
 
             sb.Append(@"
                     <ul class='chart-legend' style='list-style: none; padding: 0; margin: 0; font-size: 0.9em; max-width: 200px;'>

@@ -13,21 +13,21 @@ namespace HomeBudgetManager.Core
             this.db = db;
         }
 
-        private bool userHasCategory(int userId, string name) {
-            return db.Categories.Any(c => (c.UserId == userId || c.UserId == null) && c.Name.ToLower() == name.ToLower());
+        private bool userHasCategory(int companyId, string name) {
+            return db.Categories.Any(c => (c.CompanyId == companyId || c.CompanyId == null) && c.Name.ToLower() == name.ToLower());
         }
 
         // metoda dodająca nową transakcję dla użytkownika. Zwraca informację o powodzeniu
-        public string addCategory(int userId, string name, string? description)
+        public string addCategory(int companyId, string name, string? description)
         {
-            if (userHasCategory(userId, name))
+            if (userHasCategory(companyId, name))
             {
                 return "Posiadasz już kategorię o tej samej nazwie";
             }
 
             try
             {
-                var newCategory = new DBTransactionCategories { Name = name, Description = description, UserId = userId };
+                var newCategory = new DBTransactionCategories { Name = name, Description = description, CompanyId   = companyId };
                 db.Categories.Add(newCategory);
                 db.SaveChanges();
                 return "Poprawnie dodano kategorię";
@@ -38,10 +38,10 @@ namespace HomeBudgetManager.Core
             }
         }
 
-        public string deleteCategory(int userId, int categoryId)
+        public string deleteCategory(int companyId, int categoryId)
         {
 
-            var category = db.Categories.FirstOrDefault(c => c.UserId == userId);
+            var category = db.Categories.FirstOrDefault(c => c.CompanyId == companyId);
 
             if (category == null) {
 
@@ -60,14 +60,14 @@ namespace HomeBudgetManager.Core
             }
         }
 
-        public List<DBTransactionCategories> listAllUserCategories(int userId)
+        public List<DBTransactionCategories> listAllUserCategories(int companyId)
         {
-            return db.Categories.Where(c => c.UserId == userId || c.UserId == null).OrderByDescending(c => c.UserId).ToList();
+            return db.Categories.Where(c => c.CompanyId == companyId || c.CompanyId== null).OrderByDescending(c => c.CompanyId).ToList();
         }
 
         public string modifyCategory(int userId, int categoryId, string newName, string newDescription)
         {
-            var category = db.Categories.FirstOrDefault(c => c.UserId == userId && c.Id == categoryId);
+            var category = db.Categories.FirstOrDefault(c => c.CompanyId == userId && c.Id == categoryId);
 
             if (category == null)
             {
@@ -83,12 +83,12 @@ namespace HomeBudgetManager.Core
 
         public string addDefaultCategories()
         {
-            var zakupy = new DBTransactionCategories { UserId = null, Name = "Zakupy spożywcze", Description = "Opłaty za codzienne zakupy domowe" };
-            var rachunki = new DBTransactionCategories { UserId = null, Name = "Rachunki", Description = "Opłaty za wodę, gaz, prąd itp." };
-            var transport = new DBTransactionCategories { UserId = null, Name = "Transport", Description = "Opłaty za komunikację miejską lub paliwo" };
-            var finanse = new DBTransactionCategories { UserId = null, Name = "Finanse", Description = "Kategoria dla finansów" };
-            var rozrywka = new DBTransactionCategories {UserId = null, Name = "Rozrywka", Description = "Kategoria dla rozrywki" };
-            var inne = new DBTransactionCategories { UserId = null, Name = "Inne" , Description = "Kategoria dla innych wydatków"};
+            var zakupy = new DBTransactionCategories { CompanyId = null, Name = "Zakupy spożywcze", Description = "Opłaty za codzienne zakupy domowe" };
+            var rachunki = new DBTransactionCategories { CompanyId = null, Name = "Rachunki", Description = "Opłaty za wodę, gaz, prąd itp." };
+            var transport = new DBTransactionCategories { CompanyId = null, Name = "Transport", Description = "Opłaty za komunikację miejską lub paliwo" };
+            var finanse = new DBTransactionCategories { CompanyId = null, Name = "Finanse", Description = "Kategoria dla finansów" };
+            var rozrywka = new DBTransactionCategories {CompanyId = null, Name = "Rozrywka", Description = "Kategoria dla rozrywki" };
+            var inne = new DBTransactionCategories { CompanyId = null, Name = "Inne" , Description = "Kategoria dla innych wydatków"};
 
             List<DBTransactionCategories> categories = new List<DBTransactionCategories> { zakupy, rachunki, transport, finanse, rozrywka, inne };
 
@@ -97,7 +97,7 @@ namespace HomeBudgetManager.Core
 
                 foreach (DBTransactionCategories category in categories)
                 {
-                    if (!db.Categories.Any(c => c.UserId == null && c.Name == category.Name))
+                    if (!db.Categories.Any(c => c.CompanyId  == null && c.Name == category.Name))
                     {
                         db.Categories.Add(category);
                         Console.WriteLine("Dodano domyślną kategorię: ", category.Name);

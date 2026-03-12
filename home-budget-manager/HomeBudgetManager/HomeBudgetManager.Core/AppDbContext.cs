@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using HomeBudgetManager.Core.DBTables;
 
@@ -12,29 +9,38 @@ namespace HomeBudgetManager.Core
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public DbSet<DBCompany> Company { get; set; }
-        public DbSet<DBFinancialOperations> Transactions { get; set; }
+        public DbSet<DBCompany> Companies { get; set; }
+        public DbSet<DBEmployee> Employees { get; set; }
         public DbSet<DBTransactionCategories> Categories { get; set; }
-        public DbSet<DBEmployee> Users { get; set; }
+        public DbSet<DBFinancialOperations> FinancialOperations { get; set; }
+        public DbSet<DBRecurringOperations> RecurringOperations { get; set; }
         public DbSet<DBRole> Roles { get; set; }
 
-        public DbSet<DBRecurringOperations> RepetableTransactions { get; set; }
+        public DbSet<DBContractor> Contractors { get; set; }
+        public DbSet<DBInvoice> Invoices { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<DBEmployee>()
-                .HasOne<DBCompany>() // Fix: Specify the related entity type, not the foreign key property type
+                .HasOne(u => u.Company)
                 .WithMany(h => h.Members)
                 .HasForeignKey(u => u.CompanyId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<DBFinancialOperations>()
-                .HasOne(a => a.RepetableTransaction)
-                .WithOne()
-                .HasForeignKey<DBRecurringOperations>(b => b.TransactionPatternId);
+                .HasOne(a => a.RecurringOperation)
+                .WithOne(b => b.Transaction)
+                .HasForeignKey<DBRecurringOperations>(b => b.TransactionPatternId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // Seed Roles
+            modelBuilder.Entity<DBInvoice>()
+                .HasOne(i => i.Contractor)
+                .WithMany()
+                .HasForeignKey(i => i.ContractorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<DBRole>().HasData(
                 Enum.GetValues(typeof(SystemRole))
                     .Cast<SystemRole>()
@@ -45,6 +51,5 @@ namespace HomeBudgetManager.Core
                     })
             );
         }
-
     }
 }

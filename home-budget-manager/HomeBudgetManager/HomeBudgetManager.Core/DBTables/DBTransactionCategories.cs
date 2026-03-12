@@ -22,7 +22,7 @@ namespace HomeBudgetManager.Core.DBTables
         public int? CompanyId { get; set; } // Nullable, bo systemowe kategorie nie mają usera
 
         [ForeignKey(nameof(CompanyId))]
-        public DBEmployee? Company { get; set; }
+        public DBCompany? Company { get; set; }
 
         [Required]
         [Column("category_name")]

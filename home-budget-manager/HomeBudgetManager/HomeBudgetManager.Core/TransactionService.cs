@@ -27,13 +27,25 @@ namespace HomeBudgetManager.Core
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException("<div clas='error'>" + ex.ToString() + "</div>");
+                throw new InvalidOperationException("<div class='error'>" + ex.ToString() + "</div>");
             }
         }
 
-        public void addTransaction(int userId, int categoryId, decimal value, TransactionType type, DateTime date, bool isRepeatable, int? transactionInterval, string title, string? description,  int? houseId, int? frequencyUnit)
+        // Zmieniono parametr z houseId na companyId
+        public void addTransaction(int userId, int categoryId, decimal value, TransactionType type, DateTime date, bool isRepeatable, int? transactionInterval, string title, string? description, int? companyId, int? frequencyUnit)
         {
-            var newTransaction = new DBFinancialOperations { CompanyId = userId, CategoryId = categoryId, Value = value, TransactionType = type, Date = date, IsRepeatable = isRepeatable, Title = title, Description = description, HouseId = houseId };
+            var newTransaction = new DBFinancialOperations
+            {
+                EmployeeId = userId,         // POPRAWKA: EmployeeId
+                CategoryId = categoryId,
+                Value = value,
+                TransactionType = type,
+                Date = date,
+                IsRepeatable = isRepeatable,
+                Title = title,
+                Description = description,
+                CompanyId = companyId ?? 0   // POPRAWKA: CompanyId (zabezpieczenie przed nullem)
+            };
             db.Add(newTransaction);
             db.SaveChanges();
 
@@ -53,20 +65,15 @@ namespace HomeBudgetManager.Core
                         _ => date.AddMonths(transactionInterval.Value)
                     };
 
+                    // POPRAWKA: Czysta encja cykliczna (bez dublowania tytułu i kategorii)
                     var newRepTransaction = new DBRecurringOperations
                     {
                         TransactionPatternId = newTransaction.Id,
-                        TransactionInterval = transactionInterval.Value,
+                        IntervalValue = transactionInterval.Value,
                         IntervalType = frequencyUnit.Value,
-                        IntervalValue = value,
-                        UserId = userId,
-                        CategoryId = categoryId,
-                        NextRunDate = nextRunDate, 
-                        Title = title, 
-                        Description = description 
+                        NextRunDate = nextRunDate,
+                        IsActive = true
                     };
-
-                    Console.WriteLine($"DEBUG: Adding Recurring Transaction - Title: '{title}', Amount: {value}, NextRun: {nextRunDate}");
 
                     db.Add(newRepTransaction);
                     db.SaveChanges();
@@ -78,9 +85,9 @@ namespace HomeBudgetManager.Core
             }
         }
 
-        public void editTransaction(int transactionId, int categoryId, decimal value, bool isRepeatable, string title, string? description, int? houseId)
+        public void editTransaction(int transactionId, int categoryId, decimal value, bool isRepeatable, string title, string? description, int? companyId)
         {
-            var transaction = db.Transactions.FirstOrDefault(t => t.Id == transactionId);
+            var transaction = db.FinancialOperations.FirstOrDefault(t => t.Id == transactionId);
 
             if (transaction == null)
             {
@@ -92,9 +99,9 @@ namespace HomeBudgetManager.Core
                 description = transaction.Description;
             }
 
-            if (houseId == null)
+            if (companyId.HasValue)
             {
-                houseId = transaction.HouseId;
+                transaction.CompanyId = companyId.Value;
             }
 
             transaction.CategoryId = categoryId;
@@ -102,13 +109,13 @@ namespace HomeBudgetManager.Core
             transaction.IsRepeatable = isRepeatable;
             transaction.Title = title;
             transaction.Description = description;
-            transaction.HouseId = houseId;
             db.SaveChanges();
         }
 
         public void deleteTransaction(int transactionId, int userId)
         {
-            var transaction = db.Transactions.FirstOrDefault(t => t.Id == transactionId && t.CompanyId == userId);
+            // POPRAWKA: t.EmployeeId
+            var transaction = db.FinancialOperations.FirstOrDefault(t => t.Id == transactionId && t.EmployeeId == userId);
 
             if (transaction == null)
             {
@@ -119,9 +126,10 @@ namespace HomeBudgetManager.Core
             {
                 db.Remove(transaction);
                 db.SaveChanges();
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
-                throw new InvalidOperationException("<div class='error>" + ex.Message + "</div>");
+                throw new InvalidOperationException("<div class='error'>" + ex.Message + "</div>");
             }
         }
 
@@ -131,17 +139,16 @@ namespace HomeBudgetManager.Core
 
             foreach (var t in transactions)
             {
-                string date = t.Date.ToString("yyyy-MM-dd"); // Use ISO format for JS
+                string date = t.Date.ToString("yyyy-MM-dd");
                 string displayDate = t.Date.ToString("dd.MM.yyyy");
                 string amount = t.Value.ToString("C2", new System.Globalization.CultureInfo("pl-PL"));
                 string colorClass = t.Value < 0 ? "amount-expense" : "amount-income";
                 var category = db.Categories.FirstOrDefault(c => c.Id == t.CategoryId);
-                
+
                 string safeDescription = (t.Description ?? "").Replace("\"", "&quot;").Replace("'", "\\'").Replace("\r", "").Replace("\n", " ");
                 string safeTitle = (t.Title ?? "Bez tytułu").Replace("\"", "&quot;").Replace("'", "\\'").Replace("\r", "").Replace("\n", " ");
 
                 sb.Append($"""
-
                     <li class="transaction-item" onclick="openDashboardTransactionDetails({t.Id}, '{t.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}', '{safeTitle}', '{safeDescription}', '{date}')" style="cursor: pointer;">
                         <div class="transaction-info">
                              <div class="transaction-title">{safeTitle}</div>
@@ -162,22 +169,24 @@ namespace HomeBudgetManager.Core
 
         public List<DBFinancialOperations> AllUserTransactions(int userId)
         {
-            return db.Transactions.Where(t => t.CompanyId == userId).OrderByDescending(t => t.Date).ToList();
+            // POPRAWKA: t.EmployeeId zamians CompanyId/UserId
+            return db.FinancialOperations.Where(t => t.EmployeeId == userId).OrderByDescending(t => t.Date).ToList();
         }
 
         public List<DBFinancialOperations> SomeUserTransactions(int userId, int amount)
         {
-            return db.Transactions.Where(t => t.CompanyId == userId && t.Date <= DateTime.Now).OrderByDescending(t => t.Date).Take(amount).ToList();
+            // POPRAWKA: t.EmployeeId
+            return db.FinancialOperations.Where(t => t.EmployeeId == userId && t.Date <= DateTime.Now).OrderByDescending(t => t.Date).Take(amount).ToList();
         }
 
-        public List<DBFinancialOperations> allHouseTransactions(int houseId)
+        public List<DBFinancialOperations> allCompanyTransactions(int companyId)
         {
-            return db.Transactions.Where(t => t.HouseId == houseId).OrderByDescending(t => t.Date).ToList();
+            return db.FinancialOperations.Where(t => t.CompanyId == companyId).OrderByDescending(t => t.Date).ToList();
         }
 
-        public List<DBFinancialOperations> someHouseTransactions(int houseId, int amount)
+        public List<DBFinancialOperations> someCompanyTransactions(int companyId, int amount)
         {
-            return db.Transactions.Where(t => t.HouseId == houseId).OrderByDescending(t => t.Date).ToList();
+            return db.FinancialOperations.Where(t => t.CompanyId == companyId).OrderByDescending(t => t.Date).Take(amount).ToList();
         }
     }
 }
