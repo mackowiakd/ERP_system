@@ -134,3 +134,4 @@ secrets.json
 
 *bin/*
 *Migrations/*
+*net9.0
