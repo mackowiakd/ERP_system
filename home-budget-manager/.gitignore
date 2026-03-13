@@ -130,3 +130,7 @@ secrets.json
 *.db
 *.db-shm
 *.db-wal
+
+
+*bin/*
+*Migrations/*
