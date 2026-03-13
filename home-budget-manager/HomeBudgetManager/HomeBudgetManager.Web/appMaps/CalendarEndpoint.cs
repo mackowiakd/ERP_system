@@ -15,7 +15,7 @@ namespace HomeBudgetManager.Web.appMaps
                     return Results.Redirect("/");
 
                 var userId = int.Parse(context.Request.Cookies["user_id"]);
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
 
                 if (user == null)
                 {
@@ -42,30 +42,30 @@ namespace HomeBudgetManager.Web.appMaps
                 if (!context.Request.Cookies.ContainsKey("logged_user"))
                     return Results.Unauthorized();
                 var userId = int.Parse(context.Request.Cookies["user_id"]);
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
 
                 var username = context.Request.Cookies["logged_user"];
                 if (user == null)
                     return Results.Unauthorized();
 
-                List<int> userIds = new List<int>();
+                List<int> employeeIds = new List<int>();
                 if (user.CompanyId.HasValue)
                 {
-                    userIds = await db.Users
+                    employeeIds = await db.Employees
                         .Where(u => u.CompanyId == user.CompanyId.Value)
                         .Select(u => u.Id)
                         .ToListAsync();
                 }
                 else
                 {
-                    userIds.Add(user.Id);
+                    employeeIds.Add(user.Id);
                 }
 
                 List<dynamic> transactions = new List<dynamic>();
 
-                var regularTransactions = await db.Transactions
-                    .Include(t => t.User) // Include User to get Login
-                    .Where(t => userIds.Contains(t.CompanyId))
+                var regularTransactions = await db.FinancialOperations
+                    .Include(t => t.Employee) // Include Employee to get Login
+                    .Where(t => employeeIds.Contains(t.EmployeeId))
                     .OrderBy(t => t.Date) // Sort by date/time
                     .Select(t => new
                     {
@@ -84,41 +84,41 @@ namespace HomeBudgetManager.Web.appMaps
 
                 transactions.AddRange(regularTransactions);
 
-                var repetableTransactions = await db.RepetableTransactions
-                    .Include(rt => rt.User)
+                var recurringOperations = await db.RecurringOperations
                     .Include(rt => rt.Transaction)
-                    .Where(rt => userIds.Contains(rt.UserId) && rt.IsActive)
+                    .ThenInclude(t => t.Employee)
+                    .Where(rt => rt.Transaction != null && employeeIds.Contains(rt.Transaction.EmployeeId) && rt.IsActive)
                     .ToListAsync();
 
-                foreach (var rt in repetableTransactions)
+                foreach (var rt in recurringOperations)
                 {
-                    var baseTitle = !string.IsNullOrWhiteSpace(rt.Title) 
-                        ? rt.Title 
-                        : (!string.IsNullOrWhiteSpace(rt.Transaction?.Title) ? rt.Transaction.Title : "Brak tytułu");
+                    if (rt.Transaction == null) continue;
+
+                    var baseTitle = !string.IsNullOrWhiteSpace(rt.Transaction.Title) ? rt.Transaction.Title : "Brak tytułu";
 
                     var nextDate = rt.NextRunDate;
                     for (int i = 0; i < 12; i++) // Generate next 12 occurrences
                     {
                         transactions.Add(new
                         {
-                            id = rt.TransactionId.ToString(),
+                            id = rt.TransactionPatternId.ToString(),
                             title = $"Cykliczna: {baseTitle}",
                             startTime = nextDate.ToString("yyyy-MM-ddTHH:mm:ss"),
                             endTime = nextDate.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
-                            amount = rt.IntervalValue,
-                            description = rt.Description ?? "",
-                            categoryId = rt.CategoryId,
+                            amount = rt.Transaction.Value,
+                            description = rt.Transaction.Description ?? "",
+                            categoryId = rt.Transaction.CategoryId,
                             color = "#f6c23e", // Yellow for recurring
                             reminder = false,
                             isRecurring = true
                         });
 
-                        nextDate = rt.FrequencyUnit switch
+                        nextDate = rt.IntervalType switch
                         {
-                            0 => nextDate.AddDays(rt.TransactionInterval),
-                            1 => nextDate.AddDays(rt.TransactionInterval * 7), // Weeks
-                            2 => nextDate.AddMonths(rt.TransactionInterval),   // Months
-                            3 => nextDate.AddYears(rt.TransactionInterval),    // Years
+                            0 => nextDate.AddDays(rt.IntervalValue),
+                            1 => nextDate.AddDays(rt.IntervalValue * 7), // Weeks
+                            2 => nextDate.AddMonths(rt.IntervalValue),   // Months
+                            3 => nextDate.AddYears(rt.IntervalValue),    // Years
                             _ => nextDate.AddMonths(1),
                         };
                     }

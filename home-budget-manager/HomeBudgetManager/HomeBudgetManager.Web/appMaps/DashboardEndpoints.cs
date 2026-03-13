@@ -13,7 +13,7 @@ namespace HomeBudgetManager.Web.appMaps
             {
                 // check login status
                 var userId = int.Parse(context.Request.Cookies["user_id"]);
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
 
 
 
@@ -25,7 +25,7 @@ namespace HomeBudgetManager.Web.appMaps
                 }
 
                 
-                var balance = await db.Transactions
+                var balance = await db.FinancialOperations
                                     .Where(t => t.CompanyId == user.Id)
                                     .SumAsync(t => t.Value);
                 

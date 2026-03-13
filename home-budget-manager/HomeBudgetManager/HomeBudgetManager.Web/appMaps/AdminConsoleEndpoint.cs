@@ -16,7 +16,7 @@ namespace HomeBudgetManager.Web.appMaps
                 var username = context.Request.Cookies["logged_user"].ToString();
                 
                 // Fetch user
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == username);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == username);
                 
                 if (user == null)
                     return Results.Redirect("/");
@@ -54,7 +54,7 @@ namespace HomeBudgetManager.Web.appMaps
                 if (!context.Request.Cookies.TryGetValue("logged_user", out var username)) 
                     return Results.Content("<div class='error-msg'>Brak sesji.</div>");
 
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == username);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == username);
                 if (user == null || user.Role != SystemRole.SystemAdmin) 
                     return Results.Content("<div class='error-msg'>Brak uprawnień administratora.</div>");
 

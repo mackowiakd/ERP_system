@@ -17,7 +17,7 @@ namespace HomeBudgetManager.Web.appMaps
                     return Results.Content("<div class='error'>Błąd: użytkownik niezalogowany.</div>", "text/html");
                 }
 
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == login);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == login);
                 if (user == null)
                 {
                     return Results.Content("<div class='error'>Błąd: użytkownik nie istnieje.</div>", "text/html");
@@ -28,7 +28,7 @@ namespace HomeBudgetManager.Web.appMaps
                 }
 
                 // load household
-                var house = await db.Houses.FirstOrDefaultAsync(h => h.Id == user.CompanyId);
+                var house = await db.Companies.FirstOrDefaultAsync(h => h.Id == user.CompanyId);
                 if (house == null)
                 {
                     return Results.Content("<div class='error'>Domostwo nie istnieje.</div>", "text/html");
@@ -37,18 +37,15 @@ namespace HomeBudgetManager.Web.appMaps
                 // check if user is admin
                 if (user.Id == house.CompanyAdminId)
                 {
-                    // set household id to null
-                    var houseTransactions = await db.Transactions
-                        .Where(t => t.HouseId == house.Id)
+                    // delete all transactions for this company
+                    var houseTransactions = await db.FinancialOperations
+                        .Where(t => t.CompanyId == house.Id)
                         .ToListAsync();
 
-                    foreach (var t in houseTransactions)
-                    {
-                        t.HouseId = null;
-                    }
+                    db.FinancialOperations.RemoveRange(houseTransactions);
 
                     // reset for all members
-                    var members = await db.Users.Where(u => u.CompanyId == house.Id).ToListAsync();
+                    var members = await db.Employees.Where(u => u.CompanyId == house.Id).ToListAsync();
                     foreach (var member in members)
                     {
                         member.CompanyId = null;
@@ -59,7 +56,7 @@ namespace HomeBudgetManager.Web.appMaps
                     }
 
                     // delete household
-                    db.Houses.Remove(house);
+                    db.Companies.Remove(house);
                     await db.SaveChangesAsync();
 
                     return Results.Content(@"
@@ -88,10 +85,10 @@ namespace HomeBudgetManager.Web.appMaps
                     await db.SaveChangesAsync();
 
                     // if house empty -> delete it
-                    bool anyLeft = await db.Users.AnyAsync(u => u.CompanyId == houseId);
+                    bool anyLeft = await db.Employees.AnyAsync(u => u.CompanyId == houseId);
                     if (!anyLeft)
                     {
-                        db.Houses.Remove(house);
+                        db.Companies.Remove(house);
                         await db.SaveChangesAsync();
                     }
 

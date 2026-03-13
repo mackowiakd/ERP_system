@@ -27,15 +27,15 @@ namespace HomeBudgetManager.Tests
                     Login = "TestUser",
                     Email = "t@t.com",
                     Password = "x",
-                    Role = SystemRole.HouseholdAdmin,
+                    Role = SystemRole.CompanyAdmin,
                     CompanyId = null
                 };
-                db.Users.Add(user);
+                db.Employees.Add(user);
 
                 var cat = new DBTransactionCategories { Id = 1, Name = "General", UserId = 1 };
                 db.Categories.Add(cat);
 
-                db.Transactions.AddRange(
+                db.FinancialOperations.AddRange(
                     new DBFinancialOperations
                     {
                         Id = 1,
@@ -67,7 +67,7 @@ namespace HomeBudgetManager.Tests
             {
                 // To jest kopia logiki z Twojego pliku CalendarEndpoint.cs
                 // Testujemy, czy ta logika poprawnie przygotowuje dane dla JavaScriptu
-                var events = await db.Transactions
+                var events = await db.FinancialOperations
                     .Include(t => t.User)
                     .Where(t => t.CompanyId == 1)
                     .OrderBy(t => t.Date)

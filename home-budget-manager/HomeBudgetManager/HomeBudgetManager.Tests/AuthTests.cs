@@ -30,7 +30,7 @@ namespace HomeBudgetManager.Tests
             // ASSERT - Sprawdzamy w nowym kontekście czy user istnieje
             using (var db = new AppDbContext(options))
             {
-                var user = db.Users.FirstOrDefault(u => u.Email == "nowy@test.pl");
+                var user = db.Employees.FirstOrDefault(u => u.Email == "nowy@test.pl");
 
                 Assert.NotNull(user); // Musi istnieć
                 Assert.Equal("NowyUser", user.Login);

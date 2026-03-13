@@ -28,7 +28,7 @@ namespace HomeBudgetManager.Web.Services
 
                         // 1. Pobierz definicje, których czas nadszedł (NextRunDate <= Teraz) i są aktywne
                         // Include(t => t.Transaction) jest kluczowe, żeby pobrać dane wzorca (kwotę, kategorię itp.)
-                        var tasksToRun = await db.RepetableTransactions
+                        var tasksToRun = await db.RecurringOperations
                             .Include(rt => rt.Transaction)
                             .Where(rt => rt.IsActive && rt.NextRunDate <= DateTime.Now)
                             .ToListAsync(stoppingToken);
@@ -41,23 +41,23 @@ namespace HomeBudgetManager.Web.Services
                             var newTransaction = new DBFinancialOperations
                             {
                                 CompanyId = rule.Transaction.CompanyId,
+                                EmployeeId = rule.Transaction.EmployeeId,
                                 CategoryId = rule.Transaction.CategoryId,
-                                HouseId = rule.Transaction.HouseId,
                                 Value = rule.Transaction.Value,
                                 TransactionType = rule.Transaction.TransactionType,
                                 Title = rule.Transaction.Title,
                                 Description = rule.Transaction.Description + " (Auto)",
                                 Date = rule.NextRunDate, // Data transakcji to data planowana
                                 IsRepeatable = false, // Nowa transakcja nie jest szablonem!
-                                RepetableTransaction = null
+                                RecurringOperation = null
                             };
 
-                            db.Transactions.Add(newTransaction);
+                            db.FinancialOperations.Add(newTransaction);
 
                             // 3. Oblicz następną datę wykonania
-                            rule.NextRunDate = CalculateNextDate(rule.NextRunDate, rule.TransactionInterval, (TransactionIntervalType)rule.IntervalType);
+                            rule.NextRunDate = CalculateNextDate(rule.NextRunDate, rule.IntervalValue, (TransactionIntervalType)rule.IntervalType);
                             
-                            _logger.LogInformation($"Wygenerowano transakcję cykliczną dla User ID: {rule.Transaction.CompanyId}");
+                            _logger.LogInformation($"Wygenerowano transakcję cykliczną dla Employee ID: {rule.Transaction.EmployeeId}");
                         }
 
                         if (tasksToRun.Any())

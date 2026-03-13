@@ -29,7 +29,7 @@ namespace HomeBudgetManager.Core.DBTables
         public required int CompanyId { get; set; }
 
         [ForeignKey(nameof(CompanyId))]
-        public DBEmployee? Company { get; set; }
+        public DBCompany? Company { get; set; }
 
         [Column("employee_id")]
         public required int EmployeeId { get; set; }
@@ -64,7 +64,7 @@ namespace HomeBudgetManager.Core.DBTables
         [Column("transaction_is_repeatable")]
         public bool IsRepeatable { get; set; }
 
-        public virtual DBRecurringOperations? RepetableTransaction { get; set; }
+        public virtual DBRecurringOperations? RecurringOperation { get; set; }
 
         // --- NOWOŚĆ: Relacja do faktury ---
         [Column("invoice_id")]

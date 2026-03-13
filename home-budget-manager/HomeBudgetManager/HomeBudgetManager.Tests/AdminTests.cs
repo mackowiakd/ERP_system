@@ -65,7 +65,7 @@ namespace HomeBudgetManager.Tests
                     CompanyId = null
                 };
 
-                db.Users.AddRange(admin, victim);
+                db.Employees.AddRange(admin, victim);
                 await db.SaveChangesAsync();
             }
 
@@ -73,12 +73,12 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // 1. CompanyAdmin szuka usera
-                var targetUser = await db.Users.FirstOrDefaultAsync(u => u.Login == "DoUsunięcia");
+                var targetUser = await db.Employees.FirstOrDefaultAsync(u => u.Login == "DoUsunięcia");
 
                 // 2. CompanyAdmin go usuwa
                 if (targetUser != null)
                 {
-                    db.Users.Remove(targetUser);
+                    db.Employees.Remove(targetUser);
                     await db.SaveChangesAsync();
                 }
             }
@@ -86,8 +86,8 @@ namespace HomeBudgetManager.Tests
             // ASSERT - Sprawdzamy czy ofiara zniknęła
             using (var db = new AppDbContext(options))
             {
-                var deletedUser = await db.Users.FirstOrDefaultAsync(u => u.Login == "DoUsunięcia");
-                var adminUser = await db.Users.FirstOrDefaultAsync(u => u.Login == "Szef");
+                var deletedUser = await db.Employees.FirstOrDefaultAsync(u => u.Login == "DoUsunięcia");
+                var adminUser = await db.Employees.FirstOrDefaultAsync(u => u.Login == "Szef");
 
                 Assert.Null(deletedUser); // Sukces: Usera nie ma!
                 Assert.NotNull(adminUser); // Sukces: CompanyAdmin nadal jest.

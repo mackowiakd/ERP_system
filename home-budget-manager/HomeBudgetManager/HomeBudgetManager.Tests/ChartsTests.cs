@@ -21,7 +21,7 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // Dodajemy Usera
-                db.Users.Add(new DBEmployee { Id = 1, Login = "Kass", Email = "k@k.pl", Password = "123", Role = SystemRole.Guest, CompanyId = null });
+                db.Employees.Add(new DBEmployee { Id = 1, Login = "Kass", Email = "k@k.pl", Password = "123", Role = SystemRole.Guest, CompanyId = null });
 
                 // Dodajemy Kategorie
                 var catFood = new DBTransactionCategories { Id = 1, Name = "Jedzenie", UserId = 1 };
@@ -29,7 +29,7 @@ namespace HomeBudgetManager.Tests
                 db.Categories.AddRange(catFood, catFuel);
 
                 // Dodajemy Transakcje (W tym miesiącu)
-                db.Transactions.AddRange(
+                db.FinancialOperations.AddRange(
                     // 2x Jedzenie po 50zł = 100zł
                     new DBFinancialOperations { CompanyId = 1, CategoryId = 1, Value = -50m, TransactionType = TransactionType.expense, Date = DateTime.Now, Title = "Obiad" },
                     new DBFinancialOperations { CompanyId = 1, CategoryId = 1, Value = -50m, TransactionType = TransactionType.expense, Date = DateTime.Now, Title = "Kolacja" },
@@ -39,7 +39,7 @@ namespace HomeBudgetManager.Tests
                 );
 
                 // Dodajemy transakcję spoza zakresu (STARY ROK) - nie powinna być policzona!
-                db.Transactions.Add(
+                db.FinancialOperations.Add(
                     new DBFinancialOperations { CompanyId = 1, CategoryId = 1, Value = -999m, TransactionType = TransactionType.expense, Date = DateTime.Now.AddYears(-2), Title = "Stare" }
                 );
 

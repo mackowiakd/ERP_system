@@ -31,14 +31,14 @@ namespace HomeBudgetManager.Tests
                     Role = SystemRole.Guest, // Zmieniono z User na Guest
                     CompanyId = null
                 };
-                db.Users.Add(user);
+                db.Employees.Add(user);
 
                 // Tworzymy Kategorię
                 var cat = new DBTransactionCategories { Id = 10, Name = "Praca", UserId = 1 };
                 db.Categories.Add(cat);
 
                 // Tworzymy Transakcję
-                db.Transactions.Add(new DBFinancialOperations
+                db.FinancialOperations.Add(new DBFinancialOperations
                 {
                     Id = 100,
                     CompanyId = 1,
@@ -57,7 +57,7 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // To jest logika wyjęta z CalendarEndpoint.cs
-                var transactions = db.Transactions
+                var transactions = db.FinancialOperations
                     .Where(t => t.CompanyId == 1)
                     .OrderBy(t => t.Date)
                     .ToList();

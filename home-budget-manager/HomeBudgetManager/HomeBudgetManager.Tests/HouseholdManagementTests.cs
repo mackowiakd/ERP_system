@@ -22,10 +22,10 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 var house = new DBEmployee { Id = 10, Name = "Dom", JoinCode = "A", CompanyAdminId = 99 };
-                db.Houses.Add(house);
+                db.Companies.Add(house);
 
                 // Zwykły członek (Guest)
-                db.Users.Add(new DBEmployee
+                db.Employees.Add(new DBEmployee
                 {
                     Id = 1,
                     Login = "Kuzyn",
@@ -36,13 +36,13 @@ namespace HomeBudgetManager.Tests
                 });
 
                 // CompanyAdmin (żeby dom nie był pusty)
-                db.Users.Add(new DBEmployee
+                db.Employees.Add(new DBEmployee
                 {
                     Id = 99,
                     Login = "Szef",
                     Email = "a@a.com",
                     Password = "123",
-                    Role = SystemRole.HouseholdAdmin,
+                    Role = SystemRole.CompanyAdmin,
                     CompanyId = 10
                 });
 
@@ -52,7 +52,7 @@ namespace HomeBudgetManager.Tests
             // ACT - Symulacja logiki z LeaveHouseholdEndpoint.cs (blok else)
             using (var db = new AppDbContext(options))
             {
-                var user = await db.Users.FirstAsync(u => u.Id == 1); // Kuzyn
+                var user = await db.Employees.FirstAsync(u => u.Id == 1); // Kuzyn
 
                 // Logika wyjęta z pliku:
                 user.CompanyId = null;
@@ -63,8 +63,8 @@ namespace HomeBudgetManager.Tests
             // ASSERT
             using (var db = new AppDbContext(options))
             {
-                var user = await db.Users.FirstAsync(u => u.Id == 1);
-                var house = await db.Houses.FirstOrDefaultAsync(h => h.Id == 10);
+                var user = await db.Employees.FirstAsync(u => u.Id == 1);
+                var house = await db.Companies.FirstOrDefaultAsync(h => h.Id == 10);
 
                 Assert.Null(user.CompanyId); // Już nie ma domu
                 Assert.NotNull(house);     // Ale dom nadal stoi (bo został CompanyAdmin)
@@ -84,21 +84,21 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 var house = new DBEmployee { Id = 20, Name = "Dom Admina", JoinCode = "B", CompanyAdminId = 1 };
-                db.Houses.Add(house);
+                db.Companies.Add(house);
 
                 // CompanyAdmin
-                db.Users.Add(new DBEmployee
+                db.Employees.Add(new DBEmployee
                 {
                     Id = 1,
                     Login = "Szef",
                     Email = "s@s.com",
                     Password = "123",
-                    Role = SystemRole.HouseholdAdmin,
+                    Role = SystemRole.CompanyAdmin,
                     CompanyId = 20
                 });
 
                 // Członek
-                db.Users.Add(new DBEmployee
+                db.Employees.Add(new DBEmployee
                 {
                     Id = 2,
                     Login = "Członek",
@@ -114,24 +114,24 @@ namespace HomeBudgetManager.Tests
             // ACT - Symulacja logiki Admina (if user.Role == HouseholdAdmin)
             using (var db = new AppDbContext(options))
             {
-                var house = await db.Houses.FirstAsync(h => h.Id == 20);
+                var house = await db.Companies.FirstAsync(h => h.Id == 20);
 
                 // Logika: Reset dla wszystkich i usunięcie domu
-                var members = await db.Users.Where(u => u.CompanyId == house.Id).ToListAsync();
+                var members = await db.Employees.Where(u => u.CompanyId == house.Id).ToListAsync();
                 foreach (var member in members)
                 {
                     member.CompanyId = null;
                     member.Role = SystemRole.Guest;
                 }
-                db.Houses.Remove(house);
+                db.Companies.Remove(house);
                 await db.SaveChangesAsync();
             }
 
             // ASSERT
             using (var db = new AppDbContext(options))
             {
-                var house = await db.Houses.FirstOrDefaultAsync(h => h.Id == 20);
-                var member = await db.Users.FirstAsync(u => u.Id == 2);
+                var house = await db.Companies.FirstOrDefaultAsync(h => h.Id == 20);
+                var member = await db.Employees.FirstAsync(u => u.Id == 2);
 
                 Assert.Null(house);        // Dom powinien zniknąć!
                 Assert.Null(member.CompanyId); // Członek powinien zostać "uwolniony"
@@ -149,10 +149,10 @@ namespace HomeBudgetManager.Tests
 
             using (var db = new AppDbContext(options))
             {
-                db.Houses.Add(new DBEmployee { Id = 30, Name = "Twierdza", JoinCode = "C", CompanyAdminId = 1 });
+                db.Companies.Add(new DBEmployee { Id = 30, Name = "Twierdza", JoinCode = "C", CompanyAdminId = 1 });
 
                 // Ofiara
-                db.Users.Add(new DBEmployee
+                db.Employees.Add(new DBEmployee
                 {
                     Id = 5,
                     Login = "Niechciany",
@@ -167,7 +167,7 @@ namespace HomeBudgetManager.Tests
             // ACT - Symulacja endpointu /remove-member
             using (var db = new AppDbContext(options))
             {
-                var targetUser = await db.Users.FirstAsync(u => u.Id == 5);
+                var targetUser = await db.Employees.FirstAsync(u => u.Id == 5);
 
                 // Logika: Usuń użytkownika (zresetuj dom i rolę)
                 targetUser.CompanyId = null;
@@ -178,7 +178,7 @@ namespace HomeBudgetManager.Tests
             // ASSERT
             using (var db = new AppDbContext(options))
             {
-                var user = await db.Users.FirstAsync(u => u.Id == 5);
+                var user = await db.Employees.FirstAsync(u => u.Id == 5);
                 Assert.Null(user.CompanyId); // Wyrzucony!
             }
         }

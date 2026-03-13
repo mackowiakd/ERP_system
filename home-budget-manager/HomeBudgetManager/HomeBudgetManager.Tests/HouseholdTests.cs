@@ -22,7 +22,7 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // Mamy użytkownika "bezdomnego" (Guest)
-                db.Users.Add(new DBEmployee
+                db.Employees.Add(new DBEmployee
                 {
                     Id = 1,
                     Login = "Ojciec",
@@ -37,7 +37,7 @@ namespace HomeBudgetManager.Tests
             // ACT - Wykonujemy logikę żywcem wyjętą z CreateHouseholdEndpoint.cs
             using (var db = new AppDbContext(options))
             {
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == 1);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == 1);
 
                 // Logika z endpointu:
                 var house = new DBEmployee
@@ -50,12 +50,12 @@ namespace HomeBudgetManager.Tests
                     JoinCode = "ABCDEF"
                 };
 
-                db.Houses.Add(house);
+                db.Companies.Add(house);
                 await db.SaveChangesAsync(); // Zapis domu, żeby dostał ID
 
                 // Aktualizacja usera (to co robi endpoint)
                 user.CompanyId = house.Id;
-                user.Role = SystemRole.HouseholdAdmin;
+                user.Role = SystemRole.CompanyAdmin;
 
                 await db.SaveChangesAsync();
             }
@@ -63,8 +63,8 @@ namespace HomeBudgetManager.Tests
             // ASSERT - Sprawdzamy czy baza wygląda tak, jak powinna
             using (var db = new AppDbContext(options))
             {
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == 1);
-                var house = await db.Houses.FirstOrDefaultAsync();
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == 1);
+                var house = await db.Companies.FirstOrDefaultAsync();
 
                 Assert.NotNull(house);
                 Assert.Equal("Nasza Chata", house.Name);
@@ -73,7 +73,7 @@ namespace HomeBudgetManager.Tests
                 Assert.Equal(house.Id, user.CompanyId);
 
                 // Czy User awansował na Admina Domu?
-                Assert.Equal(SystemRole.HouseholdAdmin, user.Role);
+                Assert.Equal(SystemRole.CompanyAdmin, user.Role);
             }
         }
 
@@ -92,10 +92,10 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // Tworzymy istniejący dom
-                db.Houses.Add(new DBEmployee { Id = 99, Name = "Dom Istniejący", JoinCode = secretCode });
+                db.Companies.Add(new DBEmployee { Id = 99, Name = "Dom Istniejący", JoinCode = secretCode });
 
                 // Tworzymy usera, który chce dołączyć
-                db.Users.Add(new DBEmployee
+                db.Employees.Add(new DBEmployee
                 {
                     Id = 2,
                     Login = "Syn",
@@ -111,8 +111,8 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // Szukamy domu po kodzie
-                var house = await db.Houses.FirstOrDefaultAsync(h => h.JoinCode == secretCode);
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == 2);
+                var house = await db.Companies.FirstOrDefaultAsync(h => h.JoinCode == secretCode);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == 2);
 
                 if (house != null && user != null)
                 {
@@ -125,7 +125,7 @@ namespace HomeBudgetManager.Tests
             // ASSERT
             using (var db = new AppDbContext(options))
             {
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == 2);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == 2);
                 Assert.Equal(99, user.CompanyId); // Czy trafił do dobrego domu?
             }
         }

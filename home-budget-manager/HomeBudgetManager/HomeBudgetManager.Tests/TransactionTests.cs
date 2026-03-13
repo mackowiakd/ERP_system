@@ -21,7 +21,7 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // Musimy mieć Usera i Kategorię
-                db.Users.Add(new DBEmployee
+                db.Employees.Add(new DBEmployee
                 {
                     Id = 1,
                     Login = "Tomek",
@@ -46,7 +46,7 @@ namespace HomeBudgetManager.Tests
             // ASSERT
             using (var db = new AppDbContext(options))
             {
-                var trans = db.Transactions.FirstOrDefault();
+                var trans = db.FinancialOperations.FirstOrDefault();
 
                 Assert.NotNull(trans);
                 Assert.Equal(50.00m, trans.Value);
@@ -68,7 +68,7 @@ namespace HomeBudgetManager.Tests
             using (var db = new AppDbContext(options))
             {
                 // UWAGA: CompanyId i CategoryId są REQUIRED w Twoim kodzie DBFinancialOperations.cs
-                db.Transactions.Add(new DBFinancialOperations
+                db.FinancialOperations.Add(new DBFinancialOperations
                 {
                     Id = 100,
                     CompanyId = 1,      // Wymagane!
@@ -92,7 +92,7 @@ namespace HomeBudgetManager.Tests
             // ASSERT
             using (var db = new AppDbContext(options))
             {
-                var trans = db.Transactions.FirstOrDefault(t => t.Id == 100);
+                var trans = db.FinancialOperations.FirstOrDefault(t => t.Id == 100);
                 Assert.Null(trans);
             }
         }
@@ -108,7 +108,7 @@ namespace HomeBudgetManager.Tests
 
             using (var db = new AppDbContext(options))
             {
-                db.Transactions.Add(new DBFinancialOperations
+                db.FinancialOperations.Add(new DBFinancialOperations
                 {
                     Id = 200,
                     CompanyId = 1,
@@ -137,7 +137,7 @@ namespace HomeBudgetManager.Tests
                 // Uwaga: Jeśli test tu padnie, to znaczy, że wykryłeś buga w kodzie programisty w TransactionService.cs 
                 // (linia 'transaction = new DBFinancialOperations...' w editTransaction może nie zapisywać zmian w EF Core).
                 // Ale spróbujmy!
-                var trans = db.Transactions.First(t => t.Id == 200);
+                var trans = db.FinancialOperations.First(t => t.Id == 200);
 
                 // Zakomentuj asercję poniżej, jeśli kod developera jest zbugowany i nie chcesz się teraz tym martwić
                 // Assert.Equal(999m, trans.IntervalValue); 

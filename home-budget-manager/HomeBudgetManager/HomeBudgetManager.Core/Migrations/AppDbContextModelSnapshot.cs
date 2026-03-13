@@ -17,31 +17,19 @@ namespace HomeBudgetManager.Core.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.11");
 
-            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBTransactionCategories", b =>
+            modelBuilder.Entity("DBContractorDBInvoice", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("category_id");
+                    b.Property<int>("InvoicesId")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<string>("Description")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("category_description");
+                    b.Property<int>("RelatedContractorInvoicesId")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnName("category_name");
+                    b.HasKey("InvoicesId", "RelatedContractorInvoicesId");
 
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("user_id");
+                    b.HasIndex("RelatedContractorInvoicesId");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId");
-
-                    b.ToTable("categories");
+                    b.ToTable("DBContractorDBInvoice");
                 });
 
             modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBCompany", b =>
@@ -49,36 +37,113 @@ namespace HomeBudgetManager.Core.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
-                        .HasColumnName("house_id");
+                        .HasColumnName("company_id");
 
                     b.Property<int>("CompanyAdminId")
                         .HasColumnType("INTEGER")
-                        .HasColumnName("house_admin_id");
+                        .HasColumnName("company_admin_id");
 
                     b.Property<string>("Description")
                         .HasColumnType("TEXT")
-                        .HasColumnName("house_description");
+                        .HasColumnName("company_description");
 
                     b.Property<string>("JoinCode")
                         .IsRequired()
                         .HasColumnType("TEXT")
-                        .HasColumnName("house_join_code");
+                        .HasColumnName("company_join_code");
+
+                    b.Property<string>("NIP")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("company_nip");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT")
-                        .HasColumnName("house_name");
+                        .HasColumnName("company_name");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyAdminId");
 
-                    b.ToTable("houses");
+                    b.ToTable("company");
                 });
 
-            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBRecurringOperations", b =>
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBContractor", b =>
                 {
-                    b.Property<int>("TransactionPatternId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("contractor_id");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("company_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("contractor_name");
+
+                    b.Property<string>("TaxId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("contractor_tax_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("contractors");
+                });
+
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBEmployee", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("employee_id");
+
+                    b.Property<int?>("CompanyId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("employee_company_id");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("employee_email");
+
+                    b.Property<string>("Login")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("employee_login");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("employee_password");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("employee_role");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Employees");
+                });
+
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBFinancialOperations", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasColumnName("transaction_id");
 
@@ -86,21 +151,29 @@ namespace HomeBudgetManager.Core.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("category_id");
 
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("transaction_date");
+
                     b.Property<string>("Description")
                         .HasColumnType("TEXT")
-                        .HasColumnName("description");
+                        .HasColumnName("transaction_description");
 
-                    b.Property<int>("IntervalType")
+                    b.Property<int>("EmployeeId")
                         .HasColumnType("INTEGER")
-                        .HasColumnName("frequency_unit");
+                        .HasColumnName("employee_id");
 
-                    b.Property<bool>("IsActive")
+                    b.Property<int?>("InvoiceId")
                         .HasColumnType("INTEGER")
-                        .HasColumnName("is_active");
+                        .HasColumnName("invoice_id");
 
-                    b.Property<DateTime>("NextRunDate")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("next_run_date");
+                    b.Property<bool>("IsRepeatable")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("transaction_is_repeatable");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -108,28 +181,107 @@ namespace HomeBudgetManager.Core.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("transaction_title");
 
-                    b.Property<int?>("TransactionId1")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("TransactionInterval")
+                    b.Property<int>("TransactionType")
                         .HasColumnType("INTEGER")
-                        .HasColumnName("transaction_interval");
+                        .HasColumnName("transaction_type");
 
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("user_id");
-
-                    b.Property<decimal>("IntervalValue")
+                    b.Property<decimal>("Value")
                         .HasColumnType("TEXT")
-                        .HasColumnName("value");
+                        .HasColumnName("transaction_value");
 
-                    b.HasKey("TransactionPatternId");
+                    b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("TransactionId1");
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.ToTable("FinancialOperations");
+                });
+
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBInvoice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("invoice_id");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("company_id");
+
+                    b.Property<int>("ContractorId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("contractor_id");
+
+                    b.Property<DateTime>("DueDate")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("due_date");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("invoice_number");
+
+                    b.Property<DateTime>("IssueDate")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("issue_date");
+
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("payment_method");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("invoice_status");
+
+                    b.Property<decimal>("TotalGross")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("total_gross");
+
+                    b.Property<decimal>("TotalNet")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("total_net");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("invoice_type");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("CompanyId");
+
+                    b.HasIndex("ContractorId");
+
+                    b.ToTable("invoices");
+                });
+
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBRecurringOperations", b =>
+                {
+                    b.Property<int>("TransactionPatternId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("pattern_id");
+
+                    b.Property<int>("IntervalType")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("IntervalType");
+
+                    b.Property<int>("IntervalValue")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("interval_value");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("NextRunDate")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("next_run_date");
+
+                    b.HasKey("TransactionPatternId");
 
                     b.ToTable("repetable_transactions");
                 });
@@ -159,17 +311,17 @@ namespace HomeBudgetManager.Core.Migrations
                         new
                         {
                             Id = 1,
-                            Name = "Individual"
+                            Name = "Employee"
                         },
                         new
                         {
                             Id = 2,
-                            Name = "HouseholdAdmin"
+                            Name = "Accountant"
                         },
                         new
                         {
                             Id = 3,
-                            Name = "HouseholdMember"
+                            Name = "CompanyAdmin"
                         },
                         new
                         {
@@ -178,114 +330,56 @@ namespace HomeBudgetManager.Core.Migrations
                         });
                 });
 
-            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBFinancialOperations", b =>
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBTransactionCategories", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("transaction_id");
-
-                    b.Property<int>("CategoryId")
                         .HasColumnType("INTEGER")
                         .HasColumnName("category_id");
 
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("transaction_date");
+                    b.Property<int?>("CompanyId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("company_id");
+
+                    b.Property<int?>("DBEmployeeId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Description")
                         .HasColumnType("TEXT")
-                        .HasColumnName("transaction_description");
+                        .HasColumnName("category_description");
 
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("transaction_for_house_id");
-
-                    b.Property<bool>("IsRepeatable")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("transaction_is_repeatable");
-
-                    b.Property<string>("Title")
+                    b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(20)
                         .HasColumnType("TEXT")
-                        .HasColumnName("transaction_title");
-
-                    b.Property<int>("TransactionType")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("transaction_type");
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("user_id");
-
-                    b.Property<decimal>("IntervalValue")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("transaction_value");
+                        .HasColumnName("category_name");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryId");
-
                     b.HasIndex("CompanyId");
 
-                    b.HasIndex("CompanyId");
+                    b.HasIndex("DBEmployeeId");
 
-                    b.ToTable("transactions");
+                    b.ToTable("transaction_categories");
+                });
+
+            modelBuilder.Entity("DBContractorDBInvoice", b =>
+                {
+                    b.HasOne("HomeBudgetManager.Core.DBTables.DBInvoice", null)
+                        .WithMany()
+                        .HasForeignKey("InvoicesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HomeBudgetManager.Core.DBTables.DBContractor", null)
+                        .WithMany()
+                        .HasForeignKey("RelatedContractorInvoicesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBCompany", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("user_id");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnName("user_email");
-
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("user_house_id");
-
-                    b.Property<string>("Login")
-                        .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnName("user_login");
-
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnName("user_password");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("user_role");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.HasIndex("CompanyId");
-
-                    b.ToTable("users");
-                });
-
-            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBTransactionCategories", b =>
-                {
-                    b.HasOne("HomeBudgetManager.Core.DBTables.DBCompany", "User")
-                        .WithMany("Categories")
-                        .HasForeignKey("CompanyId");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBCompany", b =>
-                {
-                    b.HasOne("HomeBudgetManager.Core.DBTables.DBCompany", "CompanyAdmin")
+                    b.HasOne("HomeBudgetManager.Core.DBTables.DBEmployee", "CompanyAdmin")
                         .WithMany()
                         .HasForeignKey("CompanyAdminId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -294,63 +388,18 @@ namespace HomeBudgetManager.Core.Migrations
                     b.Navigation("CompanyAdmin");
                 });
 
-            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBRecurringOperations", b =>
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBContractor", b =>
                 {
-                    b.HasOne("HomeBudgetManager.Core.DBTables.DBTransactionCategories", "Category")
-                        .WithMany()
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("HomeBudgetManager.Core.DBTables.DBFinancialOperations", null)
-                        .WithOne("RepetableTransaction")
-                        .HasForeignKey("HomeBudgetManager.Core.DBTables.DBRecurringOperations", "TransactionPatternId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("HomeBudgetManager.Core.DBTables.DBFinancialOperations", "Transaction")
-                        .WithMany()
-                        .HasForeignKey("TransactionId1");
-
-                    b.HasOne("HomeBudgetManager.Core.DBTables.DBCompany", "User")
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
-
-                    b.Navigation("Transaction");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBFinancialOperations", b =>
-                {
-                    b.HasOne("HomeBudgetManager.Core.DBTables.DBTransactionCategories", "Category")
-                        .WithMany()
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("HomeBudgetManager.Core.DBTables.DBCompany", "Company")
                         .WithMany()
-                        .HasForeignKey("CompanyId");
-
-                    b.HasOne("HomeBudgetManager.Core.DBTables.DBCompany", "User")
-                        .WithMany("Transactions")
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Category");
-
                     b.Navigation("Company");
-
-                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBCompany", b =>
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBEmployee", b =>
                 {
                     b.HasOne("HomeBudgetManager.Core.DBTables.DBCompany", "Company")
                         .WithMany("Members")
@@ -360,21 +409,97 @@ namespace HomeBudgetManager.Core.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBFinancialOperations", b =>
+                {
+                    b.HasOne("HomeBudgetManager.Core.DBTables.DBTransactionCategories", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HomeBudgetManager.Core.DBTables.DBCompany", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HomeBudgetManager.Core.DBTables.DBEmployee", "Employee")
+                        .WithMany("Transactions")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HomeBudgetManager.Core.DBTables.DBInvoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId");
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Company");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBInvoice", b =>
+                {
+                    b.HasOne("HomeBudgetManager.Core.DBTables.DBCompany", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HomeBudgetManager.Core.DBTables.DBContractor", "Contractor")
+                        .WithMany()
+                        .HasForeignKey("ContractorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+
+                    b.Navigation("Contractor");
+                });
+
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBRecurringOperations", b =>
+                {
+                    b.HasOne("HomeBudgetManager.Core.DBTables.DBFinancialOperations", "Transaction")
+                        .WithOne("RecurringOperation")
+                        .HasForeignKey("HomeBudgetManager.Core.DBTables.DBRecurringOperations", "TransactionPatternId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Transaction");
+                });
+
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBTransactionCategories", b =>
+                {
+                    b.HasOne("HomeBudgetManager.Core.DBTables.DBCompany", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId");
+
+                    b.HasOne("HomeBudgetManager.Core.DBTables.DBEmployee", null)
+                        .WithMany("Categories")
+                        .HasForeignKey("DBEmployeeId");
+
+                    b.Navigation("Company");
+                });
+
             modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBCompany", b =>
                 {
                     b.Navigation("Members");
                 });
 
-            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBFinancialOperations", b =>
-                {
-                    b.Navigation("RepetableTransaction");
-                });
-
-            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBCompany", b =>
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBEmployee", b =>
                 {
                     b.Navigation("Categories");
 
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("HomeBudgetManager.Core.DBTables.DBFinancialOperations", b =>
+                {
+                    b.Navigation("RecurringOperation");
                 });
 #pragma warning restore 612, 618
         }

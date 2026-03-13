@@ -15,17 +15,17 @@ namespace HomeBudgetManager.Web.appMaps
             app.MapGet("/categories/data", async (HttpContext context, AppDbContext db, CategoryService categoryService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == loginUser);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
 
                 if (user == null) return Results.Json(new List<object>());
 
-                var categories = categoryService.listAllUserCategories(user.Id);
+                var categories = categoryService.listAllUserCategories(user.CompanyId ?? -1);
                 var result = categories.Select(c => new 
                 { 
                     id = c.Id, 
                     name = c.Name, 
                     description = c.Description, 
-                    userId = c.UserId 
+                    companyId = c.CompanyId 
                 });
                 return Results.Json(result);
             });
@@ -33,14 +33,14 @@ namespace HomeBudgetManager.Web.appMaps
             app.MapGet("/categories/list", async (HttpContext context, AppDbContext db, CategoryService categoryService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == loginUser);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
 
                 if (user == null)
                 {
                     return Results.Content("<div class='error'>Błąd: Użytkownik nieznaleziony.</div>", "text/html");
                 }
 
-                var categories = categoryService.listAllUserCategories(user.Id);
+                var categories = categoryService.listAllUserCategories(user.CompanyId ?? -1);
 
                 // 3. Zbuduj HTML
                 var htmlBuilder = new System.Text.StringBuilder();
@@ -61,17 +61,22 @@ namespace HomeBudgetManager.Web.appMaps
             app.MapPost("/categories/add", async (CreateCategoryDto dto, HttpContext context, AppDbContext db, CategoryService catService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == loginUser);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
 
                 if (user == null)
                 {
                     return Results.Content("<div class='error'>Błąd: Użytkownik nieznaleziony.</div>", "text/html");
                 }
 
+                if (!user.CompanyId.HasValue)
+                {
+                    return Results.Content("<div class='error'>Błąd: Użytkownik nie należy do żadnej firmy.</div>", "text/html");
+                }
+
                 if (string.IsNullOrWhiteSpace(dto.Name))
                     return Results.Json(new { success = false, message = "Nazwa wymagana" });
 
-                var result = catService.addCategory(user.Id, dto.Name, dto.Description);
+                var result = catService.addCategory(user.CompanyId.Value, dto.Name, dto.Description);
 
                 if (result == "Poprawnie dodano kategorię")
                 {
@@ -84,12 +89,15 @@ namespace HomeBudgetManager.Web.appMaps
             app.MapDelete("/categories/delete/{id}", async (int id, HttpContext context, AppDbContext db, CategoryService catService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == loginUser);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
 
                 if (user == null)
                     return Results.Json(new { success = false, message = "Użytkownik nieznaleziony" });
 
-                var result = catService.deleteCategory(user.Id, id);
+                if (!user.CompanyId.HasValue)
+                    return Results.Json(new { success = false, message = "Użytkownik nie należy do firmy" });
+
+                var result = catService.deleteCategory(user.CompanyId.Value, id);
                 if (result == "Pomyślnie usunięto kategorię")
                 {
                     return Results.Json(new { success = true });
@@ -100,12 +108,15 @@ namespace HomeBudgetManager.Web.appMaps
             app.MapPut("/categories/update/{id}", async (int id, CreateCategoryDto dto, HttpContext context, AppDbContext db, CategoryService catService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == loginUser);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
 
                 if (user == null)
                     return Results.Json(new { success = false, message = "Użytkownik nieznaleziony" });
 
-                var result = catService.modifyCategory(user.Id, id, dto.Name, dto.Description ?? "");
+                if (!user.CompanyId.HasValue)
+                    return Results.Json(new { success = false, message = "Użytkownik nie należy do firmy" });
+
+                var result = catService.modifyCategory(user.CompanyId.Value, id, dto.Name, dto.Description ?? "");
                 if (result == "Pomyślnie zedytowano kategorię")
                 {
                     return Results.Json(new { success = true });
