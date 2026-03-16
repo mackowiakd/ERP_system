@@ -17,38 +17,36 @@ namespace HomeBudgetManager.Web.appMaps
                     return Results.Content("<div class='error'>Błąd: użytkownik niezalogowany.</div>", "text/html");
                 }
 
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == login);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == login);
                 if (user == null)
                 {
                     return Results.Content("<div class='error'>Błąd: użytkownik nie istnieje.</div>", "text/html");
                 }
                 if (user.CompanyId == null)
                 {
-                    return Results.Content("<div class='error'>Nie należysz do żadnego domostwa.</div>", "text/html");
+                    return Results.Content("<div class='error'>Nie należysz do żadnej firmy.</div>", "text/html");
                 }
 
-                // load household
-                var house = await db.Houses.FirstOrDefaultAsync(h => h.Id == user.CompanyId);
+                // load household (company)
+                var house = await db.Companies.FirstOrDefaultAsync(h => h.Id == user.CompanyId);
                 if (house == null)
                 {
-                    return Results.Content("<div class='error'>Domostwo nie istnieje.</div>", "text/html");
+                    return Results.Content("<div class='error'>Firma nie istnieje.</div>", "text/html");
                 }
 
                 // check if user is admin
                 if (user.Id == house.CompanyAdminId)
                 {
-                    // set household id to null
-                    var houseTransactions = await db.Transactions
-                        .Where(t => t.HouseId == house.Id)
+                    // POPRAWKA: Szukamy operacji firmy w FinancialOperations, a nie w Companies!
+                    var houseTransactions = await db.FinancialOperations
+                        .Where(t => t.CompanyId == house.Id)
                         .ToListAsync();
 
-                    foreach (var t in houseTransactions)
-                    {
-                        t.HouseId = null;
-                    }
+                    // Usuwamy historię finansową rozwiązywanej firmy
+                    db.FinancialOperations.RemoveRange(houseTransactions);
 
                     // reset for all members
-                    var members = await db.Users.Where(u => u.CompanyId == house.Id).ToListAsync();
+                    var members = await db.Employees.Where(u => u.CompanyId == house.Id).ToListAsync();
                     foreach (var member in members)
                     {
                         member.CompanyId = null;
@@ -58,47 +56,46 @@ namespace HomeBudgetManager.Web.appMaps
                         }
                     }
 
-                    // delete household
-                    db.Houses.Remove(house);
+                    // delete household (company)
+                    db.Companies.Remove(house);
                     await db.SaveChangesAsync();
 
                     return Results.Content(@"
                         <section class='card'>
-                            <h2>Twoje domostwo</h2>
-                            <div class='success'>Opuszczono domostwo (usunięto domostwo)!</div>
+                            <h2>Twoja firma</h2>
+                            <div class='success'>Opuszczono firmę (usunięto profil działalności)!</div>
                             <p>Za chwilę nastąpi powrót do pulpitu...</p>
                         </section>
                         <script>
                             setTimeout(() => { window.location.href = '/dashboard'; }, 1200);
                         </script>
                     ", "text/html");
-
                 }
                 else
                 {
                     // regular user leaves household
                     int houseId = user.CompanyId.Value;
                     user.CompanyId = null;
-                    
+
                     if (user.Role != SystemRole.SystemAdmin)
                     {
                         user.Role = SystemRole.Guest;
                     }
-                    
+
                     await db.SaveChangesAsync();
 
                     // if house empty -> delete it
-                    bool anyLeft = await db.Users.AnyAsync(u => u.CompanyId == houseId);
+                    bool anyLeft = await db.Employees.AnyAsync(u => u.CompanyId == houseId);
                     if (!anyLeft)
                     {
-                        db.Houses.Remove(house);
+                        db.Companies.Remove(house);
                         await db.SaveChangesAsync();
                     }
 
                     return Results.Content(@"
                         <section class='card'>
-                            <h2>Twoje domostwo</h2>
-                            <div class='success'>Opuszczono domostwo!</div>
+                            <h2>Twoja firma</h2>
+                            <div class='success'>Opuszczono struktury firmy!</div>
                             <p>Za chwilę nastąpi powrót do pulpitu...</p>
                         </section>
                         <script>

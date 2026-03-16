@@ -26,7 +26,7 @@ namespace HomeBudgetManager.Web.appMaps
                 var endDate = now.ToString("yyyy-MM-dd");
                 string adminBtnHtml = "";
                 var userId = int.Parse(context.Request.Cookies["user_id"]);
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
 
                 var username = context.Request.Cookies["logged_user"];
                 if (user == null)

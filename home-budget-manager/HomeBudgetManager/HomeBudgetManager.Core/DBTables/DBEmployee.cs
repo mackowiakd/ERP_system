@@ -29,8 +29,9 @@ namespace HomeBudgetManager.Core.DBTables
         public required string Name { get; set; }
     }
 
+    [Table("employees")]
     [Index(nameof(Email), IsUnique = true)]
-    //[Table("employees")]
+    
     public class DBEmployee
     {
         [Key]
@@ -55,10 +56,8 @@ namespace HomeBudgetManager.Core.DBTables
         [Column("employee_company_id")]
         public int? CompanyId { get; set; }
 
-        // Fix: Change navigation property type from DBEmployee? to the correct company entity type.
-        // Assuming the company entity is named DBCorporation or similar. If not, please provide the correct type.
-        // [ForeignKey(nameof(CompanyId))]
-        // public DBCorporation? Company { get; set; }
+        [ForeignKey(nameof(CompanyId))]
+        public DBCompany? Company { get; set; }
 
         public ICollection<DBTransactionCategories> Categories { get; set; } = new List<DBTransactionCategories>();
         public ICollection<DBFinancialOperations> Transactions { get; set; } = new List<DBFinancialOperations>();

@@ -64,7 +64,7 @@ namespace HomeBudgetManager.Core.DBTables
         [Column("transaction_is_repeatable")]
         public bool IsRepeatable { get; set; }
 
-        public virtual DBRecurringOperations? RepetableTransaction { get; set; }
+        public virtual DBRecurringOperations? RecurringOperation { get; set; }
 
         // --- NOWOŚĆ: Relacja do faktury ---
         [Column("invoice_id")]

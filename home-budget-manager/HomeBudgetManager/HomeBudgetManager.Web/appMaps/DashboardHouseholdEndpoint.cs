@@ -15,7 +15,7 @@ namespace HomeBudgetManager.Web.appMaps
                 if (!context.Request.Cookies.ContainsKey("logged_user"))
                     return Results.Redirect("/");
                 var userId = int.Parse(context.Request.Cookies["user_id"]);
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
 
                 var username = context.Request.Cookies["logged_user"];
                 if (user == null)
@@ -50,11 +50,11 @@ namespace HomeBudgetManager.Web.appMaps
                 if (string.IsNullOrEmpty(login))
                     return Results.Text("Błąd: użytkownik niezalogowany", "text/plain");
 
-                var adminUser = await db.Users.FirstOrDefaultAsync(u => u.Login == login);
-                if (adminUser == null || adminUser.Role != SystemRole.HouseholdAdmin || adminUser.CompanyId == null)
+                var adminUser = await db.Employees.FirstOrDefaultAsync(u => u.Login == login);
+                if (adminUser == null || adminUser.Role != SystemRole.CompanyAdmin || adminUser.CompanyId == null)
                     return Results.Text("Błąd: brak uprawnień", "text/plain");
 
-                var targetUser = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                var targetUser = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
                 if (targetUser == null || targetUser.CompanyId != adminUser.CompanyId)
                     return Results.Text("Błąd: użytkownik nie należy do Twojego domostwa", "text/plain");
 
@@ -69,7 +69,7 @@ namespace HomeBudgetManager.Web.appMaps
 
         private static async Task<IResult> RenderHouseholdView(AppDbContext db, string login)
         {
-            var user = await db.Users
+            var user = await db.Employees
                 .Include(u => u.Company)
                 .FirstOrDefaultAsync(u => u.Login == login);
 
@@ -101,7 +101,7 @@ namespace HomeBudgetManager.Web.appMaps
                 else
                 {
                     var house = user.Company!;
-                    bool iAmAdmin = user.Role == SystemRole.HouseholdAdmin;
+                    bool iAmAdmin = user.Role == SystemRole.CompanyAdmin;
 
                     var confirmText = iAmAdmin
                         ? "Jako administrator, opuszczając domostwo, spowodujesz jego trwałe usunięcie. Czy na pewno chcesz kontynuować?"
@@ -110,9 +110,9 @@ namespace HomeBudgetManager.Web.appMaps
                     var buttonClass = "btn-danger";
 
                     // sort:  CompanyAdmin on top, the rest alphabetically
-                    var members = await db.Users
+                    var members = await db.Employees
                         .Where(u => u.CompanyId == house.Id)
-                        .OrderByDescending(u => u.Role == SystemRole.HouseholdAdmin)
+                        .OrderByDescending(u => u.Role == SystemRole.CompanyAdmin)
                         .ThenBy(u => u.Login)
                         .ToListAsync();
 
@@ -127,7 +127,7 @@ namespace HomeBudgetManager.Web.appMaps
                         foreach (var m in members)
                         {
                             var isMe = string.Equals(m.Login, user.Login, StringComparison.OrdinalIgnoreCase);
-                            var isTargetAdmin = m.Role == SystemRole.HouseholdAdmin;
+                            var isTargetAdmin = m.Role == SystemRole.CompanyAdmin;
 
                             var loginEsc = WebUtility.HtmlEncode(m.Login);
                             var emailEsc = WebUtility.HtmlEncode(m.Email);

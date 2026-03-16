@@ -15,7 +15,7 @@ namespace HomeBudgetManager.Web.appMaps
                     return Results.Redirect("/");
 
                 var username = context.Request.Cookies["logged_user"].ToString();
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == username);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == username);
                 if (user == null) return Results.Redirect("/");
 
                 var filePath = Path.Combine(env.WebRootPath, "createHousehold.html");
@@ -47,7 +47,7 @@ namespace HomeBudgetManager.Web.appMaps
                     return Results.Content("<div class='error'>Błąd: nazwa grupy jest wymagana.</div>", "text/html");
                 }
 
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == userLogin);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == userLogin);
                 if (user == null)
                 {
                     return Results.Content("<div class='error'>Błąd: użytkownik niezalogowany.</div>", "text/html");
@@ -59,23 +59,24 @@ namespace HomeBudgetManager.Web.appMaps
                 }
 
                 // create household
-                var house = new DBEmployee
+                var company = new DBCompany
                 {
                     Name = name,
+                    NIP = "0000000000", // default NIP, can be changed later by admin
                     CompanyAdmin = user,
                     Description = description,
                     CompanyAdminId = user.Id,
                     JoinCode = Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper() // ex. "A1B2C3"
                 };
-                db.Houses.Add(house);
+                db.Companies.Add(company);
                 await db.SaveChangesAsync();
 
-                // set user as household admin
-                user.CompanyId = house.Id;
+                // set user comapnyhold admin
+                user.CompanyId = company.Id;
                 
-                if (user.Role != SystemRole.SystemAdmin)
+                if (user.Role != SystemRole.CompanyAdmin)
                 {
-                    user.Role = SystemRole.HouseholdAdmin;
+                    user.Role = SystemRole.CompanyAdmin;
                 }
 
                 await db.SaveChangesAsync();

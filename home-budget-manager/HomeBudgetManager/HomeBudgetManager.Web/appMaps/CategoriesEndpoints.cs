@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HomeBudgetManager.Web.appMaps
 {
-    public class ControllerEndpoints : IEndpoint
+    public class CategoriesEndpoints : IEndpoint
     {
         public record CreateCategoryDto(string Name, string? Description);
 
@@ -15,17 +15,17 @@ namespace HomeBudgetManager.Web.appMaps
             app.MapGet("/categories/data", async (HttpContext context, AppDbContext db, CategoryService categoryService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == loginUser);
+                var employee = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
 
-                if (user == null) return Results.Json(new List<object>());
+                if (employee == null) return Results.Json(new List<object>());
 
-                var categories = categoryService.listAllUserCategories(user.Id);
-                var result = categories.Select(c => new 
-                { 
-                    id = c.Id, 
-                    name = c.Name, 
-                    description = c.Description, 
-                    userId = c.UserId 
+                var categories = categoryService.listAllCompanyCategories(employee.CompanyId);
+                var result = categories.Select(c => new
+                {
+                    id = c.Id,
+                    name = c.Name,
+                    description = c.Description,
+                    companyId = c.CompanyId
                 });
                 return Results.Json(result);
             });
@@ -33,14 +33,14 @@ namespace HomeBudgetManager.Web.appMaps
             app.MapGet("/categories/list", async (HttpContext context, AppDbContext db, CategoryService categoryService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == loginUser);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
 
                 if (user == null)
                 {
                     return Results.Content("<div class='error'>Błąd: Użytkownik nieznaleziony.</div>", "text/html");
                 }
 
-                var categories = categoryService.listAllUserCategories(user.Id);
+                var categories = categoryService.listAllCompanyCategories(user.CompanyId);
 
                 // 3. Zbuduj HTML
                 var htmlBuilder = new System.Text.StringBuilder();
@@ -61,7 +61,7 @@ namespace HomeBudgetManager.Web.appMaps
             app.MapPost("/categories/add", async (CreateCategoryDto dto, HttpContext context, AppDbContext db, CategoryService catService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == loginUser);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
 
                 if (user == null)
                 {
@@ -84,7 +84,7 @@ namespace HomeBudgetManager.Web.appMaps
             app.MapDelete("/categories/delete/{id}", async (int id, HttpContext context, AppDbContext db, CategoryService catService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == loginUser);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
 
                 if (user == null)
                     return Results.Json(new { success = false, message = "Użytkownik nieznaleziony" });
@@ -100,7 +100,7 @@ namespace HomeBudgetManager.Web.appMaps
             app.MapPut("/categories/update/{id}", async (int id, CreateCategoryDto dto, HttpContext context, AppDbContext db, CategoryService catService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == loginUser);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
 
                 if (user == null)
                     return Results.Json(new { success = false, message = "Użytkownik nieznaleziony" });

@@ -18,7 +18,7 @@ public class TransactionsEndpoints : IEndpoint
 
             Console.WriteLine($"DEBUG: Cookie logged_user = '{userLogin}'");
             var userId = int.Parse(context.Request.Cookies["user_id"]);
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
             {
@@ -60,7 +60,7 @@ public class TransactionsEndpoints : IEndpoint
 
             Console.WriteLine($"DEBUG: Cookie logged_user = '{userLogin}'");
             var userId = int.Parse(context.Request.Cookies["user_id"]);
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
             {
@@ -77,13 +77,13 @@ public class TransactionsEndpoints : IEndpoint
 
             var userLogin = context.Request.Cookies["logged_user"];
             var userId = int.Parse(context.Request.Cookies["user_id"]);
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
             {
                 return Results.Content("<div class='error'>Błąd: Użytkownik nieznaleziony.</div>", "text/html");
             }
 
-            var transaction = await db.Transactions
+            var transaction = await db.FinancialOperations
                         .FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == user.Id);
 
             if (transaction == null)
@@ -91,7 +91,7 @@ public class TransactionsEndpoints : IEndpoint
                 return Results.Content("<div class='error'>Błąd: Transakcja nieznaleziona.</div>", "text/html");
             }
 
-            db.Transactions.Remove(transaction);
+            db.FinancialOperations.Remove(transaction);
             await db.SaveChangesAsync();
 
             return Results.Content("<div class='success'>Transakcja usunięta</div>", "text/html");
@@ -102,13 +102,13 @@ public class TransactionsEndpoints : IEndpoint
 
             var userLogin = context.Request.Cookies["logged_user"];
 
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Login == userLogin);
+            var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == userLogin);
             if (user == null)
             {
                 return Results.Content("<div class='error'>Błąd: Użytkownik nieznaleziony.</div>", "text/html");
             }
 
-            var transaction = await db.Transactions
+            var transaction = await db.FinancialOperations
                             .FirstOrDefaultAsync(t => t.Id == id && t.CompanyId == user.Id);
             
             if (transaction == null)

@@ -14,7 +14,7 @@ namespace HomeBudgetManager.Web.appMaps
                 if (!context.Request.Cookies.ContainsKey("logged_user"))
                     return Results.Redirect("/");
                 var userId = int.Parse(context.Request.Cookies["user_id"]);
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
 
                 if (user == null)
                 {
@@ -46,13 +46,13 @@ namespace HomeBudgetManager.Web.appMaps
                 var code = context.Request.Form["code"].ToString().ToUpper();
                 var login = context.Request.Cookies["logged_user"];
 
-                var user = await db.Users.FirstOrDefaultAsync(u => u.Login == login);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == login);
                 if (user == null || user.CompanyId != null)
                 {
                     return Results.Content("<div class='error'>Nie możesz dołączyć do nowego domostwa.</div>", "text/html");
                 }
 
-                var house = await db.Houses.FirstOrDefaultAsync(h => h.JoinCode == code);
+                var house = await db.Companies.FirstOrDefaultAsync(h => h.JoinCode == code);
                 if (house == null)
                 {
                     return Results.Content("<div class='error'>Nie znaleziono domostwa o takim kodzie.</div>", "text/html");
@@ -67,7 +67,7 @@ namespace HomeBudgetManager.Web.appMaps
                 
                 if (user.Role != SystemRole.SystemAdmin)
                 {
-                    user.Role = SystemRole.HouseholdMember;
+                    user.Role = SystemRole.Employee;
                 }
 
                 await db.SaveChangesAsync();
