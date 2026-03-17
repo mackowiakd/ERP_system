@@ -1,111 +1,134 @@
+using System.Text;
+using Microsoft.EntityFrameworkCore;
 using ERP_System.Core;
 using ERP_System.Core.DBTables;
-using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 
 namespace ERP_System.Web.appMaps
 {
-    public class ControllerEndpoints : IEndpoint
+    public class CalendarEndpoint : IEndpoint
     {
-        public record CreateCategoryDto(string Name, string? Description);
-
         public void Map(IEndpointRouteBuilder app)
         {
-            app.MapGet("/categories/data", async (HttpContext context, AppDbContext db, CategoryService categoryService) =>
+            app.MapGet("/calendar", async (HttpContext context, IWebHostEnvironment env, AppDbContext db) =>
             {
-                var loginUser = context.Request.Cookies["logged_user"];
-                if (string.IsNullOrEmpty(loginUser)) return Results.Json(new List<object>());
+                if (!context.Request.Cookies.ContainsKey("logged_user"))
+                    return Results.Redirect("/");
 
-                var employee = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
-                if (employee == null) return Results.Json(new List<object>());
+                var userId = int.Parse(context.Request.Cookies["user_id"]!);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
 
-                var categories = categoryService.listAllCompanyCategories(employee.CompanyId);
-                var result = categories.Select(c => new
-                {
-                    id = c.Id,
-                    name = c.Name,
-                    description = c.Description,
-                    companyId = c.CompanyId // Poprawka: zwracamy CompanyId, nie EmployeeId
-                });
-                return Results.Json(result);
-            });
-
-            app.MapGet("/categories/list", async (HttpContext context, AppDbContext db, CategoryService categoryService) =>
-            {
-                var loginUser = context.Request.Cookies["logged_user"];
-                if (string.IsNullOrEmpty(loginUser)) return Results.Content("<div class='error'>Błąd autoryzacji.</div>", "text/html");
-
-                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
                 if (user == null)
                 {
-                    return Results.Content("<div class='error'>Błąd: Użytkownik nieznaleziony.</div>", "text/html");
+                    return Results.Content("brak uzytkownika o takiej nazwie");
                 }
 
-                var categories = categoryService.listAllCompanyCategories(user.CompanyId);
+                var username = context.Request.Cookies["logged_user"];
+                var filePath = Path.Combine(env.WebRootPath, "calendar.html");
+                var html = File.ReadAllText(filePath, Encoding.UTF8);
 
-                // Zbuduj HTML
-                var htmlBuilder = new System.Text.StringBuilder();
-                htmlBuilder.Append("<select id='category' name='categoryId' required class='form-input' onchange='handleCategoryChange(this)'>");
+                html = html.Replace("{username}", username);
+                string adminBtnHtml = "";
 
-                htmlBuilder.Append("<option value=''>Wybierz kategorię</option>");
-                foreach (var cat in categories)
+                if (user.Role == SystemRole.SystemAdmin || user.Role == SystemRole.CompanyAdmin)
                 {
-                    htmlBuilder.Append($"<option value='{cat.Id}'>{cat.Name}</option>");
+                    adminBtnHtml = "<button class=\"sidebar-link\" onclick=\"window.location.href='/adminConsole'\"><i class=\"fas fa-fw fa-cogs\"></i> &nbsp; Ustawienia Admina</button>";
                 }
-
-                htmlBuilder.Append("<option value='new-category'>Dodaj kategorię</option>");
-                htmlBuilder.Append("</select>");
-
-                return Results.Content(htmlBuilder.ToString(), "text/html");
+                html = html.Replace("{admin_panel_button}", adminBtnHtml);
+                return Results.Content(html, "text/html; charset=utf-8");
             });
 
-            app.MapPost("/categories/add", async (CreateCategoryDto dto, HttpContext context, AppDbContext db, CategoryService catService) =>
+            app.MapGet("/api/calendar-events", async (HttpContext context, AppDbContext db) =>
             {
-                var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
+                if (!context.Request.Cookies.ContainsKey("logged_user"))
+                    return Results.Unauthorized();
 
-                if (user == null) return Results.Content("<div class='error'>Błąd: Użytkownik nieznaleziony.</div>", "text/html");
-                if (string.IsNullOrWhiteSpace(dto.Name)) return Results.Json(new { success = false, message = "Nazwa wymagana" });
+                var userId = int.Parse(context.Request.Cookies["user_id"]!);
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
 
-                var result = catService.addCategory(user.CompanyId, dto.Name, dto.Description);
+                if (user == null)
+                    return Results.Unauthorized();
 
-                if (result == "Poprawnie dodano kategorię")
+                List<int> userIds = new List<int>();
+                if (user.CompanyId.HasValue)
                 {
-                    return Results.Json(new { success = true });
+                    userIds = await db.Employees
+                        .Where(u => u.CompanyId == user.CompanyId.Value)
+                        .Select(u => u.Id)
+                        .ToListAsync();
+                }
+                else
+                {
+                    userIds.Add(user.Id);
                 }
 
-                return Results.Json(new { success = false, message = result });
-            });
+                List<dynamic> transactions = new List<dynamic>();
 
-            app.MapDelete("/categories/delete/{id}", async (int id, HttpContext context, AppDbContext db, CategoryService catService) =>
-            {
-                var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
+                var regularTransactions = await db.FinancialOperations
+                    .Include(t => t.Employee)
+                    .Where(t => userIds.Contains(t.EmployeeId)) // Poprawiono z CompanyId na EmployeeId
+                    .OrderBy(t => t.Date)
+                    .Select(t => new
+                    {
+                        id = t.Id.ToString(),
+                        title = t.Title,
+                        startTime = t.Date.ToString("yyyy-MM-ddTHH:mm:ss"),
+                        endTime = t.Date.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
+                        amount = t.Value,
+                        description = t.Description ?? "",
+                        categoryId = t.CategoryId,
+                        color = t.Value < 0 ? "#e74a3b" : "#1cc88a",
+                        reminder = false,
+                        isRecurring = false
+                    })
+                    .ToListAsync();
 
-                if (user == null) return Results.Json(new { success = false, message = "Użytkownik nieznaleziony" });
+                transactions.AddRange(regularTransactions);
 
-                var result = catService.deleteCategory(user.CompanyId, id);
-                if (result == "Pomyślnie usunięto kategorię")
+                var repetableTransactions = await db.RecurringOperations
+                    .Include(rt => rt.Transaction) // ZMIANA: Poprawne użycie Include
+                        .ThenInclude(t => t.Employee)
+                    .Where(rt => rt.Transaction != null && userIds.Contains(rt.Transaction.EmployeeId) && rt.IsActive)
+                    .ToListAsync();
+
+                foreach (var rt in repetableTransactions)
                 {
-                    return Results.Json(new { success = true });
+                    var baseTitle = !string.IsNullOrWhiteSpace(rt.Transaction!.Title)
+                        ? rt.Transaction.Title
+                        : "Brak tytułu";
+
+                    var nextDate = rt.NextRunDate;
+                    for (int i = 0; i < 12; i++) // Generate next 12 occurrences
+                    {
+                        transactions.Add(new
+                        {
+                            id = rt.Transaction.Id.ToString(), // ZMIANA: Idk zamiast całego obiektu
+                            title = $"Cykliczna: {baseTitle}",
+                            startTime = nextDate.ToString("yyyy-MM-ddTHH:mm:ss"),
+                            endTime = nextDate.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
+                            amount = rt.Transaction.Value, // ZMIANA: Value (kwota) zamiast IntervalValue (czasu)
+                            description = rt.Transaction.Description ?? "",
+                            categoryId = rt.Transaction.CategoryId,
+                            color = "#f6c23e",
+                            reminder = false,
+                            isRecurring = true
+                        });
+
+                        // ZMIANA: IntervalType zamiast FrequencyUnit, IntervalValue zamiast TransactionInterval
+                        nextDate = rt.IntervalType switch
+                        {
+                            0 => nextDate.AddDays(rt.IntervalValue),
+                            1 => nextDate.AddDays(rt.IntervalValue * 7),
+                            2 => nextDate.AddMonths(rt.IntervalValue),
+                            3 => nextDate.AddYears(rt.IntervalValue),
+                            _ => nextDate.AddMonths(1),
+                        };
+                    }
                 }
-                return Results.Json(new { success = false, message = result });
-            });
 
-            app.MapPut("/categories/update/{id}", async (int id, CreateCategoryDto dto, HttpContext context, AppDbContext db, CategoryService catService) =>
-            {
-                var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
-
-                if (user == null) return Results.Json(new { success = false, message = "Użytkownik nieznaleziony" });
-
-                var result = catService.modifyCategory(user.CompanyId, id, dto.Name, dto.Description ?? "");
-                if (result == "Pomyślnie zedytowano kategorię")
-                {
-                    return Results.Json(new { success = true });
-                }
-                return Results.Json(new { success = false, message = result });
+                return Results.Json(transactions);
             });
         }
     }
