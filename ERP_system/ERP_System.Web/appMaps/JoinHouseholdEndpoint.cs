@@ -49,13 +49,13 @@ namespace ERP_System.Web.appMaps
                 var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == login);
                 if (user == null || user.CompanyId != null)
                 {
-                    return Results.Content("<div class='error'>Nie możesz dołączyć do nowego domostwa.</div>", "text/html");
+                    return Results.Content("<div class='error'>Nie możesz dołączyć do nowej firmy.</div>", "text/html");
                 }
 
                 var house = await db.Companies.FirstOrDefaultAsync(h => h.JoinCode == code);
                 if (house == null)
                 {
-                    return Results.Content("<div class='error'>Nie znaleziono domostwa o takim kodzie.</div>", "text/html");
+                    return Results.Content("<div class='error'>Nie znaleziono firmy o takim kodzie.</div>", "text/html");
                 }
                 string adminBtnHtml = "";
                 
@@ -72,7 +72,7 @@ namespace ERP_System.Web.appMaps
 
                 await db.SaveChangesAsync();
 
-                return Results.Content("<div class='success'>Dołączono do domostwa!</div>", "text/html");
+                return Results.Content("<div class='success'>Dołączono do firmy!</div>", "text/html");
             });
 
         }

@@ -18,20 +18,22 @@
             <span class="mobile-logo">Home Budget Manager</span>
         </div>
         <aside class="sidebar">
-            <p class="sidebar-title"><i class="fas fa-wallet"></i> Mój budżet</p>
+            <p class="sidebar-title"><i class="fas fa-wallet"></i> Mini-ERP System</p>
             <span class="user-name" style="display: block;">Zalogowano jako: {username}</span>
+            <br>Menu główne<br>
             <button class="sidebar-link" onclick="window.location.href='/dashboard'"><i class="fas fa-fw fa-tachometer-alt"></i> &nbsp; Pulpit</button>
-            <button class="sidebar-link" onclick="window.location.href='/household'"><i class="fas fa-fw fa-home"></i> &nbsp; Domostwo</button>
+            <button class="sidebar-link" onclick="window.location.href='/new-transaction?returnUrl=' + encodeURIComponent(window.location.pathname)"><i class="fas fa-file-invoice-dollar"></i> &nbsp; Faktury</button>
+            <button class="sidebar-link" onclick="window.location.href='/calendar'"><i class="fas fa-handshake"></i> &nbsp; Kontrahenci</button>
+            <button class="sidebar-link" onclick="window.location.href='/charts'"><i class="fas fa-exchange-alt"></i> &nbsp; Finanse i Wypłaty</button>
+            <br>Narzędzia<br>
             <button class="sidebar-link" onclick="window.location.href='/calendar'"><i class="fas fa-fw fa-calendar-alt"></i> &nbsp; Kalendarz</button>
-            <button class="sidebar-link" onclick="window.location.href='/charts'"><i class="fas fa-fw fa-chart-pie"></i> &nbsp; Wykresy</button>
-            <button class="sidebar-link active" onclick="window.location.href='/reports'"><i class="fas fa-fw fa-file-alt"></i> &nbsp; Raporty</button>
-            <button class="sidebar-link" onclick="window.location.href='/new-transaction?returnUrl=' + encodeURIComponent(window.location.pathname)"><i class="fas fa-fw fa-exchange-alt"></i> &nbsp; Transakcje</button>
+            <button class="sidebar-link" onclick="window.location.href='/reports'"><i class="fas fa-chart-pie"></i> &nbsp; Raporty PDF</button>
+            <button class="sidebar-link" onclick="window.location.href='/household'"><i class="fas fa-users"></i> &nbsp; Pracownicy</button>
             {admin_panel_button}
             <form method="post" action="/logout" style="margin-top: auto; width: 100%;">
                 <button type="submit" class="btn-logout">Wyloguj</button>
             </form>
         </aside>
-
         <main class="container">
             <section class="card">
                 <h2>Generator Raportów PDF</h2>
@@ -57,9 +59,10 @@
                     <div class="form-group">
                         <label for="endDate">Do:</label>
                         <input type="date" id="endDate" name="endDate" value="{endDate}" required>
-                    </div>
+                    <br></div>
                     <div class="form-group">
-                    <button type="submit" class="btn-generate">Pobierz Raport PDF</button>
+                    <button type="submit" class="btn-generate">Pobierz Raport Zestawienie Obrotów</button>
+                    <button type="submit" class="btn-generate">Pobierz Raport Wiekowania Rozrachunków</button>
                     </div>
                 </form>
             </section>

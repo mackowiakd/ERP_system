@@ -56,7 +56,7 @@ namespace ERP_System.Web.appMaps
 
                 var targetUser = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
                 if (targetUser == null || targetUser.CompanyId != adminUser.CompanyId)
-                    return Results.Text("Błąd: użytkownik nie należy do Twojego domostwa", "text/plain");
+                    return Results.Text("Błąd: użytkownik nie należy do Twojej firmy", "text/plain");
 
                 // Delete user
                 targetUser.CompanyId = null;
@@ -85,11 +85,11 @@ namespace ERP_System.Web.appMaps
                     var html = $@"
                         {cssLink}
                         <section class='card' style='display: flex; width: 600px; justify-content: center;'>
-                            <h2>Twoje domostwo</h2>
-                            <p>Nie jesteś jeszcze członkiem żadnego domostwa.</p>
+                            <h2>Twoja firma</h2>
+                            <p>Nie jesteś jeszcze członkiem żadnej firmy.</p>
                             <div class='actions-box'>
-                                <a href='createHousehold.html' class='btn-primary'>Utwórz domostwo</a>
-                                <a href='joinHousehold.html' class='btn-primary'>Dołącz do domostwa</a>
+                                <a href='createHousehold.html' class='btn-primary'>Utwórz firmę</a>
+                                <a href='joinHousehold.html' class='btn-primary'>Dołącz do firmy</a>
                             </div>
                         </section>
                         <div style='margin-top: 2rem; display: flex; gap: 1rem;'>
@@ -104,8 +104,8 @@ namespace ERP_System.Web.appMaps
                     bool iAmAdmin = user.Role == SystemRole.CompanyAdmin;
 
                     var confirmText = iAmAdmin
-                        ? "Jako administrator, opuszczając domostwo, spowodujesz jego trwałe usunięcie. Czy na pewno chcesz kontynuować?"
-                        : "Czy na pewno chcesz opuścić domostwo?";
+                        ? "Jako administrator, opuszczając firmę, spowodujesz jego trwałe usunięcie. Czy na pewno chcesz kontynuować?"
+                        : "Czy na pewno chcesz opuścić firmę?";
 
                     var buttonClass = "btn-danger";
 
@@ -120,7 +120,7 @@ namespace ERP_System.Web.appMaps
 
                     if (members.Count == 0)
                     {
-                        rowsBuilder.AppendLine("<tr><td colspan='5'>Brak członków w tym domostwie.</td></tr>");
+                        rowsBuilder.AppendLine("<tr><td colspan='5'>Brak członków w tej firmie.</td></tr>");
                     }
                     else
                     {
@@ -178,7 +178,7 @@ namespace ERP_System.Web.appMaps
                     var html = $@"
                     {cssLink}
                     
-                    <h1 class='page-title' style='margin-left: 0px !important;'>Twoje domostwo</h1>
+                    <h1 class='page-title' style='margin-left: 0px !important;'>TERP_System</h1>
 
                     <div class='main-card'>
                         
@@ -215,7 +215,7 @@ namespace ERP_System.Web.appMaps
                         </div>
 
                         <div class='members-card'>
-                            <h3 class='card-header'>Członkowie domostwa</h3>
+                            <h3 class='card-header'>Członkowie firmy</h3>
 
                             <table class='members-table'>
                                     <thead>
