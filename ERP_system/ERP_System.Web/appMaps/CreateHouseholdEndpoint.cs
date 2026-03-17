@@ -44,7 +44,7 @@ namespace ERP_System.Web.appMaps
 
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    return Results.Content("<div class='error'>Błąd: nazwa grupy jest wymagana.</div>", "text/html");
+                    return Results.Content("<div class='error'>Błąd: nazwa firmy jest wymagana.</div>", "text/html");
                 }
 
                 var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == userLogin);
@@ -55,7 +55,7 @@ namespace ERP_System.Web.appMaps
 
                 if (user.CompanyId != null)
                 {
-                    return Results.Content("<div class='error'>Błąd: użytkownik należy już do domostwa.</div>", "text/html");
+                    return Results.Content("<div class='error'>Błąd: użytkownik należy już do firmy.</div>", "text/html");
                 }
 
                 // create household
@@ -81,7 +81,7 @@ namespace ERP_System.Web.appMaps
 
                 await db.SaveChangesAsync();
 
-                return Results.Content("<div class='success'>Domostwo utworzone!</div>", "text/html");
+                return Results.Content("<div class='success'>Firma utworzona!</div>", "text/html");
             });
 
         }
