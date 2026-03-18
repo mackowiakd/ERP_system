@@ -84,6 +84,7 @@ namespace ERP_System.Core
             }
 
             var allTransactions = realTransactions.Concat(virtualTransactions).OrderBy(t => t.Date).ToList();
+            allTransactions.Reverse(); // Show newest first
 
             // 4. Group data for PDF
             var usersData = userIds.Select(uid => new

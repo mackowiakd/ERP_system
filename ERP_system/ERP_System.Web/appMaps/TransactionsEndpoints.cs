@@ -67,7 +67,7 @@ public class TransactionsEndpoints : IEndpoint
                 return Results.Content("<div class='error'>Błąd: Użytkownik nieznaleziony.</div>", "text/html");
             }
 
-            var transactions = tranService.SomeUserTransactions(user.Id, 5);
+            var transactions = tranService.SomeUserTransactions(user.Id, 8);
 
             return Results.Content(tranService.listTransactionsForDashboard(transactions).ToString(), "text/html");
         });

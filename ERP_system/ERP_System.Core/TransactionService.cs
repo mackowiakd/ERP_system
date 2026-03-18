@@ -1,5 +1,6 @@
 ﻿using ERP_System.Core.DBTables;
 using ERP_System.Core.Enums;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -176,7 +177,63 @@ namespace ERP_System.Core
         public List<DBFinancialOperations> SomeUserTransactions(int userId, int amount)
         {
             // POPRAWKA: t.EmployeeId
-            return db.FinancialOperations.Where(t => t.EmployeeId == userId && t.Date <= DateTime.Now).OrderByDescending(t => t.Date).Take(amount).ToList();
+            var recurringRules = db.RecurringOperations
+            .Include(rt => rt.Transaction)
+            .ThenInclude(t => t.Category) // Pobieramy kategorię z podpiętej operacji!
+            .Where(rt => rt.Transaction != null && userId == rt.Transaction.EmployeeId && rt.IsActive).ToList();
+            var temp = db.FinancialOperations.Where(t => t.EmployeeId == userId && t.Date <= DateTime.Now).OrderByDescending(t => t.Date).Take(amount).ToList();
+            DateTime now = DateTime.Now;
+            // 3. Project Future Transactions
+            foreach (var rule in recurringRules)
+            {
+                var currentDate = rule.NextRunDate;
+                var unit = (TransactionIntervalType)rule.IntervalType; // ZMIANA z FrequencyUnit
+                var occurenceNumber = 1;
+                // Loop to find all occurrences within the requested range
+                while (currentDate <= DateTime.Now)
+                {
+                    if (currentDate >= new DateTime(now.Year, now.Month, 1))
+                    {
+                        // Create a transient transaction object for calculation
+                        var projected = new DBFinancialOperations
+                        {
+                            Id = 0, // transient
+                            CompanyId = rule.Transaction!.CompanyId,   // POPRAWKA
+                            EmployeeId = rule.Transaction.EmployeeId, // POPRAWKA
+                            CategoryId = rule.Transaction.CategoryId,
+                            Category = rule.Transaction.Category,
+                            Value = rule.Transaction.Value,           // POPRAWKA: Pobieramy kwotę z transakcji, nie z reguły
+                            Title = "Projected",
+                            TransactionType = rule.Transaction.TransactionType,
+                            Date = currentDate,
+                            IsRepeatable = false
+                        };
+
+                        occurenceNumber++;
+                    }
+
+                    // Advance to next occurrence (ZMIANA z TransactionInterval na IntervalValue)
+                    currentDate = unit switch
+                    {
+                        TransactionIntervalType.Days => currentDate.AddDays(rule.IntervalValue),
+                        TransactionIntervalType.Weeks => currentDate.AddDays(rule.IntervalValue * 7),
+                        TransactionIntervalType.Months => currentDate.AddMonths(rule.IntervalValue),
+                        TransactionIntervalType.Years => currentDate.AddYears(rule.IntervalValue),
+                        _ => currentDate.AddMonths(1)
+                    };
+                }
+                //No more occurences
+                foreach (var transaction in temp)
+                {
+                    if (transaction.Id == rule.TransactionPatternId) //Matches by ID
+                    {
+                        transaction.Value = transaction.Value * occurenceNumber; //Multiply to accomodate multiple occurences in one show
+                        break; //No use looping more
+                    }
+                }
+            }
+            return temp;
+            //return db.FinancialOperations.Where(t => t.EmployeeId == userId && t.Date <= DateTime.Now).OrderByDescending(t => t.Date).Take(amount).ToList();
         }
 
         public List<DBFinancialOperations> allCompanyTransactions(int companyId)
