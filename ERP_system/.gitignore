@@ -133,3 +133,6 @@ secrets.json
 *bin\debug*
 *bin\Debug*
 *bin\Debug/net9.0*
+# Ignoruj foldery z wynikami kompilacji
+[Bb]in/
+[Oo]bj/
