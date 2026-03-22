@@ -12,6 +12,8 @@ builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<TransactionService>();
 builder.Services.AddScoped<ChartService>();
 builder.Services.AddScoped<ReportService>();
+builder.Services.AddScoped<ContractorService>();
+builder.Services.AddScoped<InvoiceService>();
 
 // QuestPDF License
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
