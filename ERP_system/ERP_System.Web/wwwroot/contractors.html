@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Kontrahenci - ERP_System</title>
+    <link rel="stylesheet" href="/css/dashboard.css" />
+    <link rel="stylesheet" href="/css/raports.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      /* Proste style dla tabelki, żeby od razu jakoś wyglądała */
+      .contractors-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+      }
+      .contractors-table th,
+      .contractors-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+      }
+      .contractors-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+      }
+      .btn-delete {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .btn-delete:hover {
+        background: #c82333;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <div class="mobile-header">
+        <button id="sidebar-toggle" aria-label="Menu">
+          <i class="fas fa-bars"></i>
+        </button>
+        <span class="mobile-logo">Home Budget Manager</span>
+      </div>
+      <aside class="sidebar">
+        <p class="sidebar-title">
+          <i class="fas fa-wallet"></i> Mini-ERP System
+        </p>
+        <span class="user-name" style="display: block"
+          >Zalogowano jako: {username}</span
+        >
+        <br />Menu główne<br />
+        <button
+          class="sidebar-link"
+          onclick="window.location.href = '/dashboard'"
+        >
+          <i class="fas fa-fw fa-tachometer-alt"></i> &nbsp; Pulpit
+        </button>
+        <button
+          class="sidebar-link"
+          onclick="
+            window.location.href =
+              '/new-transaction?returnUrl=' +
+              encodeURIComponent(window.location.pathname)
+          "
+        >
+          <i class="fas fa-file-invoice-dollar"></i> &nbsp; Faktury
+        </button>
+        <button
+          class="sidebar-link"
+          onclick="window.location.href = '/contractors'"
+        >
+          <i class="fas fa-handshake"></i> &nbsp; Kontrahenci
+        </button>
+        <button class="sidebar-link" onclick="window.location.href = '/charts'">
+          <i class="fas fa-exchange-alt"></i> &nbsp; Finanse i Wypłaty
+        </button>
+        <br />Narzędzia<br />
+        <button
+          class="sidebar-link"
+          onclick="window.location.href = '/calendar'"
+        >
+          <i class="fas fa-fw fa-calendar-alt"></i> &nbsp; Kalendarz
+        </button>
+        <button
+          class="sidebar-link"
+          onclick="window.location.href = '/reports'"
+        >
+          <i class="fas fa-chart-pie"></i> &nbsp; Raporty PDF
+        </button>
+        <button
+          class="sidebar-link"
+          onclick="window.location.href = '/household'"
+        >
+          <i class="fas fa-users"></i> &nbsp; Pracownicy
+        </button>
+        {admin_panel_button}
+        <form
+          method="post"
+          action="/logout"
+          style="margin-top: auto; width: 100%"
+        >
+          <button type="submit" class="btn-logout">Wyloguj</button>
+        </form>
+      </aside>
+
+      <main class="container">
+        <section class="card">
+          <h2>Dodaj Kontrahenta</h2>
+          <p class="card-desc">
+            Wpisz dane nowej firmy, z którą współpracujecie.
+          </p>
+
+          <form id="add-contractor-form" class="report-controls">
+            <div class="form-group">
+              <label for="contractorName">Nazwa firmy:</label>
+              <input
+                type="text"
+                id="contractorName"
+                required
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <label for="contractorTaxId">NIP:</label>
+              <input
+                type="text"
+                id="contractorTaxId"
+                required
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <button type="submit" class="btn-generate">Dodaj do bazy</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card" style="margin-top: 2rem">
+          <h2>Lista Kontrahentów</h2>
+          <table class="contractors-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nazwa firmy</th>
+                <th>NIP</th>
+                <th style="text-align: right">Akcje</th>
+              </tr>
+            </thead>
+            <tbody id="contractors-list">
+              <tr>
+                <td colspan="4" style="text-align: center">
+                  Ładowanie danych...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const toggleBtn = document.getElementById("sidebar-toggle");
+        const sidebar = document.querySelector(".sidebar");
+        if (toggleBtn) {
+          toggleBtn.addEventListener("click", () =>
+            sidebar.classList.toggle("open"),
+          );
+        }
+
+        loadContractors();
+
+        document
+          .getElementById("add-contractor-form")
+          .addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById("contractorName").value;
+            const taxId = document.getElementById("contractorTaxId").value;
+
+            const res = await fetch("/api/contractors", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ Name: name, TaxId: taxId }),
+            });
+            const result = await res.json();
+
+            if (result.success) {
+              document.getElementById("add-contractor-form").reset();
+              loadContractors();
+            } else {
+              alert("Błąd: " + result.message);
+            }
+          });
+      });
+
+      async function loadContractors() {
+        const tbody = document.getElementById("contractors-list");
+        try {
+          const res = await fetch("/api/contractors");
+          const data = await res.json();
+
+          tbody.innerHTML = "";
+
+          if (data.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="4" style="text-align:center;">Brak dodanych kontrahentów.</td></tr>';
+            return;
+          }
+
+          data.forEach((c) => {
+            tbody.innerHTML += `
+                        <tr>
+                            <td>${c.id}</td>
+                            <td>${c.name}</td>
+                            <td>${c.taxId}</td>
+                            <td style="text-align: right;">
+                                <button onclick="deleteContractor(${c.id})" class="btn-delete"><i class="fas fa-trash"></i> Usuń</button>
+                            </td>
+                        </tr>
+                    `;
+          });
+        } catch (error) {
+          tbody.innerHTML =
+            '<tr><td colspan="4" style="text-align:center; color: red;">Błąd połączenia z serwerem.</td></tr>';
+        }
+      }
+
+      async function deleteContractor(id) {
+        if (!confirm("Czy na pewno chcesz usunąć tego kontrahenta?")) return;
+
+        const res = await fetch(`/api/contractors/${id}`, { method: "DELETE" });
+        const result = await res.json();
+
+        if (result.success) {
+          loadContractors();
+        } else {
+          alert("Błąd: " + result.message);
+        }
+      }
+    </script>
+  </body>
+</html>
