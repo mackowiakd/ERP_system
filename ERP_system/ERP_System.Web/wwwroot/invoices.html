@@ -2,7 +2,7 @@
 <html lang="pl">
   <head>
     <meta charset="UTF-8" />
-    <title>Kontrahenci - ERP_System</title>
+    <title>Faktury - ERP_System</title>
     <link rel="stylesheet" href="/css/dashboard.css" />
     <link rel="stylesheet" href="/css/raports.css" />
     <link
@@ -10,19 +10,18 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <style>
-      /* Proste style dla tabelki, żeby od razu jakoś wyglądała */
-      .contractors-table {
+      .invoices-table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 1rem;
       }
-      .contractors-table th,
-      .contractors-table td {
+      .invoices-table th,
+      .invoices-table td {
         padding: 0.75rem;
         border-bottom: 1px solid #ddd;
         text-align: left;
       }
-      .contractors-table th {
+      .invoices-table th {
         background-color: #f8f9fa;
         font-weight: bold;
       }
@@ -37,6 +36,11 @@
       .btn-delete:hover {
         background: #c82333;
       }
+      .header-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
     </style>
   </head>
   <body>
@@ -47,6 +51,7 @@
         </button>
         <span class="mobile-logo">Home Budget Manager</span>
       </div>
+
       <aside class="sidebar">
         <p class="sidebar-title">
           <i class="fas fa-wallet"></i> Mini-ERP System
@@ -106,51 +111,34 @@
       </aside>
 
       <main class="container">
-        <section class="card">
-          <h2>Dodaj Kontrahenta</h2>
-          <p class="card-desc">
-            Wpisz dane nowej firmy, z którą współpracujecie.
-          </p>
-
-          <form id="add-contractor-form" class="report-controls">
-            <div class="form-group">
-              <label for="contractorName">Nazwa firmy:</label>
-              <input
-                type="text"
-                id="contractorName"
-                required
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <label for="contractorTaxId">NIP:</label>
-              <input
-                type="text"
-                id="contractorTaxId"
-                required
-                class="form-input"
-              />
-            </div>
-            <div class="form-group">
-              <button type="submit" class="btn-generate">Dodaj do bazy</button>
-            </div>
-          </form>
-        </section>
-
         <section class="card" style="margin-top: 2rem">
-          <h2>Lista Kontrahentów</h2>
-          <table class="contractors-table">
+          <div class="header-flex">
+            <h2>Lista Faktur</h2>
+            <button
+              onclick="window.location.href = '/new-invoice'"
+              class="btn-generate"
+              style="margin: 0"
+            >
+              + Dodaj nową fakturę
+            </button>
+          </div>
+
+          <table class="invoices-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Nazwa firmy</th>
-                <th>NIP</th>
+                <th>Nr Faktury</th>
+                <th>Kontrahent</th>
+                <th>Wystawiono</th>
+                <th>Termin</th>
+                <th>Brutto</th>
+                <th>Typ</th>
+                <th>Status</th>
                 <th style="text-align: right">Akcje</th>
               </tr>
             </thead>
-            <tbody id="contractors-list">
+            <tbody id="invoices-list">
               <tr>
-                <td colspan="4" style="text-align: center">
+                <td colspan="8" style="text-align: center">
                   Ładowanie danych...
                 </td>
               </tr>
@@ -170,72 +158,61 @@
           );
         }
 
-        loadContractors();
-
-        document
-          .getElementById("add-contractor-form")
-          .addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            const name = document.getElementById("contractorName").value;
-            const taxId = document.getElementById("contractorTaxId").value;
-
-            const res = await fetch("/api/contractors", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ Name: name, TaxId: taxId }),
-            });
-            const result = await res.json();
-
-            if (result.success) {
-              document.getElementById("add-contractor-form").reset();
-              loadContractors();
-            } else {
-              alert("Błąd: " + result.message);
-            }
-          });
+        // Od razu po wejściu na stronę pobieramy faktury z bazy
+        loadInvoices();
       });
 
-      async function loadContractors() {
-        const tbody = document.getElementById("contractors-list");
+      async function loadInvoices() {
+        const tbody = document.getElementById("invoices-list");
         try {
-          const res = await fetch("/api/contractors");
+          const res = await fetch("/api/invoices");
           const data = await res.json();
 
           tbody.innerHTML = "";
 
           if (data.length === 0) {
             tbody.innerHTML =
-              '<tr><td colspan="4" style="text-align:center;">Brak dodanych kontrahentów.</td></tr>';
+              '<tr><td colspan="8" style="text-align:center;">Brak wystawionych faktur.</td></tr>';
             return;
           }
 
-          data.forEach((c) => {
+          data.forEach((inv) => {
+            // Tłumaczenie typów i statusów z angielskiego (z bazy) na polski
+            const typePl = inv.type === "Sales" ? "Sprzedażowa" : "Kosztowa";
+            let statusPl = inv.status;
+            if (inv.status === "Paid") statusPl = "Opłacona";
+            if (inv.status === "Unpaid") statusPl = "Nieopłacona";
+            if (inv.status === "PartiallyPaid") statusPl = "Częściowo opłacona";
+
             tbody.innerHTML += `
                         <tr>
-                            <td>${c.id}</td>
-                            <td>${c.name}</td>
-                            <td>${c.taxId}</td>
+                            <td><strong>${inv.invoiceNumber}</strong></td>
+                            <td>${inv.contractorName}</td>
+                            <td>${inv.issueDate}</td>
+                            <td>${inv.dueDate}</td>
+                            <td>${inv.totalGross.toFixed(2)} PLN</td>
+                            <td>${typePl}</td>
+                            <td>${statusPl}</td>
                             <td style="text-align: right;">
-                                <button onclick="deleteContractor(${c.id})" class="btn-delete"><i class="fas fa-trash"></i> Usuń</button>
+                                <button onclick="deleteInvoice(${inv.id})" class="btn-delete"><i class="fas fa-trash"></i> Usuń</button>
                             </td>
                         </tr>
                     `;
           });
         } catch (error) {
           tbody.innerHTML =
-            '<tr><td colspan="4" style="text-align:center; color: red;">Błąd połączenia z serwerem.</td></tr>';
+            '<tr><td colspan="8" style="text-align:center; color: red;">Błąd połączenia z serwerem.</td></tr>';
         }
       }
 
-      async function deleteContractor(id) {
-        if (!confirm("Czy na pewno chcesz usunąć tego kontrahenta?")) return;
+      async function deleteInvoice(id) {
+        if (!confirm("Czy na pewno chcesz usunąć tę fakturę?")) return;
 
-        const res = await fetch(`/api/contractors/${id}`, { method: "DELETE" });
+        const res = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
         const result = await res.json();
 
         if (result.success) {
-          loadContractors();
+          loadInvoices();
         } else {
           alert("Błąd: " + result.message);
         }
