@@ -131,3 +131,5 @@ secrets.json
 *.db-shm
 *.db-wal
 *bin\debug*
+*bin\Debug*
+*bin\Debug/net9.0*
