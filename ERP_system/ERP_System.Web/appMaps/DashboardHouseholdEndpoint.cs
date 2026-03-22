@@ -178,7 +178,7 @@ namespace ERP_System.Web.appMaps
                     var html = $@"
                     {cssLink}
                     
-                    <h1 class='page-title' style='margin-left: 0px !important;'>TERP_System</h1>
+                    <h1 class='page-title' style='margin-left: 0px !important;'>ERP_System</h1>
 
                     <div class='main-card'>
                         
@@ -208,7 +208,7 @@ namespace ERP_System.Web.appMaps
                                     hx-confirm='{confirmText}'>
                                     
                                     <button type='submit' class='{buttonClass}'>
-                                        Opuść domostwo
+                                        Opuść firmę
                                     </button>
                                 </form>
                             </div>

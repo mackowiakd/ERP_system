@@ -70,7 +70,7 @@ namespace ERP_System.Web.appMaps
                 context.Response.Cookies.Append("transaction_return_url", returnUrl, new CookieOptions { Expires = DateTime.Now.AddMinutes(30), Path = "/" });
 
                 // load html with utf-8
-                var filePath = Path.Combine(env.WebRootPath, "newTransaction.html");
+                var filePath = Path.Combine(env.WebRootPath, "newInvoice.html");
                 var html = File.ReadAllText(filePath, System.Text.Encoding.UTF8);
 
                 html = html.Replace("{username}", user.Login);
@@ -179,7 +179,7 @@ namespace ERP_System.Web.appMaps
                 try
                 {
                     tranService.addTransaction(user.Id, category, amount, type, finalDate, isRecurring, transactionInterval, title, description, user.CompanyId, frequencyUnit);
-                    return Results.Content("<div class='success'>transakcja dodana</div>", "text/html");
+                    return Results.Content("<div class='success'>Faktura dodana</div>", "text/html");
                 }
                 catch (Exception ex)
                 {

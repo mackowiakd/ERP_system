@@ -68,6 +68,15 @@ namespace ERP_System.Web.appMaps
                     return Results.Content("<div class='error'>Błąd: Użytkownik nieznaleziony.</div>", "text/html");
                 }
 
+                if (user.CompanyId == null || user.CompanyId == 0) 
+                {
+                    return Results.Json(new { 
+                        success = false, 
+                        requireCompany = true, 
+                        message = "Aby dodać kategorię, musisz najpierw dołączyć do firmy lub założyć nową." 
+                    });
+                }
+
                 if (string.IsNullOrWhiteSpace(dto.Name))
                     return Results.Json(new { success = false, message = "Nazwa wymagana" });
 

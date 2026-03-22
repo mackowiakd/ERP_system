@@ -21,6 +21,10 @@ namespace ERP_System.Core
 
         public void addTransaction(DBFinancialOperations transaction)
         {
+            if (transaction.CompanyId <= 0)                                                                                                                                                                      
+            {                                                                                                                                                                                                    
+                throw new InvalidOperationException("<div class='error'>Błąd: Musisz najpierw założyć firmę lub do niej dołączyć, aby dodać fakturę!</div>");                                                    
+            } 
             try
             {
                 db.Add(transaction);
@@ -28,16 +32,21 @@ namespace ERP_System.Core
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException("<div class='error'>" + ex.ToString() + "</div>");
+                throw new InvalidOperationException("<div class='error'>Błąd podczas zapisywania transakcji: " + ex.Message + "</div>");   
             }
         }
 
         // Zmieniono parametr z houseId na companyId
         public void addTransaction(int userId, int categoryId, decimal value, TransactionType type, DateTime date, bool isRepeatable, int? transactionInterval, string title, string? description, int? companyId, int? frequencyUnit)
         {
+            if (companyId == null || companyId == 0)                                                                                                                                                             
+            {                                                                                                                                                                                                    
+                throw new InvalidOperationException("<div class='error'>Błąd: Musisz najpierw założyć firmę lub do niej dołączyć, aby dodać fakturę!</div>");                                                    
+            }  
+
             var newTransaction = new DBFinancialOperations
             {
-                EmployeeId = userId,         // POPRAWKA: EmployeeId
+                EmployeeId = userId,         
                 CategoryId = categoryId,
                 Value = value,
                 TransactionType = type,
@@ -45,7 +54,7 @@ namespace ERP_System.Core
                 IsRepeatable = isRepeatable,
                 Title = title,
                 Description = description,
-                CompanyId = companyId ?? 0   // POPRAWKA: CompanyId (zabezpieczenie przed nullem)
+                CompanyId = companyId ?? 0   
             };
             db.Add(newTransaction);
             db.SaveChanges();
