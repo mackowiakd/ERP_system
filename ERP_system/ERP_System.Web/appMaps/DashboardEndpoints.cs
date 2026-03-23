@@ -47,7 +47,7 @@ namespace ERP_System.Web.appMaps
                 var now = DateTime.Now;
                 var startMonth = new DateTime(now.Year, now.Month, 1);
                 var absoluteStartDate = new DateTime(2000, 1, 1);
-                (List<CategoryStat> Expenses, List<CategoryStat> Incomes) = chartService.GetStatistics(IDs, absoluteStartDate, now);
+                (List<InvoiceStat> Expenses, List<InvoiceStat> Incomes) = chartService.GetStatistics(IDs, absoluteStartDate, now);
                 decimal Balance2 = 0;
                 for (int i = 0; i < Expenses.Count; i++)
                 {

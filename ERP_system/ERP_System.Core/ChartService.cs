@@ -18,7 +18,7 @@ namespace ERP_System.Core
             _db = db;
         }
 
-        public class CategoryStat
+        public class CategoryStat //zostawiam zeby nie zepsuc czegos
         {
             public required string CategoryName { get; set; }
             public decimal TotalAmount { get; set; }
@@ -26,101 +26,82 @@ namespace ERP_System.Core
             public string Color { get; set; } = "#ccc";
         }
 
-        public (List<CategoryStat> Expenses, List<CategoryStat> Incomes) GetStatistics(List<int> userIds, DateTime startDate, DateTime endDate)
+        public class InvoiceStat
         {
-            // 1. Fetch Real Transactions (ZMIANA: FinancialOperations zamiast Transactions, EmployeeId zamiast CompanyId/UserId)
-            var transactions = _db.FinancialOperations
-                .Include(t => t.Category)
-                .Where(t => userIds.Contains(t.EmployeeId) && t.Date >= startDate && t.Date <= endDate)
-                .ToList();
-
-            // 2. Fetch Active Recurring Rules (ZMIANA: RecurringOperations i przej�cie przez relacj� .Transaction)
-            var recurringRules = _db.RecurringOperations
-                .Include(rt => rt.Transaction)
-                    .ThenInclude(t => t.Category) // Pobieramy kategori� z podpi�tej operacji!
-                .Where(rt => rt.Transaction != null && userIds.Contains(rt.Transaction.EmployeeId) && rt.IsActive)
-                .ToList();
-
-            // 3. Project Future Transactions
-            foreach (var rule in recurringRules)
-            {
-                var currentDate = rule.NextRunDate;
-                var unit = (TransactionIntervalType)rule.IntervalType; // ZMIANA z FrequencyUnit
-
-                // Loop to find all occurrences within the requested range
-                while (currentDate <= endDate)
+            public required string Type { get; set; }
+            public decimal TotalAmount { get; set; }
+            public double Percentage { get; set; }
+            public string Color { get; set; } = "#ccc";
+        }
+        public (List<InvoiceStat> Costs, List<InvoiceStat> Sales) GetStatistics(List<int> userIds, DateTime startDate, DateTime endDate)
+        {
+            var invoices = _db.Invoices.Where(
+                i => userIds.Contains(i.CompanyId) &&
+                ((i.IssueDate >= startDate && i.IssueDate <= endDate) ||
+                (i.IssueDate < startDate && i.Status == InvoiceStatus.Unpaid))).ToList();
+            var costGroups = new[]{
+                new{
+                    Type = "Nowe zapłacone",
+                    Filter = (Func<DBInvoice, bool>)(i => i.Type == InvoiceType.Cost && i.Status == InvoiceStatus.Paid
+                    && i.IssueDate >= startDate && i.IssueDate <= endDate )
+                },
+                new
                 {
-                    if (currentDate >= startDate)
-                    {
-                        // Create a transient transaction object for calculation
-                        var projected = new DBFinancialOperations
-                        {
-                            Id = 0, // transient
-                            CompanyId = rule.Transaction!.CompanyId,   // POPRAWKA
-                            EmployeeId = rule.Transaction.EmployeeId, // POPRAWKA
-                            CategoryId = rule.Transaction.CategoryId,
-                            Category = rule.Transaction.Category,
-                            Value = rule.Transaction.Value,           // POPRAWKA: Pobieramy kwot� z transakcji, nie z regu�y
-                            Title = "Projected",
-                            TransactionType = rule.Transaction.TransactionType,
-                            Date = currentDate,
-                            IsRepeatable = false
-                        };
-
-                        transactions.Add(projected);
-                    }
-
-                    // Advance to next occurrence (ZMIANA z TransactionInterval na IntervalValue)
-                    currentDate = unit switch
-                    {
-                        TransactionIntervalType.Days => currentDate.AddDays(rule.IntervalValue),
-                        TransactionIntervalType.Weeks => currentDate.AddDays(rule.IntervalValue * 7),
-                        TransactionIntervalType.Months => currentDate.AddMonths(rule.IntervalValue),
-                        TransactionIntervalType.Years => currentDate.AddYears(rule.IntervalValue),
-                        _ => currentDate.AddMonths(1)
-                    };
+                    Type = "Nowe niezapłacone",
+                    Filter = (Func<DBInvoice, bool>)(i => i.Type == InvoiceType.Cost && i.Status == InvoiceStatus.Unpaid
+                    && i.IssueDate >= startDate && i.IssueDate <= endDate)
+                },
+                new
+                {
+                Type = "Stare niezapłacone",
+                Filter = (Func<DBInvoice, bool>)(i => i.Type == InvoiceType.Cost && i.Status == InvoiceStatus.Unpaid &&
+                i.IssueDate < startDate)
                 }
+            };
+            var salesGroups = new[]{
+                new {
+                Type = "Nowe zapłacone",
+                Filter = (Func<DBInvoice, bool>)(i => i.Type == InvoiceType.Sales && i.IssueDate >= startDate && i.IssueDate <= endDate && i.Status == InvoiceStatus.Paid)
+                },
+                new {
+                Type = "Nowe niezapłacone",
+                Filter = (Func<DBInvoice, bool>)(i => i.Type == InvoiceType.Sales && i.IssueDate >= startDate && i.IssueDate <= endDate && i.Status == InvoiceStatus.Unpaid)
+                },
+                new {
+                Type = "Stare niezapłacone",
+                Filter = (Func<DBInvoice, bool>)(i => i.Type == InvoiceType.Sales && i.IssueDate < startDate && i.Status == InvoiceStatus.Unpaid)
             }
-
-            var expenses = transactions
-                .Where(t => t.TransactionType == TransactionType.expense)
-                .GroupBy(t => t.Category?.Name ?? "Brak kategorii")
-                .Select(g => new { Name = g.Key, Total = g.Sum(t => Math.Abs(t.Value)) })
-                .ToList();
-
-            var incomes = transactions
-                .Where(t => t.TransactionType == TransactionType.income)
-                .GroupBy(t => t.Category?.Name ?? "Brak kategorii")
-                .Select(g => new { Name = g.Key, Total = g.Sum(t => Math.Abs(t.Value)) })
-                .ToList();
-
-            var totalExpense = expenses.Sum(x => x.Total);
-            var totalIncome = incomes.Sum(x => x.Total);
-
-            var expenseStats = expenses.Select(x => new CategoryStat
+            };
+            var costStats = costGroups.Select(g => new InvoiceStat
             {
-                CategoryName = x.Name,
-                TotalAmount = x.Total,
-                Percentage = totalExpense == 0 ? 0 : (double)(x.Total / totalExpense) * 100
-            }).OrderByDescending(x => x.Percentage).ToList();
+                Type = g.Type,
+                TotalAmount = invoices.Where(g.Filter).Sum(i => i.TotalGross),
+                Percentage = 0 // Will be set below
+            }).Where(stat => stat.TotalAmount > 0).OrderByDescending(g => g.Percentage).ToList();
 
-            var incomeStats = incomes.Select(x => new CategoryStat
+            var salesStats = salesGroups.Select(g => new InvoiceStat
             {
-                CategoryName = x.Name,
-                TotalAmount = x.Total,
-                Percentage = totalIncome == 0 ? 0 : (double)(x.Total / totalIncome) * 100
-            }).OrderByDescending(x => x.Percentage).ToList();
+                Type = g.Type,
+                TotalAmount = invoices.Where(g.Filter).Sum(i => i.TotalGross),
+                Percentage = 0
+            }).Where(stat => stat.TotalAmount > 0).OrderByDescending(g => g.Percentage).ToList();
 
+            var totalCost = costStats.Sum(x => x.TotalAmount);
+            var totalSales = salesStats.Sum(x => x.TotalAmount);
+            foreach (var stat in costStats)
+                stat.Percentage = totalCost == 0 ? 0 : (double)(stat.TotalAmount / totalCost) * 100;
+
+            foreach (var stat in salesStats)
+                stat.Percentage = totalSales == 0 ? 0 : (double)(stat.TotalAmount / totalSales) * 100;
             // Simple color palette
             string[] colors = [
                 "#124708", "#d66d24", "#efc766", "#005f73",
                 "#ae2012", "#94d2bd", "#e9d8a6", "#6b705c"
             ];
+            for (int i = 0; i < costStats.Count; i++) costStats[i].Color = colors[i % colors.Length];
+            for (int i = 0; i < salesStats.Count; i++) salesStats[i].Color = colors[i % colors.Length];
 
-            for (int i = 0; i < expenseStats.Count; i++) expenseStats[i].Color = colors[i % colors.Length];
-            for (int i = 0; i < incomeStats.Count; i++) incomeStats[i].Color = colors[i % colors.Length];
-
-            return (expenseStats, incomeStats);
+            return (costStats, salesStats);
         }
 
         public string GenerateChartsHtml(int userId, DateTime startDate, DateTime endDate, bool includeHousehold = false)
@@ -200,7 +181,7 @@ namespace ERP_System.Core
             """;
         }
 
-        private string GenerateSingleChartHtml(string title, List<CategoryStat> stats)
+        private string GenerateSingleChartHtml(string title, List<InvoiceStat> stats)
         {
             if (stats.Count == 0)
             {
@@ -230,7 +211,7 @@ namespace ERP_System.Core
             {
                 var stat = stats[0];
                 string amountStr = stat.TotalAmount.ToString("C2", culture);
-                sb.Append($"<circle cx='100' cy='100' r='100' fill='{stat.Color}' class='pie-slice' data-name='{stat.CategoryName}' data-value='{amountStr}' data-percent='100' />");
+                sb.Append($"<circle cx='100' cy='100' r='100' fill='{stat.Color}' class='pie-slice' data-name='{stat.Type}' data-value='{amountStr}' data-percent='100' />");
             }
             else
             {
@@ -249,7 +230,7 @@ namespace ERP_System.Core
                     string pathData = $"M {x1.ToString(CultureInfo.InvariantCulture)} {y1.ToString(CultureInfo.InvariantCulture)} A {radius} {radius} 0 {largeArcFlag} 1 {x2.ToString(CultureInfo.InvariantCulture)} {y2.ToString(CultureInfo.InvariantCulture)} L {centerX} {centerY} Z";
                     string amountStr = stat.TotalAmount.ToString("C2", culture);
 
-                    sb.Append($"<path d='{pathData}' fill='{stat.Color}' stroke='white' stroke-width='1' class='pie-slice' data-name='{stat.CategoryName}' data-value='{amountStr}' data-percent='{stat.Percentage:F1}' />");
+                    sb.Append($"<path d='{pathData}' fill='{stat.Color}' stroke='white' stroke-width='1' class='pie-slice' data-name='{stat.Type}' data-value='{amountStr}' data-percent='{stat.Percentage:F1}' />");
                     currentAngle += sliceAngle;
                 }
             }
@@ -264,7 +245,7 @@ namespace ERP_System.Core
                 sb.Append($@"
                         <li style='margin-bottom: 8px; display: flex; align-items: center; color: #555;'>
                             <span style='display: inline-block; width: 14px; height: 14px; background-color: {stat.Color}; margin-right: 10px; border-radius: 3px; flex-shrink: 0;'></span>
-                            <span><strong>{stat.CategoryName}</strong>: {stat.Percentage:F1}%</span>
+                            <span><strong>{stat.Type}</strong>: {stat.Percentage:F1}%</span>
                         </li>
                 ");
             }
