@@ -32,7 +32,7 @@ namespace ERP_System.Web.appMaps
                 html = html.Replace("{username}", username);
                 string adminBtnHtml = "";
 
-                if (user.Role == SystemRole.SystemAdmin || user.Role == SystemRole.CompanyAdmin)
+                if (user.Role == SystemRole.SystemAdmin)
                 {
                     adminBtnHtml = "<button class=\"sidebar-link\" onclick=\"window.location.href='/adminConsole'\"><i class=\"fas fa-fw fa-cogs\"></i> &nbsp; Ustawienia Admina</button>";
                 }
