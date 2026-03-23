@@ -22,7 +22,7 @@ namespace ERP_System.Core.DBTables
     {
         Unpaid = 0,
         Paid = 1,
-        PartiallyPaid = 2 //don't use
+        PartiallyPaid = 2
     }
 
     [Table("invoices")]
