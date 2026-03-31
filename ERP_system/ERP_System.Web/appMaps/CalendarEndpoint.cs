@@ -40,7 +40,7 @@ namespace ERP_System.Web.appMaps
                 return Results.Content(html, "text/html; charset=utf-8");
             });
 
-            app.MapGet("/api/calendar-events", async (HttpContext context, AppDbContext db) =>
+            _ = app.MapGet("/api/calendar-events", async (HttpContext context, AppDbContext db) =>
             {
                 if (!context.Request.Cookies.ContainsKey("logged_user"))
                     return Results.Unauthorized();
@@ -63,8 +63,15 @@ namespace ERP_System.Web.appMaps
                 {
                     userIds.Add(user.Id);
                 }
-
-                List<dynamic> transactions = new List<dynamic>();
+                List<int> companyIds = new List<int>();
+                {
+                    if (user.CompanyId.HasValue)
+                    {
+                        companyIds.Add(user.CompanyId.Value);
+                    }
+                }
+                List<dynamic> invoices = new List<dynamic>();
+                /*List<dynamic> transactions = new List<dynamic>();
 
                 var regularTransactions = await db.FinancialOperations
                     .Include(t => t.Employee)
@@ -83,9 +90,9 @@ namespace ERP_System.Web.appMaps
                         reminder = false,
                         isRecurring = false
                     })
-                    .ToListAsync();
+                    .ToListAsync();*/
 
-                transactions.AddRange(regularTransactions);
+                /*transactions.AddRange(regularTransactions);
 
                 var repetableTransactions = await db.RecurringOperations
                     .Include(rt => rt.Transaction) // ZMIANA: Poprawne użycie Include
@@ -126,9 +133,29 @@ namespace ERP_System.Web.appMaps
                             _ => nextDate.AddMonths(1),
                         };
                     }
-                }
-
-                return Results.Json(transactions);
+                }*/
+                var selectedInvoices = await db.Invoices
+                    .Where(i => companyIds.Contains(i.CompanyId))
+                    .OrderBy(i => i.DueDate)
+                    .Select(i => new
+                    {
+                        id = i.Id.ToString(),
+                        title = $"Faktura: {i.InvoiceNumber}",
+                        startTime = i.IssueDate.ToString("yyyy-MM-ddTHH:mm:ss"),
+                        endTime = i.DueDate.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
+                        amount = i.TotalGross,
+                        direction = i.Type,
+                        description = "Kontrahent: " + (i.Contractor != null ? i.Contractor.Name : "Nieznany")
+                        + " || Typ: " + (i.Type == InvoiceType.Sales ? "Sprzedażowa" : "Kosztowa")
+                        + ", Status: " + (i.Status == InvoiceStatus.Paid ? "Opłacona" : "Nieopłacona"),
+                        categoryId = (int?)null,
+                        color = i.Type == InvoiceType.Cost ? "#e74a3b" : "#1cc88a",
+                        reminder = false,
+                        isRecurring = false
+                    })
+                    .ToListAsync();
+                    invoices.AddRange(selectedInvoices);
+                return Results.Json(invoices);
             });
         }
     }
