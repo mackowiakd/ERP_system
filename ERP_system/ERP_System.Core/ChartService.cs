@@ -26,19 +26,42 @@ namespace ERP_System.Core
             public string Color { get; set; } = "#ccc";
         }
 
-        public (List<CategoryStat> Expenses, List<CategoryStat> Incomes) GetStatistics(List<int> userIds, DateTime startDate, DateTime endDate)
+        public (List<CategoryStat> Expenses, List<CategoryStat> Incomes) GetStatistics(List<int> companyIds, DateTime startDate, DateTime endDate)
         {
-            // 1. Fetch Real Transactions (ZMIANA: FinancialOperations zamiast Transactions, EmployeeId zamiast CompanyId/UserId)
+            // 1. Pobieramy operacje finansowe
             var transactions = _db.FinancialOperations
                 .Include(t => t.Category)
-                .Where(t => userIds.Contains(t.EmployeeId) && t.Date >= startDate && t.Date <= endDate)
+                .Where(t => companyIds.Contains(t.CompanyId) && t.Date >= startDate && t.Date <= endDate)
                 .ToList();
 
-            // 2. Fetch Active Recurring Rules (ZMIANA: RecurringOperations i przej�cie przez relacj� .Transaction)
+            // 2. NOWOŚĆ: Pobieramy faktury i traktujemy je jako wirtualne transakcje do wykresów
+            var invoices = _db.Invoices
+                .Where(i => companyIds.Contains(i.CompanyId) && i.IssueDate >= startDate && i.IssueDate <= endDate)
+                .ToList();
+
+            foreach (var inv in invoices)
+            {
+                var contractorName = _db.Contractors.FirstOrDefault(c => c.Id == inv.ContractorId)?.Name ?? "Nieznany Kontrahent";
+                
+                transactions.Add(new DBFinancialOperations
+                {
+                    Id = 0,
+                    CompanyId = inv.CompanyId,
+                    EmployeeId = 0,
+                    Value = inv.Type == InvoiceType.Cost ? -inv.TotalGross : inv.TotalGross,
+                    Title = inv.InvoiceNumber,
+                    TransactionType = inv.Type == InvoiceType.Cost ? TransactionType.expense : TransactionType.income,
+                    Date = inv.IssueDate,
+                    CategoryId = 0,
+                    Category = new DBTransactionCategories { Name = contractorName, Id = 0 }
+                });
+            }
+
+            // 3. Pobieramy operacje cykliczne
             var recurringRules = _db.RecurringOperations
                 .Include(rt => rt.Transaction)
-                    .ThenInclude(t => t.Category) // Pobieramy kategori� z podpi�tej operacji!
-                .Where(rt => rt.Transaction != null && userIds.Contains(rt.Transaction.EmployeeId) && rt.IsActive)
+                    .ThenInclude(t => t.Category)
+                .Where(rt => rt.Transaction != null && companyIds.Contains(rt.Transaction.CompanyId) && rt.IsActive)
                 .ToList();
 
             // 3. Project Future Transactions
@@ -123,37 +146,42 @@ namespace ERP_System.Core
             return (expenseStats, incomeStats);
         }
 
+        public string GenerateDashboardChartsHtml(int userId)
+        {
+            var user = _db.Employees.FirstOrDefault(u => u.Id == userId);
+            if (user == null || !user.CompanyId.HasValue) return "Brak danych (nie należysz do firmy).";
+
+            var now = DateTime.Now;
+            var startDate = new DateTime(now.Year, now.Month, 1);
+            var endDate = now.Date.AddDays(1).AddTicks(-1);
+
+            // Przekazujemy ID firmy w liście
+            return GenerateChartsHtml(userId, startDate, endDate, true);
+        }
+
         public string GenerateChartsHtml(int userId, DateTime startDate, DateTime endDate, bool includeHousehold = false)
         {
-            List<int> userIds = new List<int> { userId };
+            List<int> ids = new List<int> { userId };
 
             if (includeHousehold)
             {
-                // ZMIANA z Users na Employees
                 var user = _db.Employees.FirstOrDefault(u => u.Id == userId);
                 if (user != null && user.CompanyId.HasValue)
                 {
-                    userIds = _db.Employees.Where(u => u.CompanyId == user.CompanyId).Select(u => u.Id).ToList();
+                    // ZMIANA: Przekazujemy ID firmy zamiast listy ID użytkowników
+                    ids = new List<int> { user.CompanyId.Value };
                 }
             }
 
-            var (expenses, incomes) = GetStatistics(userIds, startDate, endDate);
+            var (expenses, incomes) = GetStatistics(ids, startDate, endDate);
             var sb = new StringBuilder();
 
             sb.Append(GetTooltipAssets());
             sb.Append("<div class='charts-container' style='display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px;'>");
-            sb.Append(GenerateSingleChartHtml(includeHousehold ? "Wydatki (Firma)" : "Wydatki (Moje)", expenses));
-            sb.Append(GenerateSingleChartHtml(includeHousehold ? "Przychody (Firma)" : "Przychody (Moje)", incomes));
+            sb.Append(GenerateSingleChartHtml(includeHousehold ? "Wydatki (Firma)" : "Wydatki", expenses));
+            sb.Append(GenerateSingleChartHtml(includeHousehold ? "Przychody (Firma)" : "Przychody", incomes));
             sb.Append("</div>");
             return sb.ToString();
-        }
-
-        public string GenerateDashboardChartsHtml(int userId)
-        {
-            var now = DateTime.Now;
-            var startDate = new DateTime(now.Year, now.Month, 1);
-            var endDate = now.Date.AddDays(1).AddTicks(-1);
-            return GenerateChartsHtml(userId, startDate, endDate, false);
         }
 
         private string GetTooltipAssets()

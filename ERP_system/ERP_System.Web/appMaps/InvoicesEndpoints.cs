@@ -40,27 +40,7 @@ namespace ERP_System.Web.appMaps
 
                 return Results.Content(html, "text/html");
             });
-
-            // 2. ZWRACANIE WIDOKU DODAWANIA FAKTURY (Zrobiony przez kolegów: newInvoice.html)
-            app.MapGet("/new-invoice", async (HttpContext context, AppDbContext db) =>
-            {
-                var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
-
-                if (user == null) { context.Response.Redirect("/login"); return Results.Empty; }
-
-                var html = await System.IO.File.ReadAllTextAsync("wwwroot/newInvoice.html");
-                html = html.Replace("{username}", user.Login);
-                
-                if (user.Role.ToString() == "Admin") {
-                    html = html.Replace("{admin_panel_button}", "<button class=\"sidebar-link\" onclick=\"window.location.href='/admin'\"><i class=\"fas fa-cog\"></i> &nbsp; Panel Firmy</button>");
-                } else {
-                    html = html.Replace("{admin_panel_button}", "");
-                }
-
-                return Results.Content(html, "text/html");
-            });
-
+            
             // 3. POBIERANIE LISTY FAKTUR (API)
             app.MapGet("/api/invoices", async (HttpContext context, AppDbContext db, InvoiceService invoiceService) =>
             {

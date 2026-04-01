@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Event creation - Redirect to new transaction page
         addEventBtn.addEventListener('click', () => {
-            window.location.href = '/new-transaction?returnUrl=' + encodeURIComponent('/calendar');
+            window.location.href = '/new-invoice?returnUrl=' + encodeURIComponent('/calendar');
         });
 
         // Event details modal

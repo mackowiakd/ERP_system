@@ -25,7 +25,10 @@ public class TransactionsEndpoints : IEndpoint
                 return Results.Content("<div class='error'>Błąd: Użytkownik nieznaleziony.</div>", "text/html");
             }
 
-            var transactions = tranService.AllUserTransactions(user.Id);
+            // Zmiana: lista dla całej firmy
+            var transactions = user.CompanyId.HasValue 
+                ? tranService.allCompanyTransactions(user.CompanyId.Value)
+                : tranService.AllUserTransactions(user.Id);
 
             var sb = new System.Text.StringBuilder();
 
@@ -53,7 +56,7 @@ public class TransactionsEndpoints : IEndpoint
             return Results.Content(sb.ToString(), "text/html");
         });
 
-        app.MapGet("/transactions/listSome", async (HttpContext context, AppDbContext db, TransactionService tranService) =>
+        app.MapGet("/transactions/listSome", async (HttpContext context, AppDbContext db, InvoiceService invService) =>
         {
 
             var userLogin = context.Request.Cookies["logged_user"];
@@ -67,9 +70,15 @@ public class TransactionsEndpoints : IEndpoint
                 return Results.Content("<div class='error'>Błąd: Użytkownik nieznaleziony.</div>", "text/html");
             }
 
-            var transactions = tranService.SomeUserTransactions(user.Id, 8);
+            if (!user.CompanyId.HasValue)
+            {
+                return Results.Content("<li class='transaction-item'><span>Brak przypisanej firmy.</span></li>", "text/html");
+            }
 
-            return Results.Content(tranService.listTransactionsForDashboard(transactions).ToString(), "text/html");
+            // Pobieramy prawdziwe faktury z InvoiceService
+            var html = invService.ListInvoicesForDashboard(user.CompanyId.Value, 8);
+
+            return Results.Content(html.ToString(), "text/html");
         });
 
         // DELETE transaction
