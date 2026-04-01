@@ -15,7 +15,7 @@ namespace ERP_System.Web.appMaps
     {
         public void Map(IEndpointRouteBuilder app)
         {
-            app.MapGet("/new-transaction", async (HttpContext context, IWebHostEnvironment env, AppDbContext db) =>
+            app.MapGet("/new-invoice", async (HttpContext context, IWebHostEnvironment env, AppDbContext db) =>
             {
                 if (!context.Request.Cookies.ContainsKey("logged_user"))
                 {
@@ -53,7 +53,7 @@ namespace ERP_System.Web.appMaps
                     // Blocked pages: Stay on New Transaction page
                     else if (returnUrl.Contains("/reports") || returnUrl.Contains("/charts") || returnUrl.Contains("/household")) 
                     {
-                         returnUrl = "/new-transaction";
+                         returnUrl = "/new-invoice";
                     }
                     else 
                     {
@@ -91,7 +91,7 @@ namespace ERP_System.Web.appMaps
 
             // POST - add new transaction
 
-            app.MapPost("/new-transaction/add", async (HttpContext context, AppDbContext db, TransactionService tranService) =>
+            app.MapPost("/new-invoice/add", async (HttpContext context, AppDbContext db, TransactionService tranService) =>
             {
 
                 var userLogin = context.Request.Cookies["logged_user"];

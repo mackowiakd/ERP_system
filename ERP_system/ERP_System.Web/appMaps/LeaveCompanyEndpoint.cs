@@ -5,7 +5,7 @@ using System;
 
 namespace ERP_System.Web.appMaps
 {
-    public class LeaveHouseholdEndpoint : IEndpoint
+    public class LeaveCompanyEndpoint : IEndpoint
     {
         public void Map(IEndpointRouteBuilder app)
         {

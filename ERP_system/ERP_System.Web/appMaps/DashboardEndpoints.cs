@@ -26,10 +26,22 @@ namespace ERP_System.Web.appMaps
                 }
 
                 
-                var balance = await db.FinancialOperations
-                                    .Where(t => t.CompanyId == user.Id)
-                                    .SumAsync(t => t.Value);
-                
+                var now = DateTime.Now;
+                var startMonth = new DateTime(now.Year, now.Month, 1);
+
+                // Liczymy saldo na podstawie faktur z bieżącego miesiąca
+                var invoices = await db.Invoices
+                    .Where(i => i.CompanyId == (user.CompanyId ?? 0) && i.IssueDate >= startMonth)
+                    .ToListAsync();
+
+                decimal currentMonthBalance = 0;
+                foreach (var inv in invoices)
+                {
+                    if (inv.Type == InvoiceType.Cost)
+                        currentMonthBalance -= inv.TotalGross;
+                    else
+                        currentMonthBalance += inv.TotalGross;
+                }
 
                 var filePath = Path.Combine(env.WebRootPath, "dashboard.html");
                 // load html
@@ -44,21 +56,12 @@ namespace ERP_System.Web.appMaps
                 List<int> IDs = new List<int>();
                 int currentID = int.Parse(context.Request.Cookies["user_id"]);
                 IDs.Add(currentID);
-                var now = DateTime.Now;
-                var startMonth = new DateTime(now.Year, now.Month, 1);
+                
                 var absoluteStartDate = new DateTime(2000, 1, 1);
-                (List<CategoryStat> Expenses, List<CategoryStat> Incomes) = chartService.GetStatistics(IDs, absoluteStartDate, now);
-                decimal Balance2 = 0;
-                for (int i = 0; i < Expenses.Count; i++)
-                {
-                    Balance2 -= Expenses[i].TotalAmount;
-                }
-                for (int i = 0; i < Incomes.Count; i++)
-                {
-                    Balance2 += Incomes[i].TotalAmount;
-                }
+                (List<CategoryStat> Expenses, List<CategoryStat> Incomes) = chartService.GetStatistics(new List<int> { user.CompanyId ?? 0 }, startMonth, now);
+                
                 html =  html.Replace("{username}", username)
-                            .Replace("{balance}", Balance2.ToString())
+                            .Replace("{balance}", currentMonthBalance.ToString("N2"))
                             .Replace("{admin_panel_button}", adminBtnHtml);
                 return Results.Content(html, "text/html");
             });

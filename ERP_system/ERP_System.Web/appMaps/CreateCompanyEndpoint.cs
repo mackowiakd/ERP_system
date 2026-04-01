@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ERP_System.Web.appMaps
 {
-    public class CreateHouseholdEndpoint : IEndpoint
+    public class CreateCompanyEndpoint : IEndpoint
     {
         public void Map(IEndpointRouteBuilder app)
         {

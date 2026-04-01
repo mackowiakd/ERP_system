@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ERP_System.Web.appMaps
 {
-    public class DashboardHouseholdEndpoint : IEndpoint
+    public class DashboardCompanyEndpoint : IEndpoint
     {
         public void Map(IEndpointRouteBuilder app)
         {
