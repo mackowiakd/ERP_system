@@ -251,7 +251,7 @@
                         PaymentMethod: parseInt(
                             document.getElementById("invPayment").value,
                         ),
-                        Notes: document.getElementById("InvNotes").value,
+                        Notes: String(document.getElementById("InvNotes").value),
                         Status: parseInt(document.getElementById("invStatus").value),
                     };
 

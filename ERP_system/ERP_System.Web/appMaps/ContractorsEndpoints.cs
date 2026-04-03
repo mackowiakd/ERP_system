@@ -5,7 +5,7 @@ namespace ERP_System.Web.appMaps
 {
     public class ContractorsEndpoints : IEndpoint
     {
-        public record CreateContractorDto(string Name, string TaxId);
+        public record CreateContractorDto(string Name, string TaxId, string Address);
 
         public void Map(IEndpointRouteBuilder app)
         {
@@ -51,8 +51,8 @@ namespace ERP_System.Web.appMaps
                 {
                     id = c.Id,
                     name = c.Name,
-                    taxId = c.TaxId,
-                    address = c.Address ?? "Brak danych",
+                    address = c.Address,
+                    taxId = c.TaxId
                 });
 
                 return Results.Json(result);
@@ -72,7 +72,7 @@ namespace ERP_System.Web.appMaps
                     return Results.Json(new { success = false, message = "Nazwa i NIP są wymagane" });
 
                 // POPRAWKA: Używamy .Value
-                var result = contractorService.AddContractor(employee.CompanyId.Value, dto.Name, dto.TaxId);
+                var result = contractorService.AddContractor(employee.CompanyId.Value, dto.Name, dto.TaxId, dto.Address);
 
                 if (result == "Pomyślnie dodano kontrahenta")
                 {

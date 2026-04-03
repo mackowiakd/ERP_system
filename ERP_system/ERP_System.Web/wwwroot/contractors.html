@@ -188,11 +188,12 @@
 
                     const name = document.getElementById("contractorName").value;
                     const taxId = document.getElementById("contractorTaxId").value;
+                    const address = document.getElementById("contractorAddress").value;
 
                     const res = await fetch("/api/contractors", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ Name: name, TaxId: taxId }),
+                        body: JSON.stringify({ Name: name, TaxId: taxId, Address: address }),
                     });
                     const result = await res.json();
 
@@ -221,16 +222,16 @@
 
                 data.forEach((c) => {
                     tbody.innerHTML += `
-                            <tr>
-                                <td>${c.id}</td>
-                                <td>${c.name}</td>
-                                <td>${c.taxId}</td>
-                                <td>${c.address}</td>
-                                <td style="text-align: right;">
-                                    <button onclick="deleteContractor(${c.id})" class="btn-delete"><i class="fas fa-trash"></i> Usuń</button>
-                                </td>
-                            </tr>
-                        `;
+                                <tr>
+                                    <td>${c.id}</td>
+                                    <td>${c.name}</td>
+                                    <td>${c.taxId}</td>
+                                    <td>${c.address}</td>
+                                    <td style="text-align: right;">
+                                        <button onclick="deleteContractor(${c.id})" class="btn-delete"><i class="fas fa-trash"></i> Usuń</button>
+                                    </td>
+                                </tr>
+                            `;
                 });
             } catch (error) {
                 tbody.innerHTML =

@@ -16,6 +16,16 @@ namespace ERP_System.Web.appMaps
             decimal TotalNet, 
             decimal TotalGross, 
             InvoiceType Type, 
+            string Notes,
+            InvoiceStatus Status
+        );
+        public record EditInvoiceDto(
+            string InvoiceNumber,
+            DateTime IssueDate,
+            decimal TotalNet, 
+            decimal TotalGross, 
+            InvoiceType Type, 
+            string Notes, 
             InvoiceStatus Status
         );
 
@@ -61,6 +71,7 @@ namespace ERP_System.Web.appMaps
                     dueDate = i.DueDate.ToString("yyyy-MM-dd"),
                     totalGross = i.TotalGross,
                     type = i.Type.ToString(),
+                    notes = i.Notes,
                     status = i.Status.ToString()
                 });
 
@@ -82,7 +93,7 @@ namespace ERP_System.Web.appMaps
                 var result = invoiceService.AddInvoice(
                     employee.CompanyId.Value, dto.ContractorId, dto.InvoiceNumber, 
                     dto.IssueDate, dto.DueDate, dto.PaymentMethod, 
-                    dto.TotalNet, dto.TotalGross, dto.Type, dto.Status
+                    dto.TotalNet, dto.TotalGross, dto.Type, dto.Notes, dto.Status
                 );
 
                 if (result == "Pomyślnie dodano fakturę")
@@ -109,6 +120,23 @@ namespace ERP_System.Web.appMaps
                     return Results.Json(new { success = true });
                 }
 
+                return Results.Json(new { success = false, message = result });
+            });
+
+            // 6. EDYCJA FAKTURY (API)
+            app.MapPut("/api/invoices/{id}", async (int id, EditInvoiceDto dto, HttpContext context, AppDbContext db, InvoiceService invoiceService) =>
+            {
+                var loginUser = context.Request.Cookies["logged_user"];
+                var employee = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
+                if (employee == null || employee.CompanyId == null) 
+                    return Results.Json(new { success = false, message = "Brak autoryzacji lub nie przypisano do firmy." });
+                if (string.IsNullOrWhiteSpace(dto.InvoiceNumber))
+                    return Results.Json(new { success = false, message = "Numer faktury jest wymagany" });
+                var result = invoiceService.EditInvoice(id, dto.InvoiceNumber, dto.IssueDate, dto.TotalNet, dto.TotalGross, dto.Type, dto.Notes, dto.Status);
+                if (result == "Pomyślnie edytowano fakturę")
+                {
+                    return Results.Json(new { success = true });
+                }
                 return Results.Json(new { success = false, message = result });
             });
         }
