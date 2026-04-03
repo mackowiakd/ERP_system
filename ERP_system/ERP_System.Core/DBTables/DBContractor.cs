@@ -23,6 +23,9 @@ namespace ERP_System.Core.DBTables
         [Column("contractor_name")]
         public required string Name { get; set; }
 
+        [Column("contractor_address")]
+        public string? Address { get; set; }
+
         [Required]
         [MaxLength(20)]
         [Column("contractor_tax_id")]

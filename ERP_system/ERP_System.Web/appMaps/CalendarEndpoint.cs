@@ -63,8 +63,15 @@ namespace ERP_System.Web.appMaps
                 {
                     userIds.Add(user.Id);
                 }
-
-                List<dynamic> transactions = new List<dynamic>();
+                List<int> companyIds = new List<int>();
+                {
+                    if (user.CompanyId.HasValue)
+                    {
+                        companyIds.Add(user.CompanyId.Value);
+                    }
+                }
+                List<dynamic> invoices = new List<dynamic>();
+                /*List<dynamic> transactions = new List<dynamic>();
 
                 var regularTransactions = await db.FinancialOperations
                     .Include(t => t.Employee)
@@ -85,9 +92,9 @@ namespace ERP_System.Web.appMaps
                     })
                     .ToListAsync();
 
-                transactions.AddRange(regularTransactions);
+                transactions.AddRange(regularTransactions);*/
 
-                var repetableTransactions = await db.RecurringOperations
+                /*var repetableTransactions = await db.RecurringOperations
                     .Include(rt => rt.Transaction) // ZMIANA: Poprawne użycie Include
                         .ThenInclude(t => t.Employee)
                     .Where(rt => rt.Transaction != null && userIds.Contains(rt.Transaction.EmployeeId) && rt.IsActive)
@@ -126,9 +133,39 @@ namespace ERP_System.Web.appMaps
                             _ => nextDate.AddMonths(1),
                         };
                     }
-                }
-
-                return Results.Json(transactions);
+                }*/
+                var selectedInvoices = await db.Invoices
+                    .Where(i => companyIds.Contains(i.CompanyId))
+                    .OrderBy(i => i.DueDate)
+                    .Select(i => new
+                    {
+                        id = i.Id.ToString(),
+                        title = $"Faktura: {i.InvoiceNumber}",
+                        startTime = i.IssueDate.ToString("yyyy-MM-ddTHH:mm:ss"),
+                        endTime = i.DueDate.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
+                        amount = i.TotalGross,
+                        direction = i.Type,
+                        contractorName = (i.Contractor.Name ?? "Nieznany"),
+                        adres = i.Contractor.Address,
+                        NIP = i.Contractor.TaxId,
+                        notes = i.Notes,
+                        /*description = "Kontrahent: " + i.Contractor.Name
+                        + " | Typ: " + (i.Type == InvoiceType.Sales ? "Sprzedażowa" : "Kosztowa")
+                        + " | Status: " + (i.Status == InvoiceStatus.Paid ? "Opłacona" : "Nieopłacona"),*/
+                        //dane kontrahenta
+                        description = "Nazwa Kontrahenta: " + i.Contractor.Name + " | Adres: " + (i.Contractor.Address ?? "Brak ") + " | NIP: " + i.Contractor.TaxId,
+                        //finanse
+                        description2 = "Typ: " + (i.Type == InvoiceType.Sales ? "Sprzedażowa" : "Kosztowa") + " | Status: " + (i.Status == InvoiceStatus.Paid ? "Opłacona" : "Nieopłacona") 
+                        + " | Kwota: " + i.TotalGross.ToString() + "zł",
+                        description3 = (i.Notes ?? "Brak zawartości"),
+                        categoryId = (int?)null,
+                        color = i.Type == InvoiceType.Cost ? "#e74a3b" : "#1cc88a",
+                        reminder = false,
+                        isRecurring = false
+                    })
+                    .ToListAsync();
+                invoices.AddRange(selectedInvoices);
+                return Results.Json(invoices);
             });
         }
     }

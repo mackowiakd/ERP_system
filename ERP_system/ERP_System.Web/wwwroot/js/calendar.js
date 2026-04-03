@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const detailsDate = document.getElementById('details-date');
     const detailsTime = document.getElementById('details-time');
     const detailsDescription = document.getElementById('details-description');
+    const detailsDescription2 = document.getElementById('details-description2');
+    const detailsDescription3 = document.getElementById('details-description3');
     const deleteEventBtn = document.getElementById('delete-event-btn');
     const editEventBtn = document.getElementById('edit-event-btn');
     const closeDetailsBtn = document.getElementById('close-details-btn');
@@ -294,6 +296,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     <i class="far fa-clock"></i> ${dateString}${timeString}
                 </div>
                 ${event.description ? `<div style="color: #888; font-size: 0.9em; margin-top: 4px;">${event.description}</div>` : ''}
+                ${event.description2 ? `<div style="color: #888; font-size: 0.9em; margin-top: 4px;">${event.description2}</div>` : ''}
+                ${event.description3 ? `<div style="color: #888; font-size: 0.9em; margin-top: 4px;">${event.description3}</div>` : ''}
             </div>
             <div style="font-weight: bold; color: ${event.color}; font-size: 1.1em;">
                 ${Number(event.amount).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}
@@ -438,6 +442,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
                 ${event.description ? `<div class="event-description" style="margin-top:4px; font-size:0.8em; color:#aaa;">${event.description}</div>` : ''}
+                ${event.description2 ? `<div class="event-description2" style="margin-top:4px; font-size:0.8em; color:#aaa;">${event.description2}</div>` : ''}
+                ${event.description3 ? `<div class="event-description3" style="margin-top:4px; font-size:0.8em; color:#aaa;">${event.description3}</div>` : ''}
             `;
 
             eventsList.appendChild(eventElement);
@@ -572,8 +578,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Removed end time display
         detailsTime.textContent = formatTime(new Date(event.startTime));
-        detailsDescription.textContent = event.description || 'Brak opisu';
-
+        detailsDescription.textContent = event.description || 'Brak kontrahenta!';
+        detailsDescription2.textContent = event.description2 || 'Brak danych o płatności!';
+        detailsDescription3.textContent = event.description3 || 'Brak danych o płatności!';
         if (event.isRecurring) {
             editEventBtn.style.display = 'none';
             deleteEventBtn.style.display = 'none';

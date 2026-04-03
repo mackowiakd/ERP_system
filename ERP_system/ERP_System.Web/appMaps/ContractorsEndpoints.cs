@@ -51,7 +51,8 @@ namespace ERP_System.Web.appMaps
                 {
                     id = c.Id,
                     name = c.Name,
-                    taxId = c.TaxId
+                    taxId = c.TaxId,
+                    address = c.Address ?? "Brak danych",
                 });
 
                 return Results.Json(result);
