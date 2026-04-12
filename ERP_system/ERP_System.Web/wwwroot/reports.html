@@ -12,13 +12,15 @@
   </head>
   <body>
     <div class="layout">
-      <!-- Mobile Header -->
+      <!-- Mobile Header - visible only on small screens -->
       <div class="mobile-header">
         <button id="sidebar-toggle" aria-label="Menu">
           <i class="fas fa-bars"></i>
         </button>
-        <span class="mobile-logo">Home Budget Manager</span>
+        <span class="mobile-logo">System Mini-ERP</span>
       </div>
+
+      <!-- Navigation Sidebar -->
       <aside class="sidebar">
         <p class="sidebar-title">
           <i class="fas fa-wallet"></i> Mini-ERP System
@@ -68,6 +70,8 @@
           <i class="fas fa-users"></i> &nbsp; Pracownicy
         </button>
         {admin_panel_button}
+        
+        <!-- Standard logout form -->
         <form
           method="post"
           action="/logout"
@@ -76,22 +80,23 @@
           <button type="submit" class="btn-logout">Wyloguj</button>
         </form>
       </aside>
+
+      <!-- Main report generation card -->
       <main class="container">
         <section class="card">
           <h2>Generator Raportów PDF</h2>
           <p class="card-desc">
-            Wybierz zakres dat i wygeneruj szczegółowy raport PDF dla swojego
-            domostwa.
+            Wybierz zakres dat i wygeneruj szczegółowy raport PDF dla swojej firmy.
           </p>
 
           <form
             class="report-controls"
             method="post"
-            action="/reports/generate"
           >
+            <!-- Report scope selection: Individual or Company-wide -->
             <div
               class="form-group"
-              style="display: {household_display}; margin-bottom: 1rem;"
+              style="margin-bottom: 1rem;"
             >
               <label>Zakres raportu:</label>
               <div
@@ -115,7 +120,6 @@
                     type="radio"
                     name="reportScope"
                     value="individual"
-                    checked
                   />
                   Tylko ja
                 </label>
@@ -128,7 +132,7 @@
                     cursor: pointer;
                   "
                 >
-                  <input type="radio" name="reportScope" value="household" />
+                  <input type="radio" name="reportScope" value="company" checked />
                   Firma
                 </label>
               </div>
@@ -145,7 +149,7 @@
               />
             </div>
             <div class="form-group">
-              <label for="endDate">Do:</label>
+              <label for="endDate">Do / Na dzień:</label>
               <input
                 type="date"
                 id="endDate"
@@ -155,23 +159,28 @@
               />
               <br />
             </div>
-            <div class="form-group">
-              <button type="submit" class="btn-generate">
+
+            <!-- Two buttons directing to different PDF generation endpoints -->
+            <div class="form-group" style="display: flex; gap: 10px; margin-top: 15px;">
+              <button type="submit" class="btn-generate" formaction="/reports/generate/turnoverReport">
                 Pobierz Raport Zestawienie Obrotów
               </button>
-              <button type="submit" class="btn-generate">
+              <button type="submit" class="btn-generate" formaction="/reports/generate/agingReport">
                 Pobierz Raport Wiekowania Rozrachunków
               </button>
             </div>
           </form>
         </section>
 
+        <!-- Placeholder slots for additional UI elements or ads -->
         <div class="ads-row">
           <div class="ad-placeholder"><span>Miejsce na reklamę</span></div>
           <div class="ad-placeholder"><span>Miejsce na reklamę</span></div>
         </div>
       </main>
     </div>
+
+    <!-- Interactive UI Logic -->
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const toggleBtn = document.getElementById("sidebar-toggle");
@@ -183,7 +192,7 @@
           });
         }
 
-        // Close sidebar when clicking outside on mobile
+        // Close sidebar when clicking outside on mobile devices
         document.addEventListener("click", (e) => {
           if (
             window.innerWidth <= 768 &&
