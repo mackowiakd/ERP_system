@@ -51,24 +51,11 @@ namespace ERP_System.Web.appMaps
                 if (user == null)
                     return Results.Unauthorized();
 
-                List<int> userIds = new List<int>();
-                if (user.CompanyId.HasValue)
-                {
-                    userIds = await db.Employees
-                        .Where(u => u.CompanyId == user.CompanyId.Value)
-                        .Select(u => u.Id)
-                        .ToListAsync();
-                }
-                else
-                {
-                    userIds.Add(user.Id);
-                }
-
                 List<dynamic> transactions = new List<dynamic>();
 
                 var regularTransactions = await db.FinancialOperations
                     .Include(t => t.Employee)
-                    .Where(t => userIds.Contains(t.EmployeeId)) // Poprawiono z CompanyId na EmployeeId
+                    .Where(t => user.CompanyId.HasValue ? t.CompanyId == user.CompanyId.Value : t.EmployeeId == user.Id)
                     .OrderBy(t => t.Date)
                     .Select(t => new
                     {
@@ -87,10 +74,33 @@ namespace ERP_System.Web.appMaps
 
                 transactions.AddRange(regularTransactions);
 
+                // --- NOWOŚĆ: Pobieranie faktur do kalendarza ---
+                if (user.CompanyId.HasValue)
+                {
+                    var invoices = await db.Invoices
+                        .Where(i => i.CompanyId == user.CompanyId.Value)
+                        .Select(i => new
+                        {
+                            id = "inv_" + i.Id,
+                            title = "Faktura: " + i.InvoiceNumber,
+                            startTime = i.IssueDate.ToString("yyyy-MM-ddTHH:mm:ss"),
+                            endTime = i.IssueDate.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
+                            amount = i.Type == InvoiceType.Cost ? -i.TotalGross : i.TotalGross,
+                            description = "Termin płatności: " + i.DueDate.ToString("yyyy-MM-dd"),
+                            categoryId = 0,
+                            color = i.Type == InvoiceType.Cost ? "#e74a3b" : "#4e73df", // Czerwony dla kosztów, niebieski dla przychodów
+                            reminder = false,
+                            isRecurring = false
+                        })
+                        .ToListAsync();
+                    transactions.AddRange(invoices);
+                }
+                // ----------------------------------------------
+
                 var repetableTransactions = await db.RecurringOperations
-                    .Include(rt => rt.Transaction) // ZMIANA: Poprawne użycie Include
+                    .Include(rt => rt.Transaction)
                         .ThenInclude(t => t.Employee)
-                    .Where(rt => rt.Transaction != null && userIds.Contains(rt.Transaction.EmployeeId) && rt.IsActive)
+                    .Where(rt => rt.Transaction != null && (user.CompanyId.HasValue ? rt.Transaction.CompanyId == user.CompanyId.Value : rt.Transaction.EmployeeId == user.Id) && rt.IsActive)
                     .ToListAsync();
 
                 foreach (var rt in repetableTransactions)
