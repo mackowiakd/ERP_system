@@ -98,7 +98,7 @@ function editDashboardTransaction() {
         if (dateInput) formData.append('date', dateInput.value);
 
         try {
-            const response = await fetch('/transactions?id=' + selectedTransactionId, {
+            const response = await fetch('/api/invoices?id=' + selectedTransactionId, {
                 method: 'PUT',
                 body: formData
             });
@@ -131,7 +131,7 @@ async function deleteDashboardTransaction() {
 
     if (confirm('Czy na pewno chcesz usunąć tę transakcję?')) {
         try {
-            const response = await fetch('/transactions?id=' + selectedTransactionId, {
+            const response = await fetch('/api/invoices?id=' + selectedTransactionId, {
                 method: 'DELETE'
             });
 
