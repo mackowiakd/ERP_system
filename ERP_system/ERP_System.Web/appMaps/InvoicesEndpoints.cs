@@ -67,6 +67,20 @@ namespace ERP_System.Web.appMaps
                 return Results.Json(result);
             });
 
+            // loads a few of the newest invoices for dashboard
+            app.MapGet("/api/invoices/listSome", async (HttpContext context, AppDbContext db, InvoiceService invoiceService) =>
+            {
+                var loginUser = context.Request.Cookies["logged_user"];
+                var employee = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
+
+                if (employee == null || employee.CompanyId == null) 
+                    return Results.Content("<li class='transaction-item'><div class='transaction-main'><span>Brak autoryzacji.</span></div></li>", "text/html");
+
+                var htmlBuilder = invoiceService.ListInvoicesForDashboard(employee.CompanyId.Value, 5);
+                
+                return Results.Content(htmlBuilder.ToString(), "text/html");
+            });
+
             // 4. DODAWANIE NOWEJ FAKTURY (API)
             app.MapPost("/api/invoices", async (CreateInvoiceDto dto, HttpContext context, AppDbContext db, InvoiceService invoiceService) =>
             {

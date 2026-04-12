@@ -630,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (descInput) formData.append('description', descInput.value);
 
                 try {
-                    const response = await fetch('/transactions?id=' + selectedEventId, {
+                    const response = await fetch('/api/invoices?id=' + selectedEventId, {
                         method: 'PUT',
                         body: formData
                     });
@@ -662,7 +662,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     
                         if (confirm('Czy na pewno chcesz usunąć tę transakcję?')) {
                             try {
-                                const response = await fetch('/transactions?id=' + selectedEventId, {
+                                const response = await fetch('/api/invoices?id=' + selectedEventId, {
                                     method: 'DELETE'
                                 });
                     
