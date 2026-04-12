@@ -64,15 +64,28 @@ namespace ERP_System.Web.appMaps
                 
                 var result = invoices.Select(i => new
                 {
-                    id = i.Id,
-                    invoiceNumber = i.InvoiceNumber,
-                    contractorName = i.Contractor?.Name ?? "Nieznany Kontrahent", // Wyciągamy nazwę firmy!
-                    issueDate = i.IssueDate.ToString("yyyy-MM-dd"),
-                    dueDate = i.DueDate.ToString("yyyy-MM-dd"),
-                    totalGross = i.TotalGross,
-                    type = i.Type.ToString(),
+                    id = i.Id.ToString(),
+                    title = $"{i.InvoiceNumber}",
+                    startTime = i.IssueDate.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    endTime = i.DueDate.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
+                    amount = i.TotalGross,
+                    direction = i.Type,
+                    contractorName = (i.Contractor.Name ?? "Nieznany"),
+                    adres = i.Contractor.Address,
+                    NIP = i.Contractor.TaxId,
                     notes = i.Notes,
-                    status = i.Status.ToString()
+                    type = i.Type,
+                    status = i.Status,
+                    //kontrahent
+                    description = "Nazwa Kontrahenta: " + i.Contractor.Name + " | Adres: " + (i.Contractor.Address ?? "Brak ") + " | NIP: " + i.Contractor.TaxId,
+                    //finanse
+                    description2 = "Typ: " + (i.Type == InvoiceType.Sales ? "Sprzedażowa" : "Kosztowa") + " | Status: " + (i.Status == InvoiceStatus.Paid ? "Opłacona" : "Nieopłacona")
+                        + " | Kwota: " + i.TotalGross.ToString() + "zł",
+                    description3 = (i.Notes ?? "Brak zawartości"),
+
+                    categoryId = (int?)null,
+                    color = i.Type == InvoiceType.Cost ? "#e74a3b" : "#1cc88a",
+                    reminder = false,
                 });
 
                 return Results.Json(result);
