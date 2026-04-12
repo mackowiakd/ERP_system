@@ -10,10 +10,7 @@ using System;
 
 namespace ERP_System.Core
 {
-    /// <summary>
-    /// Service responsible for generating PDF reports using QuestPDF.
-    /// Provides methods for Turnover and Aging analysis based on Invoices.
-    /// </summary>
+    // Service responsible for generating PDF reports using QuestPDF.
     public class ReportService
     {
         private readonly AppDbContext _db;
@@ -23,14 +20,7 @@ namespace ERP_System.Core
             _db = db;
         }
 
-        /// <summary>
-        /// Generates a Turnover Report (Sales vs Costs) for a specified period.
-        /// </summary>
-        /// <param name="requestingUserId">The ID of the employee requesting the report.</param>
-        /// <param name="startDate">Beginning of the report period.</param>
-        /// <param name="endDate">End of the report period.</param>
-        /// <param name="includeCompany">Whether to include all company invoices or just individual ones (if applicable).</param>
-        /// <returns>PDF byte array.</returns>
+        // Generates a Turnover Report (Sales vs Costs) for a specified period.
         public byte[] GenerateTurnoverReport(int requestingUserId, DateTime startDate, DateTime endDate, bool includeCompany)
         {
             // Retrieve the requesting user to determine their company context
@@ -160,13 +150,7 @@ namespace ERP_System.Core
             return document.GeneratePdf();
         }
 
-        /// <summary>
-        /// Generates an Aging Report to analyze overdue invoices (Accounts Receivable/Payable aging).
-        /// </summary>
-        /// <param name="requestingUserId">ID of the requesting employee.</param>
-        /// <param name="asOfDate">The reference date to calculate delays.</param>
-        /// <param name="includeCompany">Whether to analyze for the entire company.</param>
-        /// <returns>PDF byte array.</returns>
+        // Generates an Aging Report to analyze overdue invoices (Accounts Receivable/Payable aging).
         public byte[] GenerateAgingReport(int requestingUserId, DateTime asOfDate, bool includeCompany)
         {
             var user = _db.Employees.FirstOrDefault(u => u.Id == requestingUserId);
