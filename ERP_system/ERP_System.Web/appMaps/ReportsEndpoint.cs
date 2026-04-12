@@ -8,16 +8,12 @@ using System.Text;
 
 namespace ERP_System.Web.appMaps
 {
-    /// <summary>
-    /// Handles HTTP requests for report generation and management.
-    /// </summary>
+    // Handles HTTP requests for report generation and management.
     public class ReportsEndpoint : IEndpoint
     {
         public void Map(IEndpointRouteBuilder app)
         {
-            /// <summary>
-            /// GET /reports - Displays the report generator UI.
-            /// </summary>
+            // GET /reports - Displays the report generator UI.
             app.MapGet("/reports", async (HttpContext context, IWebHostEnvironment env, AppDbContext db) =>
             {
                 // Authenticate user from cookie
@@ -49,7 +45,7 @@ namespace ERP_System.Web.appMaps
                 // Add admin console button if authorized
                 if (user.Role == SystemRole.SystemAdmin)
                 {
-                    adminBtnHtml = "<button class=\"sidebar-link\" onclick=\"window.location.href='/adminConsole'\"><i class=\"fas fa-fw fa-cogs\"></i> &nbsp; Panel Admina</button>";
+                    adminBtnHtml = "<button class=\"sidebar-link\" onclick=\"window.location.href='/adminConsole'\"><i class=\"fas fa-fw fa-cogs\"></i> &nbsp; Ustawienia Admina</button>";
                 }
 
                 // Inject dynamic content into the template
@@ -61,14 +57,12 @@ namespace ERP_System.Web.appMaps
                 return Results.Content(html, "text/html; charset=utf-8");
             });
 
-            /// <summary>
-            /// POST /reports/generate/turnoverReport - Generates a Turnover PDF.
-            /// </summary>
+            // POST /reports/generate/turnoverReport - Generates a Turnover PDF.
             app.MapPost("/reports/generate/turnoverReport", async (HttpContext context, ReportService reportService) =>
             {
                 if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))
                 {
-                    return Results.Redirect("/login");
+                    return Results.Redirect("/");
                 }
 
                 var form = context.Request.Form;
@@ -92,14 +86,12 @@ namespace ERP_System.Web.appMaps
                 return Results.File(pdfBytes, "application/pdf", filename);
             });
 
-            /// <summary>
-            /// POST /reports/generate/agingReport - Generates an Aging PDF.
-            /// </summary>
+            // POST /reports/generate/agingReport - Generates an Aging PDF.
             app.MapPost("/reports/generate/agingReport", async (HttpContext context, ReportService reportService) =>
             {
                 if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))
                 {
-                    return Results.Redirect("/login");
+                    return Results.Redirect("/");
                 }
 
                 var form = context.Request.Form;
