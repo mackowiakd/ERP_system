@@ -3,39 +3,42 @@ using ERP_System.Core.DBTables;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using System.Security.Claims;
-using ERP_System.Core.DBTables;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 
-using System.Globalization;
 namespace ERP_System.Web.appMaps
 {
+    /// <summary>
+    /// Handles HTTP requests for report generation and management.
+    /// </summary>
     public class ReportsEndpoint : IEndpoint
     {
         public void Map(IEndpointRouteBuilder app)
         {
+            /// <summary>
+            /// GET /reports - Displays the report generator UI.
+            /// </summary>
             app.MapGet("/reports", async (HttpContext context, IWebHostEnvironment env, AppDbContext db) =>
             {
+                // Authenticate user from cookie
+                if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))
+                {
+                    return Results.Redirect("/login");
+                }
 
-                // load user
-                var userId = int.Parse(context.Request.Cookies["user_id"]);
                 var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
-
                 var username = context.Request.Cookies["logged_user"];
+
                 if (user == null)
                 {
-                    return Results.Redirect("/");
+                    return Results.Redirect("/login");
                 }
 
                 var now = DateTime.Now;
-                
-                // set start to month before
+                // Pre-populate date inputs for the user's convenience
                 var startDate = new DateTime(now.Year, now.Month, 1).ToString("yyyy-MM-dd");
                 var endDate = now.ToString("yyyy-MM-dd");
 
-
-                // load html
                 var filePath = Path.Combine(env.WebRootPath, "reports.html");
                 if (!File.Exists(filePath)) 
                     return Results.Content("Błąd: Brak pliku reports.html", "text/plain");
@@ -43,44 +46,77 @@ namespace ERP_System.Web.appMaps
                 var html = await File.ReadAllTextAsync(filePath, Encoding.UTF8);
                 string adminBtnHtml = "";
                 
+                // Add admin console button if authorized
                 if (user.Role == SystemRole.SystemAdmin)
                 {
-                    adminBtnHtml = "<button class=\"sidebar-link\" onclick=\"window.location.href='/adminConsole'\"><i class=\"fas fa-fw fa-cogs\"></i> &nbsp; Ustawienia Admina</button>";
+                    adminBtnHtml = "<button class=\"sidebar-link\" onclick=\"window.location.href='/adminConsole'\"><i class=\"fas fa-fw fa-cogs\"></i> &nbsp; Panel Admina</button>";
                 }
-                // replace values in html
+
+                // Inject dynamic content into the template
                 html = html.Replace("{username}", username)
                            .Replace("{startDate}", startDate)
                            .Replace("{admin_panel_button}", adminBtnHtml)
-                           .Replace("{endDate}", endDate)
-                           .Replace("{household_display}", user.CompanyId.HasValue ? "block" : "none");
+                           .Replace("{endDate}", endDate);
 
                 return Results.Content(html, "text/html; charset=utf-8");
             });
 
-
-            app.MapPost("/reports/generate", (HttpContext context, ReportService reportService) =>
+            /// <summary>
+            /// POST /reports/generate/turnoverReport - Generates a Turnover PDF.
+            /// </summary>
+            app.MapPost("/reports/generate/turnoverReport", async (HttpContext context, ReportService reportService) =>
             {
-                if (!context.Request.Cookies.TryGetValue("user_id", out var userIdString) || 
-                    !int.TryParse(userIdString, out int userId))
+                if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))
                 {
-                    return Results.Redirect("/");
+                    return Results.Redirect("/login");
                 }
 
                 var form = context.Request.Form;
+                // Parse date range from the submitted form
                 if (!DateTime.TryParse(form["startDate"], out DateTime startDate) ||
                     !DateTime.TryParse(form["endDate"], out DateTime endDate))
                 {
-                     return Results.Content("Nieprawidłowa data");
+                     return Results.Content("Nieprawidłowy zakres dat.");
                 }
                 
-                // End of day
+                // Adjust end date to capture the full day
                 endDate = endDate.Date.AddDays(1).AddTicks(-1);
 
                 var scope = form["reportScope"].ToString();
-                bool includeHousehold = scope == "household";
+                bool includeCompany = scope == "company";
 
-                var pdfBytes = reportService.GeneratePdfReport(userId, startDate, endDate, includeHousehold);
-                var filename = $"Raport_HBM_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.pdf";
+                // Call service to generate the specific turnover report
+                var pdfBytes = reportService.GenerateTurnoverReport(userId, startDate, endDate, includeCompany);
+                var filename = $"Raport_Obrotow_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.pdf";
+
+                return Results.File(pdfBytes, "application/pdf", filename);
+            });
+
+            /// <summary>
+            /// POST /reports/generate/agingReport - Generates an Aging PDF.
+            /// </summary>
+            app.MapPost("/reports/generate/agingReport", async (HttpContext context, ReportService reportService) =>
+            {
+                if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))
+                {
+                    return Results.Redirect("/login");
+                }
+
+                var form = context.Request.Form;
+                // Aging analysis typically uses the end date as the 'as of' reference
+                if (!DateTime.TryParse(form["endDate"], out DateTime asOfDate))
+                {
+                     return Results.Content("Nieprawidłowa data.");
+                }
+                
+                asOfDate = asOfDate.Date.AddDays(1).AddTicks(-1);
+
+                var scope = form["reportScope"].ToString();
+                bool includeCompany = scope == "company";
+
+                // Call service to generate the specific aging report
+                var pdfBytes = reportService.GenerateAgingReport(userId, asOfDate, includeCompany);
+                var filename = $"Raport_Wiekowania_{asOfDate:yyyyMMdd}.pdf";
 
                 return Results.File(pdfBytes, "application/pdf", filename);
             });
