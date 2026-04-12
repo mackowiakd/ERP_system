@@ -74,7 +74,7 @@ namespace ERP_System.Web.appMaps
 
                 transactions.AddRange(regularTransactions);
 
-                // --- NOWOŚĆ: Pobieranie faktur do kalendarza ---
+                // load invoices to calendar
                 if (user.CompanyId.HasValue)
                 {
                     var invoices = await db.Invoices
@@ -88,7 +88,7 @@ namespace ERP_System.Web.appMaps
                             amount = i.Type == InvoiceType.Cost ? -i.TotalGross : i.TotalGross,
                             description = "Termin płatności: " + i.DueDate.ToString("yyyy-MM-dd"),
                             categoryId = 0,
-                            color = i.Type == InvoiceType.Cost ? "#e74a3b" : "#4e73df", // Czerwony dla kosztów, niebieski dla przychodów
+                            color = i.Type == InvoiceType.Cost ? "#e74a3b" : "#4e73df", // red for costs green for income
                             reminder = false,
                             isRecurring = false
                         })
@@ -114,11 +114,11 @@ namespace ERP_System.Web.appMaps
                     {
                         transactions.Add(new
                         {
-                            id = rt.Transaction.Id.ToString(), // ZMIANA: Idk zamiast całego obiektu
+                            id = rt.Transaction.Id.ToString(), 
                             title = $"Cykliczna: {baseTitle}",
                             startTime = nextDate.ToString("yyyy-MM-ddTHH:mm:ss"),
                             endTime = nextDate.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
-                            amount = rt.Transaction.Value, // ZMIANA: Value (kwota) zamiast IntervalValue (czasu)
+                            amount = rt.Transaction.Value, 
                             description = rt.Transaction.Description ?? "",
                             categoryId = rt.Transaction.CategoryId,
                             color = "#f6c23e",
@@ -126,7 +126,6 @@ namespace ERP_System.Web.appMaps
                             isRecurring = true
                         });
 
-                        // ZMIANA: IntervalType zamiast FrequencyUnit, IntervalValue zamiast TransactionInterval
                         nextDate = rt.IntervalType switch
                         {
                             0 => nextDate.AddDays(rt.IntervalValue),
