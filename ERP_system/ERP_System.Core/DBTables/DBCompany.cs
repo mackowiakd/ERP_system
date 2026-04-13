@@ -1,10 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Collections.Generic;
 
 namespace ERP_System.Core.DBTables
 {
+    /// <summary>
+    /// Represents a company entity in the system.
+    /// </summary>
     [Table("company")]
     public class DBCompany
     {
@@ -17,14 +20,25 @@ namespace ERP_System.Core.DBTables
         public int CompanyAdminId { get; set; }
 
         [ForeignKey(nameof(CompanyAdminId))]
-        public DBEmployee ? CompanyAdmin { get; set; }
+        public DBEmployee? CompanyAdmin { get; set; }
 
         [Required]
-        [Column("company_name")]
-        public required string Name { get; set; }
+        [Column("company_short_name")]
+        [MaxLength(100)]
+        public required string ShortName { get; set; }
+
+        [Required]
+        [Column("company_full_name")]
+        [MaxLength(500)]
+        public required string FullName { get; set; }
+
+        [Required]
+        [Column("company_address")]
+        [MaxLength(500)]
+        public required string Address { get; set; }
 
         [Column("company_description")]
-        public string? Description { get; set; }  // opis (opcjonalny)
+        public string? Description { get; set; }
 
         [Required]
         [Column("company_join_code")]
@@ -34,7 +48,7 @@ namespace ERP_System.Core.DBTables
 
         [Required]
         [Column("company_nip")]
-        [MaxLength(15)] // Zawsze warto dawać limity na ciągi znaków!
+        [MaxLength(15)]
         public required string NIP { get; set; }
     }
 }

@@ -39,6 +39,12 @@ namespace ERP_System.Core.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("company_id");
 
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("company_address");
+
                     b.Property<int>("CompanyAdminId")
                         .HasColumnType("INTEGER")
                         .HasColumnName("company_admin_id");
@@ -46,6 +52,12 @@ namespace ERP_System.Core.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("TEXT")
                         .HasColumnName("company_description");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("company_full_name");
 
                     b.Property<string>("JoinCode")
                         .IsRequired()
@@ -58,10 +70,11 @@ namespace ERP_System.Core.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("company_nip");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("ShortName")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT")
-                        .HasColumnName("company_name");
+                        .HasColumnName("company_short_name");
 
                     b.HasKey("Id");
 
@@ -268,6 +281,38 @@ namespace ERP_System.Core.Migrations
                     b.ToTable("invoices");
                 });
 
+            modelBuilder.Entity("ERP_System.Core.DBTables.DBInvoiceCategories", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("category_id");
+
+                    b.Property<int?>("CompanyId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("company_id");
+
+                    b.Property<int?>("DBEmployeeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("category_description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("category_name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("DBEmployeeId");
+
+                    b.ToTable("transaction_categories");
+                });
+
             modelBuilder.Entity("ERP_System.Core.DBTables.DBRecurringOperations", b =>
                 {
                     b.Property<int>("TransactionPatternId")
@@ -338,38 +383,6 @@ namespace ERP_System.Core.Migrations
                         });
                 });
 
-            modelBuilder.Entity("ERP_System.Core.DBTables.DBTransactionCategories", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("category_id");
-
-                    b.Property<int?>("CompanyId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("company_id");
-
-                    b.Property<int?>("DBEmployeeId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("category_description");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT")
-                        .HasColumnName("category_name");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId");
-
-                    b.HasIndex("DBEmployeeId");
-
-                    b.ToTable("transaction_categories");
-                });
-
             modelBuilder.Entity("DBContractorDBInvoice", b =>
                 {
                     b.HasOne("ERP_System.Core.DBTables.DBInvoice", null)
@@ -419,7 +432,7 @@ namespace ERP_System.Core.Migrations
 
             modelBuilder.Entity("ERP_System.Core.DBTables.DBFinancialOperations", b =>
                 {
-                    b.HasOne("ERP_System.Core.DBTables.DBTransactionCategories", "Category")
+                    b.HasOne("ERP_System.Core.DBTables.DBInvoiceCategories", "Category")
                         .WithMany()
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -469,18 +482,7 @@ namespace ERP_System.Core.Migrations
                     b.Navigation("Contractor");
                 });
 
-            modelBuilder.Entity("ERP_System.Core.DBTables.DBRecurringOperations", b =>
-                {
-                    b.HasOne("ERP_System.Core.DBTables.DBFinancialOperations", "Transaction")
-                        .WithOne("RecurringOperation")
-                        .HasForeignKey("ERP_System.Core.DBTables.DBRecurringOperations", "TransactionPatternId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Transaction");
-                });
-
-            modelBuilder.Entity("ERP_System.Core.DBTables.DBTransactionCategories", b =>
+            modelBuilder.Entity("ERP_System.Core.DBTables.DBInvoiceCategories", b =>
                 {
                     b.HasOne("ERP_System.Core.DBTables.DBCompany", "Company")
                         .WithMany()
@@ -491,6 +493,17 @@ namespace ERP_System.Core.Migrations
                         .HasForeignKey("DBEmployeeId");
 
                     b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("ERP_System.Core.DBTables.DBRecurringOperations", b =>
+                {
+                    b.HasOne("ERP_System.Core.DBTables.DBFinancialOperations", "Invoice")
+                        .WithOne("RecurringOperation")
+                        .HasForeignKey("ERP_System.Core.DBTables.DBRecurringOperations", "TransactionPatternId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
                 });
 
             modelBuilder.Entity("ERP_System.Core.DBTables.DBCompany", b =>

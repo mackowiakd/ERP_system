@@ -11,7 +11,7 @@ namespace ERP_System.Core.DBTables
 {
 
     [Table("transaction_categories")]
-    public class DBTransactionCategories
+    public class DBInvoiceCategories
 
     {
         [Key]

@@ -341,7 +341,7 @@ namespace ERP_System.Core.Migrations
                         });
                 });
 
-            modelBuilder.Entity("ERP_System.Core.DBTables.DBTransactionCategories", b =>
+            modelBuilder.Entity("ERP_System.Core.DBTables.DBInvoiceCategories", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -422,7 +422,7 @@ namespace ERP_System.Core.Migrations
 
             modelBuilder.Entity("ERP_System.Core.DBTables.DBFinancialOperations", b =>
                 {
-                    b.HasOne("ERP_System.Core.DBTables.DBTransactionCategories", "Category")
+                    b.HasOne("ERP_System.Core.DBTables.DBInvoiceCategories", "Category")
                         .WithMany()
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -483,7 +483,7 @@ namespace ERP_System.Core.Migrations
                     b.Navigation("Transaction");
                 });
 
-            modelBuilder.Entity("ERP_System.Core.DBTables.DBTransactionCategories", b =>
+            modelBuilder.Entity("ERP_System.Core.DBTables.DBInvoiceCategories", b =>
                 {
                     b.HasOne("ERP_System.Core.DBTables.DBCompany", "Company")
                         .WithMany()
