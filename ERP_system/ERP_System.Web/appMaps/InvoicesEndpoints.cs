@@ -78,6 +78,20 @@ namespace ERP_System.Web.appMaps
                 return Results.Json(result);
             });
 
+            // NOWY ENDPOINT DLA PULPITU (DASHBOARD) - POBIERA KILKA OSTATNICH FAKTUR JAKO HTML
+            app.MapGet("/api/invoices/listSome", async (HttpContext context, AppDbContext db, InvoiceService invoiceService) =>
+            {
+                var loginUser = context.Request.Cookies["logged_user"];
+                var employee = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
+
+                if (employee == null || employee.CompanyId == null) 
+                    return Results.Content("<li class='transaction-item'><div class='transaction-main'><span>Brak autoryzacji.</span></div></li>", "text/html");
+
+                var htmlBuilder = invoiceService.ListInvoicesForDashboard(employee.CompanyId.Value, 5);
+                
+                return Results.Content(htmlBuilder.ToString(), "text/html");
+            });
+
             // POBIERANIE SZCZEGÓŁÓW JEDNEJ FAKTURY (API)
             app.MapGet("/api/invoices/{id}", async (int id, AppDbContext db) =>
             {
