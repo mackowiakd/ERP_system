@@ -75,6 +75,9 @@ namespace ERP_System.Core.DBTables
         [Column("invoice_type")]
         public InvoiceType Type { get; set; }
 
+        [Column("Notes")]
+        public string? Notes { get; set; }
+
         [Required]
         [Column("invoice_status")]
         public InvoiceStatus Status { get; set; }

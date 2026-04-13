@@ -198,70 +198,78 @@
                 </select>
               </div>
             </div>
-
-            <button type="submit" class="btn-submit">Zapisz Fakturę</button>
-            <a href="/invoices" class="btn-cancel">Anuluj</a>
-          </form>
+            <div class="flex-row">
+                <div class="form-group" style="flex: 1">
+                    <label>Zawartość faktury</label>
+                    <input type="text"
+                           id="InvNotes"
+                           class="form-input"/>
+                </div>
+            </div>
+                <button type="submit" class="btn-submit">Zapisz Fakturę</button>
+                <a href="/invoices" class="btn-cancel">Anuluj</a>
+</form>
         </section>
       </main>
     </div>
 
     <script>
-      document.addEventListener("DOMContentLoaded", async () => {
-        // Ustaw dzisiejszą datę domyślnie
-        document.getElementById("invIssueDate").valueAsDate = new Date();
-        document.getElementById("invDueDate").valueAsDate = new Date();
+        document.addEventListener("DOMContentLoaded", async () => {
+            // Ustaw dzisiejszą datę domyślnie
+            document.getElementById("invIssueDate").valueAsDate = new Date();
+            document.getElementById("invDueDate").valueAsDate = new Date();
 
-        // Pobierz kontrahentów do listy rozwijanej
-        try {
-          const res = await fetch("/api/contractors");
-          const data = await res.json();
-          const select = document.getElementById("invContractor");
-          data.forEach((c) => {
-            select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-          });
-        } catch (e) {
-          console.log("Błąd ładowania kontrahentów");
-        }
-
-        // Obsługa wysyłania formularza
-        document
-          .getElementById("new-invoice-form")
-          .addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            // Zbieranie danych
-            const payload = {
-              InvoiceNumber: document.getElementById("invNumber").value,
-              ContractorId: parseInt(
-                document.getElementById("invContractor").value,
-              ),
-              IssueDate: document.getElementById("invIssueDate").value,
-              DueDate: document.getElementById("invDueDate").value,
-              TotalNet: parseFloat(document.getElementById("invNet").value),
-              TotalGross: parseFloat(document.getElementById("invGross").value),
-              Type: parseInt(document.getElementById("invType").value),
-              PaymentMethod: parseInt(
-                document.getElementById("invPayment").value,
-              ),
-              Status: parseInt(document.getElementById("invStatus").value),
-            };
-
-            // Wysyłka do API
-            const res = await fetch("/api/invoices", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            });
-
-            const result = await res.json();
-            if (result.success) {
-              window.location.href = "/invoices"; // Po sukcesie przenieś na listę
-            } else {
-              alert("Błąd: " + result.message);
+            // Pobierz kontrahentów do listy rozwijanej
+            try {
+                const res = await fetch("/api/contractors");
+                const data = await res.json();
+                const select = document.getElementById("invContractor");
+                data.forEach((c) => {
+                    select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                });
+            } catch (e) {
+                console.log("Błąd ładowania kontrahentów");
             }
-          });
-      });
+
+            // Obsługa wysyłania formularza
+            document
+                .getElementById("new-invoice-form")
+                .addEventListener("submit", async (e) => {
+                    e.preventDefault();
+
+                    // Zbieranie danych
+                    const payload = {
+                        InvoiceNumber: document.getElementById("invNumber").value,
+                        ContractorId: parseInt(
+                            document.getElementById("invContractor").value,
+                        ),
+                        IssueDate: document.getElementById("invIssueDate").value,
+                        DueDate: document.getElementById("invDueDate").value,
+                        TotalNet: parseFloat(document.getElementById("invNet").value),
+                        TotalGross: parseFloat(document.getElementById("invGross").value),
+                        Type: parseInt(document.getElementById("invType").value),
+                        PaymentMethod: parseInt(
+                            document.getElementById("invPayment").value,
+                        ),
+                        Notes: String(document.getElementById("InvNotes").value),
+                        Status: parseInt(document.getElementById("invStatus").value),
+                    };
+
+                    // Wysyłka do API
+                    const res = await fetch("/api/invoices", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const result = await res.json();
+                    if (result.success) {
+                        window.location.href = "/invoices"; // Po sukcesie przenieś na listę
+                    } else {
+                        alert("Błąd: " + result.message);
+                    }
+                });
+        });
     </script>
   </body>
 </html>

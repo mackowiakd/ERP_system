@@ -16,6 +16,16 @@ namespace ERP_System.Web.appMaps
             decimal TotalNet, 
             decimal TotalGross, 
             InvoiceType Type, 
+            string Notes,
+            InvoiceStatus Status
+        );
+        public record EditInvoiceDto(
+            string InvoiceNumber,
+            DateTime IssueDate,
+            decimal TotalNet, 
+            decimal TotalGross, 
+            InvoiceType Type, 
+            string Notes, 
             InvoiceStatus Status
         );
 
@@ -48,7 +58,7 @@ namespace ERP_System.Web.appMaps
                 var employee = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
 
                 if (employee == null || employee.CompanyId == null) 
-                    return Results.Json(new { success = false, message = "Brak autoryzacji lub nie przypisano do firmy." });
+                    return Results.Json(new object[] { }); // Return empty array to prevent JS error
 
                 var invoices = invoiceService.GetCompanyInvoices(employee.CompanyId.Value);
                 
@@ -56,29 +66,39 @@ namespace ERP_System.Web.appMaps
                 {
                     id = i.Id,
                     invoiceNumber = i.InvoiceNumber,
-                    contractorName = i.Contractor?.Name ?? "Nieznany Kontrahent", // Wyciągamy nazwę firmy!
+                    contractorName = i.Contractor?.Name ?? "Nieznany Kontrahent",
                     issueDate = i.IssueDate.ToString("yyyy-MM-dd"),
                     dueDate = i.DueDate.ToString("yyyy-MM-dd"),
                     totalGross = i.TotalGross,
                     type = i.Type.ToString(),
-                    status = i.Status.ToString()
+                    status = i.Status.ToString(),
+                    notes = i.Notes ?? ""
                 });
 
                 return Results.Json(result);
             });
 
-            // loads a few of the newest invoices for dashboard
-            app.MapGet("/api/invoices/listSome", async (HttpContext context, AppDbContext db, InvoiceService invoiceService) =>
+            // POBIERANIE SZCZEGÓŁÓW JEDNEJ FAKTURY (API)
+            app.MapGet("/api/invoices/{id}", async (int id, AppDbContext db) =>
             {
-                var loginUser = context.Request.Cookies["logged_user"];
-                var employee = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
+                var invoice = await db.Invoices
+                    .Include(i => i.Contractor)
+                    .FirstOrDefaultAsync(i => i.Id == id);
 
-                if (employee == null || employee.CompanyId == null) 
-                    return Results.Content("<li class='transaction-item'><div class='transaction-main'><span>Brak autoryzacji.</span></div></li>", "text/html");
+                if (invoice == null) return Results.NotFound();
 
-                var htmlBuilder = invoiceService.ListInvoicesForDashboard(employee.CompanyId.Value, 5);
-                
-                return Results.Content(htmlBuilder.ToString(), "text/html");
+                return Results.Json(new
+                {
+                    id = invoice.Id,
+                    invoiceNumber = invoice.InvoiceNumber,
+                    contractorName = invoice.Contractor?.Name ?? "Nieznany Kontrahent",
+                    issueDate = invoice.IssueDate.ToString("yyyy-MM-dd"),
+                    dueDate = invoice.DueDate.ToString("yyyy-MM-dd"),
+                    totalGross = invoice.TotalGross,
+                    type = invoice.Type.ToString(),
+                    status = invoice.Status.ToString(),
+                    notes = invoice.Notes ?? ""
+                });
             });
 
             // 4. DODAWANIE NOWEJ FAKTURY (API)
@@ -96,7 +116,7 @@ namespace ERP_System.Web.appMaps
                 var result = invoiceService.AddInvoice(
                     employee.CompanyId.Value, dto.ContractorId, dto.InvoiceNumber, 
                     dto.IssueDate, dto.DueDate, dto.PaymentMethod, 
-                    dto.TotalNet, dto.TotalGross, dto.Type, dto.Status
+                    dto.TotalNet, dto.TotalGross, dto.Type, dto.Notes, dto.Status
                 );
 
                 if (result == "Pomyślnie dodano fakturę")
@@ -123,6 +143,23 @@ namespace ERP_System.Web.appMaps
                     return Results.Json(new { success = true });
                 }
 
+                return Results.Json(new { success = false, message = result });
+            });
+
+            // 6. EDYCJA FAKTURY (API)
+            app.MapPut("/api/invoices/{id}", async (int id, EditInvoiceDto dto, HttpContext context, AppDbContext db, InvoiceService invoiceService) =>
+            {
+                var loginUser = context.Request.Cookies["logged_user"];
+                var employee = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
+                if (employee == null || employee.CompanyId == null) 
+                    return Results.Json(new { success = false, message = "Brak autoryzacji lub nie przypisano do firmy." });
+                if (string.IsNullOrWhiteSpace(dto.InvoiceNumber))
+                    return Results.Json(new { success = false, message = "Numer faktury jest wymagany" });
+                var result = invoiceService.EditInvoice(id, dto.InvoiceNumber, dto.IssueDate, dto.TotalNet, dto.TotalGross, dto.Type, dto.Notes, dto.Status);
+                if (result == "Pomyślnie edytowano fakturę")
+                {
+                    return Results.Json(new { success = true });
+                }
                 return Results.Json(new { success = false, message = result });
             });
         }

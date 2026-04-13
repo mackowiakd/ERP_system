@@ -21,7 +21,7 @@ namespace ERP_System.Core
                       .ToList();
         }
 
-        public string AddContractor(int companyId, string name, string taxId) // <-- Usunęliśmy description, zmieniliśmy nip na taxId
+        public string AddContractor(int companyId, string name, string taxId, string Address)
         {
             try
             {
@@ -29,6 +29,7 @@ namespace ERP_System.Core
                 {
                     CompanyId = companyId,
                     Name = name,
+                    Address = Address,
                     TaxId = taxId 
                 };
 

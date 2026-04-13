@@ -131,6 +131,14 @@
                 class="form-input"
               />
             </div>
+              <div class="form-group">
+              <label for="contractorAddress">Adres:</label>
+              <input
+                type="text"
+                id="contractorAddress"
+                class="form-input"
+              />
+            </div>
             <div class="form-group">
               <button type="submit" class="btn-generate">Dodaj do bazy</button>
             </div>
@@ -141,16 +149,17 @@
           <h2>Lista Kontrahentów</h2>
           <table class="contractors-table">
             <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nazwa firmy</th>
-                <th>NIP</th>
-                <th style="text-align: right">Akcje</th>
-              </tr>
+                <tr>
+                    <th>ID</th>
+                    <th>Nazwa firmy</th>
+                    <th>NIP</th>
+                    <th>Adres</th>
+                    <th style="text-align: right">Akcje</th>
+                </tr>
             </thead>
             <tbody id="contractors-list">
               <tr>
-                <td colspan="4" style="text-align: center">
+                <td colspan="5" style="text-align: center">
                   Ładowanie danych...
                 </td>
               </tr>
@@ -161,85 +170,87 @@
     </div>
 
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const toggleBtn = document.getElementById("sidebar-toggle");
-        const sidebar = document.querySelector(".sidebar");
-        if (toggleBtn) {
-          toggleBtn.addEventListener("click", () =>
-            sidebar.classList.toggle("open"),
-          );
+        document.addEventListener("DOMContentLoaded", () => {
+            const toggleBtn = document.getElementById("sidebar-toggle");
+            const sidebar = document.querySelector(".sidebar");
+            if (toggleBtn) {
+                toggleBtn.addEventListener("click", () =>
+                    sidebar.classList.toggle("open"),
+                );
+            }
+
+            loadContractors();
+
+            document
+                .getElementById("add-contractor-form")
+                .addEventListener("submit", async (e) => {
+                    e.preventDefault();
+
+                    const name = document.getElementById("contractorName").value;
+                    const taxId = document.getElementById("contractorTaxId").value;
+                    const address = document.getElementById("contractorAddress").value;
+
+                    const res = await fetch("/api/contractors", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ Name: name, TaxId: taxId, Address: address }),
+                    });
+                    const result = await res.json();
+
+                    if (result.success) {
+                        document.getElementById("add-contractor-form").reset();
+                        loadContractors();
+                    } else {
+                        alert("Błąd: " + result.message);
+                    }
+                });
+        });
+
+        async function loadContractors() {
+            const tbody = document.getElementById("contractors-list");
+            try {
+                const res = await fetch("/api/contractors");
+                const data = await res.json();
+
+                tbody.innerHTML = "";
+
+                if (data.length === 0) {
+                    tbody.innerHTML =
+                        '<tr><td colspan="4" style="text-align:center;">Brak dodanych kontrahentów.</td></tr>';
+                    return;
+                }
+
+                data.forEach((c) => {
+                    tbody.innerHTML += `
+                                <tr>
+                                    <td>${c.id}</td>
+                                    <td>${c.name}</td>
+                                    <td>${c.taxId}</td>
+                                    <td>${c.address}</td>
+                                    <td style="text-align: right;">
+                                        <button onclick="deleteContractor(${c.id})" class="btn-delete"><i class="fas fa-trash"></i> Usuń</button>
+                                    </td>
+                                </tr>
+                            `;
+                });
+            } catch (error) {
+                tbody.innerHTML =
+                    '<tr><td colspan="4" style="text-align:center; color: red;">Błąd połączenia z serwerem.</td></tr>';
+            }
         }
 
-        loadContractors();
+        async function deleteContractor(id) {
+            if (!confirm("Czy na pewno chcesz usunąć tego kontrahenta?")) return;
 
-        document
-          .getElementById("add-contractor-form")
-          .addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            const name = document.getElementById("contractorName").value;
-            const taxId = document.getElementById("contractorTaxId").value;
-
-            const res = await fetch("/api/contractors", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ Name: name, TaxId: taxId }),
-            });
+            const res = await fetch(`/api/contractors/${id}`, { method: "DELETE" });
             const result = await res.json();
 
             if (result.success) {
-              document.getElementById("add-contractor-form").reset();
-              loadContractors();
+                loadContractors();
             } else {
-              alert("Błąd: " + result.message);
+                alert("Błąd: " + result.message);
             }
-          });
-      });
-
-      async function loadContractors() {
-        const tbody = document.getElementById("contractors-list");
-        try {
-          const res = await fetch("/api/contractors");
-          const data = await res.json();
-
-          tbody.innerHTML = "";
-
-          if (data.length === 0) {
-            tbody.innerHTML =
-              '<tr><td colspan="4" style="text-align:center;">Brak dodanych kontrahentów.</td></tr>';
-            return;
-          }
-
-          data.forEach((c) => {
-            tbody.innerHTML += `
-                        <tr>
-                            <td>${c.id}</td>
-                            <td>${c.name}</td>
-                            <td>${c.taxId}</td>
-                            <td style="text-align: right;">
-                                <button onclick="deleteContractor(${c.id})" class="btn-delete"><i class="fas fa-trash"></i> Usuń</button>
-                            </td>
-                        </tr>
-                    `;
-          });
-        } catch (error) {
-          tbody.innerHTML =
-            '<tr><td colspan="4" style="text-align:center; color: red;">Błąd połączenia z serwerem.</td></tr>';
         }
-      }
-
-      async function deleteContractor(id) {
-        if (!confirm("Czy na pewno chcesz usunąć tego kontrahenta?")) return;
-
-        const res = await fetch(`/api/contractors/${id}`, { method: "DELETE" });
-        const result = await res.json();
-
-        if (result.success) {
-          loadContractors();
-        } else {
-          alert("Błąd: " + result.message);
-        }
-      }
     </script>
   </body>
 </html>

@@ -28,7 +28,7 @@ namespace ERP_System.Core
         // 2. DODAWANIE NOWEJ FAKTURY
         public string AddInvoice(int companyId, int contractorId, string invoiceNumber, 
                                  DateTime issueDate, DateTime dueDate, PaymentMethod paymentMethod, 
-                                 decimal totalNet, decimal totalGross, InvoiceType type, InvoiceStatus status)
+                                 decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status)
         {
             try
             {
@@ -43,6 +43,7 @@ namespace ERP_System.Core
                     TotalNet = totalNet,
                     TotalGross = totalGross,
                     Type = type,
+                    Notes = notes,
                     Status = status
                 };
 
@@ -123,5 +124,34 @@ namespace ERP_System.Core
 
             return sb;
         }
+
+        // 5. EDYTOWANIE ISTNIEJĄCEJ FAKTURY
+        public string EditInvoice(int invoiceId, string invoiceNumber,
+                                  DateTime issueDate,
+                                  decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status)
+        {
+            var invoice = _db.Invoices.FirstOrDefault(i => i.Id == invoiceId);
+            if (invoice == null)
+            {
+                return "Nie znaleziono faktury lub brak uprawnień.";
+            }
+            try
+            {
+                invoice.InvoiceNumber = invoiceNumber;
+                invoice.IssueDate = issueDate;
+                invoice.TotalNet = totalNet;
+                invoice.TotalGross = totalGross;
+                invoice.Type = type;
+                invoice.Notes = notes;
+                invoice.Status = status;
+                _db.SaveChanges();
+                return "Pomyślnie zaktualizowano fakturę";
+            }
+            catch (Exception ex)
+            {
+                return $"Błąd podczas aktualizacji faktury: {ex.Message}";
+            }
+        }
+
     }
 }

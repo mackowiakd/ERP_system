@@ -15,10 +15,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const detailsTitle = document.getElementById('details-title');
     const detailsDate = document.getElementById('details-date');
     const detailsTime = document.getElementById('details-time');
+    const detailsID = document.getElementById('details-id');
     const detailsDescription = document.getElementById('details-description');
+    const detailsDescription2 = document.getElementById('details-description2');
+    const detailsDescription3 = document.getElementById('details-description3');
     const deleteEventBtn = document.getElementById('delete-event-btn');
     const editEventBtn = document.getElementById('edit-event-btn');
     const closeDetailsBtn = document.getElementById('close-details-btn');
+    const dateInput = document.getElementById('event-date');
+    const amountInput = document.getElementById('event-amount');
 
     // App State
     let currentView = 'month';
@@ -294,6 +299,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     <i class="far fa-clock"></i> ${dateString}${timeString}
                 </div>
                 ${event.description ? `<div style="color: #888; font-size: 0.9em; margin-top: 4px;">${event.description}</div>` : ''}
+                ${event.description2 ? `<div style="color: #888; font-size: 0.9em; margin-top: 4px;">${event.description2}</div>` : ''}
+                ${event.description3 ? `<div style="color: #888; font-size: 0.9em; margin-top: 4px;">${event.description3}</div>` : ''}
             </div>
             <div style="font-weight: bold; color: ${event.color}; font-size: 1.1em;">
                 ${Number(event.amount).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' })}
@@ -438,6 +445,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
                 ${event.description ? `<div class="event-description" style="margin-top:4px; font-size:0.8em; color:#aaa;">${event.description}</div>` : ''}
+                ${event.description2 ? `<div class="event-description2" style="margin-top:4px; font-size:0.8em; color:#aaa;">${event.description2}</div>` : ''}
+                ${event.description3 ? `<div class="event-description3" style="margin-top:4px; font-size:0.8em; color:#aaa;">${event.description3}</div>` : ''}
             `;
 
             eventsList.appendChild(eventElement);
@@ -572,8 +581,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Removed end time display
         detailsTime.textContent = formatTime(new Date(event.startTime));
-        detailsDescription.textContent = event.description || 'Brak opisu';
-
+        detailsID.textContent = `ID: ${event.id}`;
+        detailsDescription.textContent = event.description || 'Brak kontrahenta!';
+        detailsDescription2.textContent = event.description2 || 'Brak danych o płatności!';
+        detailsDescription3.textContent = event.description3 || 'Brak danych o płatności!';
         if (event.isRecurring) {
             editEventBtn.style.display = 'none';
             deleteEventBtn.style.display = 'none';
@@ -586,7 +597,8 @@ document.addEventListener('DOMContentLoaded', function () {
         eventDetailsModal.style.display = 'flex';
     }
     // Pre-fills the form with transaction data and handles the update logic via API.
-    function editEvent() {
+    function editEvent()
+    {
         console.log('Edit event clicked', selectedEventId);
         if (!selectedEventId) return;
 
@@ -600,13 +612,17 @@ document.addEventListener('DOMContentLoaded', function () {
         // Elements
         const titleInput = document.getElementById('event-title');
         const typeSelect = document.getElementById('event-type');
-        const amountInput = document.getElementById('event-amount');
-        const dateInput = document.getElementById('event-date');
-        const descInput = document.getElementById('event-description');
+        const netInput = document.getElementById('event-net');
+        const grossInput = document.getElementById('event-amount');
+        const statusSelect = document.getElementById('event-status');
+        const descInput = document.getElementById('event-description3');
 
-        if (titleInput) titleInput.value = event.title || "";
-        if (typeSelect) typeSelect.value = isExpense ? "0" : "1";
-        if (amountInput) amountInput.value = Math.abs(val).toFixed(2);
+            if (titleInput) titleInput.value = event.title || "";
+    if (typeSelect) typeSelect.value = event.type ?? "0";
+    if (netInput) netInput.value = event.totalNet ?? 0;
+    if (grossInput) grossInput.value = event.totalGross ?? 0;
+    if (statusSelect) statusSelect.value = event.status ?? "0";
+    if (descInput) descInput.value = event.description3 || "";
         
         const dt = new Date(event.startTime);
         const yyyy = dt.getFullYear();
@@ -614,72 +630,85 @@ document.addEventListener('DOMContentLoaded', function () {
         const dd = String(dt.getDate()).padStart(2, '0');
         if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
 
-        if (descInput) descInput.value = event.description || '';
-
         // Change form submit to update instead of create
-        if (eventForm) {
+        if (eventForm)
+        {
             eventForm.onsubmit = async function (e) {
                 e.preventDefault();
                 console.log('Submitting calendar edit form');
 
-                const formData = new FormData();
-                if (titleInput) formData.append('title', titleInput.value);
-                if (typeSelect) formData.append('transactionType', typeSelect.value);
-                if (amountInput) formData.append('amount', amountInput.value);
-                if (dateInput) formData.append('date', dateInput.value);
-                if (descInput) formData.append('description', descInput.value);
+                const netInput = document.getElementById('event-net');
+                const statusSelect = document.getElementById('event-status');
 
                 try {
-                    const response = await fetch('/api/invoices?id=' + selectedEventId, {
-                        method: 'PUT',
-                        body: formData
-                    });
+                    const payload = {
+                        invoiceNumber: titleInput?.value || "",
+                        issueDate: dateInput?.value,
+                        totalNet: parseFloat(netInput?.value || 0),
+                        totalGross: parseFloat(amountInput?.value || 0),
+                        type: parseInt(typeSelect?.value || 0),
+                        notes: descInput?.value || "",
+                        status: parseInt(statusSelect?.value || 0)
+                    };
 
-                                    if (response.ok) {
-                                        console.log('Update successful');
-                                        await fetchEvents(); // Reload all events
-                                        renderCalendar();
-                                        renderEventsList();
-                                        closeModals();
-                                    } else {
-                                        console.error('Failed to update event', response);
-                                        alert('Błąd podczas aktualizacji transakcji');
-                                    }
-                                } catch (err) {
-                                    console.error('Error updating event:', err);
-                                    alert('Wystąpił błąd podczas aktualizacji');
-                                }
-                            };
-                        }
-                    
-                        // Show edit modal
+                    const response = await fetch('/api/invoices/' + selectedEventId,
+                        {
+                            method: 'PUT',
+                            headers:
+                            {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        console.log('Update successful');
+                        await fetchEvents();
+                        renderCalendar();
+                        renderEventsList();
                         closeModals();
-                        if (eventModal) eventModal.style.display = 'flex';
                     }
-                    // Sends a request to delete the selected transaction after user confirmation.
-                    async function deleteEvent() {
-                        if (!selectedEventId) return;
-                    
-                        if (confirm('Czy na pewno chcesz usunąć tę transakcję?')) {
-                            try {
-                                const response = await fetch('/api/invoices?id=' + selectedEventId, {
-                                    method: 'DELETE'
-                                });
-                    
-                                if (response.ok) {
-                                     await fetchEvents();
-                                     renderCalendar();
-                                     renderEventsList();
-                                     closeModals();
-                                } else {
-                                    alert('Błąd podczas usuwania transakcji');
-                                }
-                            } catch (err) {
-                                console.error(err);
-                                alert('Wystąpił błąd podczas usuwania');
-                            }
-                        }
+                    else {
+                        console.error('Failed:', result.message);
+                        alert(result.message || 'Błąd podczas aktualizacji');
                     }
+                }
+                catch (err) {
+                    console.error('Error updating event:', err);
+                    alert('Wystąpił błąd podczas aktualizacji');
+                }
+            };
+        }
+        // Show edit modal
+        closeModals();
+        if (eventModal) eventModal.style.display = 'flex';
+    }
+    // Sends a request to delete the selected transaction after user confirmation.
+    async function deleteEvent() {
+        if (!selectedEventId) return;
+                    
+        if (confirm('Czy na pewno chcesz usunąć tę transakcję?')) {
+            try {
+                const response = await fetch('/transactions?id=' + selectedEventId, {
+                    method: 'DELETE'
+                });
+                    
+                if (response.ok) {
+                        await fetchEvents();
+                        renderCalendar();
+                        renderEventsList();
+                        closeModals();
+                } else {
+                    alert('Błąd podczas usuwania transakcji');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Wystąpił błąd podczas usuwania');
+            }
+        }
+    }
    
 
 
