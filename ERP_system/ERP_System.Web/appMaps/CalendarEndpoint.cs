@@ -75,7 +75,7 @@ namespace ERP_System.Web.appMaps
 
                 var regularTransactions = await db.FinancialOperations
                     .Include(t => t.Employee)
-                    .Where(t => userIds.Contains(t.EmployeeId)) // Poprawiono z CompanyId na EmployeeId
+                    .Where(t => user.CompanyId.HasValue ? t.CompanyId == user.CompanyId.Value : t.EmployeeId == user.Id)
                     .OrderBy(t => t.Date)
                     .Select(t => new
                     {
@@ -97,7 +97,7 @@ namespace ERP_System.Web.appMaps
                 /*var repetableTransactions = await db.RecurringOperations
                     .Include(rt => rt.Transaction) // ZMIANA: Poprawne użycie Include
                         .ThenInclude(t => t.Employee)
-                    .Where(rt => rt.Transaction != null && userIds.Contains(rt.Transaction.EmployeeId) && rt.IsActive)
+                    .Where(rt => rt.Transaction != null && (user.CompanyId.HasValue ? rt.Transaction.CompanyId == user.CompanyId.Value : rt.Transaction.EmployeeId == user.Id) && rt.IsActive)
                     .ToListAsync();
 
                 foreach (var rt in repetableTransactions)
@@ -111,11 +111,11 @@ namespace ERP_System.Web.appMaps
                     {
                         transactions.Add(new
                         {
-                            id = rt.Transaction.Id.ToString(), // ZMIANA: Idk zamiast całego obiektu
+                            id = rt.Transaction.Id.ToString(), 
                             title = $"Cykliczna: {baseTitle}",
                             startTime = nextDate.ToString("yyyy-MM-ddTHH:mm:ss"),
                             endTime = nextDate.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
-                            amount = rt.Transaction.Value, // ZMIANA: Value (kwota) zamiast IntervalValue (czasu)
+                            amount = rt.Transaction.Value, 
                             description = rt.Transaction.Description ?? "",
                             categoryId = rt.Transaction.CategoryId,
                             color = "#f6c23e",
@@ -123,7 +123,6 @@ namespace ERP_System.Web.appMaps
                             isRecurring = true
                         });
 
-                        // ZMIANA: IntervalType zamiast FrequencyUnit, IntervalValue zamiast TransactionInterval
                         nextDate = rt.IntervalType switch
                         {
                             0 => nextDate.AddDays(rt.IntervalValue),
