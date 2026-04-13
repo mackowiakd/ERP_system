@@ -29,7 +29,7 @@ namespace ERP_System.Core
 
             try
             {
-                var newCategory = new DBTransactionCategories { Name = name, Description = description, CompanyId = companyId };
+                var newCategory = new DBInvoiceCategories { Name = name, Description = description, CompanyId = companyId };
                 db.Categories.Add(newCategory);
                 db.SaveChanges();
                 return "Poprawnie dodano kategorię";
@@ -62,7 +62,7 @@ namespace ERP_System.Core
             }
         }
 
-        public List<DBTransactionCategories> listAllCompanyCategories(int? companyId)
+        public List<DBInvoiceCategories> listAllCompanyCategories(int? companyId)
         {
             return db.Categories.Where(c => c.CompanyId == companyId || c.CompanyId == null).OrderByDescending(c => c.CompanyId).ToList();
         }
@@ -85,18 +85,18 @@ namespace ERP_System.Core
 
         public string addDefaultCategories()
         {
-            var zakupy = new DBTransactionCategories { CompanyId = null, Name = "Zakupy spożywcze", Description = "Opłaty za codzienne zakupy domowe" };
-            var rachunki = new DBTransactionCategories { CompanyId = null, Name = "Rachunki", Description = "Opłaty za wodę, gaz, prąd itp." };
-            var transport = new DBTransactionCategories { CompanyId = null, Name = "Transport", Description = "Opłaty za komunikację miejską lub paliwo" };
-            var finanse = new DBTransactionCategories { CompanyId = null, Name = "Finanse", Description = "Kategoria dla finansów" };
-            var rozrywka = new DBTransactionCategories { CompanyId = null, Name = "Rozrywka", Description = "Kategoria dla rozrywki" };
-            var inne = new DBTransactionCategories { CompanyId = null, Name = "Inne", Description = "Kategoria dla innych wydatków" };
+            var zakupy = new DBInvoiceCategories { CompanyId = null, Name = "Zakupy spożywcze", Description = "Opłaty za codzienne zakupy domowe" };
+            var rachunki = new DBInvoiceCategories { CompanyId = null, Name = "Rachunki", Description = "Opłaty za wodę, gaz, prąd itp." };
+            var transport = new DBInvoiceCategories { CompanyId = null, Name = "Transport", Description = "Opłaty za komunikację miejską lub paliwo" };
+            var finanse = new DBInvoiceCategories { CompanyId = null, Name = "Finanse", Description = "Kategoria dla finansów" };
+            var rozrywka = new DBInvoiceCategories { CompanyId = null, Name = "Rozrywka", Description = "Kategoria dla rozrywki" };
+            var inne = new DBInvoiceCategories { CompanyId = null, Name = "Inne", Description = "Kategoria dla innych wydatków" };
 
-            List<DBTransactionCategories> categories = new List<DBTransactionCategories> { zakupy, rachunki, transport, finanse, rozrywka, inne };
+            List<DBInvoiceCategories> categories = new List<DBInvoiceCategories> { zakupy, rachunki, transport, finanse, rozrywka, inne };
 
             try
             {
-                foreach (DBTransactionCategories category in categories)
+                foreach (DBInvoiceCategories category in categories)
                 {
                     if (!db.Categories.Any(c => c.CompanyId == null && c.Name == category.Name))
                     {

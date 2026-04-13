@@ -6,247 +6,137 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ERP_System.Web.appMaps
 {
+    /// <summary>
+    /// Handles the main /company route, displaying company information or the choice to create/join one.
+    /// Uses HTML templates to avoid inline HTML in C# code.
+    /// </summary>
     public class DashboardCompanyEndpoint : IEndpoint
     {
         public void Map(IEndpointRouteBuilder app)
         {
-            app.MapGet("/household", async (HttpContext context, IWebHostEnvironment env, AppDbContext db) =>
+            app.MapGet("/company", async (HttpContext context, IWebHostEnvironment env, AppDbContext db) =>
             {
-                if (!context.Request.Cookies.ContainsKey("logged_user"))
-                    return Results.Redirect("/");
-                var userId = int.Parse(context.Request.Cookies["user_id"]);
-                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
+                // Authenticate user
+                if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))
+                    return Results.Redirect("/login");
 
+                var user = await db.Employees.Include(u => u.Company).FirstOrDefaultAsync(u => u.Id == userId);
                 var username = context.Request.Cookies["logged_user"];
-                if (user == null)
-                    return Results.Redirect("/");
 
-                var filePath = Path.Combine(env.WebRootPath, "household.html");
-                var html = File.ReadAllText(filePath, Encoding.UTF8);
+                if (user == null)
+                    return Results.Redirect("/login");
+
+                // Determine Admin Button visibility (Only SystemAdmin)
                 string adminBtnHtml = "";
-                
                 if (user.Role == SystemRole.SystemAdmin)
                 {
-                    adminBtnHtml = "<button class=\"sidebar-link\" onclick=\"window.location.href='/adminConsole'\"><i class=\"fas fa-fw fa-cogs\"></i> &nbsp; Ustawienia Admina</button>";
+                    adminBtnHtml = "<button class=\"sidebar-link\" onclick=\"window.location.href='/adminConsole'\"><i class=\"fas fa-fw fa-cogs\"></i> &nbsp; Panel Admina</button>";
                 }
-                html = html.Replace("{username}", username)
-                .Replace("{admin_panel_button}", adminBtnHtml);
 
-                return Results.Content(html, "text/html; charset=utf-8");
+                // CASE 1: User has no company - Show choice page
+                if (user.CompanyId == null)
+                {
+                    var filePath = Path.Combine(env.WebRootPath, "company.html");
+                    if (!File.Exists(filePath)) return Results.NotFound("Błąd: Plik company.html nie istnieje.");
+
+                    var html = await File.ReadAllTextAsync(filePath, Encoding.UTF8);
+                    html = html.Replace("{username}", username)
+                               .Replace("{admin_panel_button}", adminBtnHtml);
+
+                    return Results.Content(html, "text/html; charset=utf-8");
+                }
+
+                // CASE 2: User has a company - Show details using template
+                return await RenderCompanyViewWithTemplate(env, db, user, username ?? "Użytkownik", adminBtnHtml);
             });
 
-            app.MapGet("/dashboard-household", async (HttpContext context, AppDbContext db) =>
-            {
-                var login = context.Request.Cookies["logged_user"];
-                if (string.IsNullOrEmpty(login))
-                    return Results.Text("Błąd: użytkownik niezalogowany", "text/plain");
-
-                return await RenderHouseholdView(db, login);
-            });
-
+            // Endpoint for removing members (AJAX/HTMX)
             app.MapPost("/remove-member", async (int userId, HttpContext context, AppDbContext db) =>
             {
                 var login = context.Request.Cookies["logged_user"];
-                if (string.IsNullOrEmpty(login))
-                    return Results.Text("Błąd: użytkownik niezalogowany", "text/plain");
+                if (string.IsNullOrEmpty(login)) return Results.Unauthorized();
 
                 var adminUser = await db.Employees.FirstOrDefaultAsync(u => u.Login == login);
                 if (adminUser == null || adminUser.Role != SystemRole.CompanyAdmin || adminUser.CompanyId == null)
-                    return Results.Text("Błąd: brak uprawnień", "text/plain");
+                    return Results.Forbid();
 
                 var targetUser = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
                 if (targetUser == null || targetUser.CompanyId != adminUser.CompanyId)
-                    return Results.Text("Błąd: użytkownik nie należy do Twojej firmy", "text/plain");
+                    return Results.BadRequest("Użytkownik nie należy do Twojej firmy");
 
-                // Delete user
                 targetUser.CompanyId = null;
-                targetUser.Role = SystemRole.Guest;
+                if (targetUser.Role != SystemRole.SystemAdmin) targetUser.Role = SystemRole.Guest;
+                
                 await db.SaveChangesAsync();
-
-                return await RenderHouseholdView(db, login);
+                return Results.Ok();
             });
         }
 
-        private static async Task<IResult> RenderHouseholdView(AppDbContext db, string login)
+        /// <summary>
+        /// Loads companyDetails.html template and injects company data.
+        /// </summary>
+        private static async Task<IResult> RenderCompanyViewWithTemplate(IWebHostEnvironment env, AppDbContext db, DBEmployee user, string username, string adminBtnHtml)
         {
-            var user = await db.Employees
-                .Include(u => u.Company)
-                .FirstOrDefaultAsync(u => u.Login == login);
+            var company = await db.Companies
+                .Include(c => c.Members)
+                .FirstOrDefaultAsync(c => c.Id == user.CompanyId);
 
-            if (user == null)
-                return Results.Text("Błąd: użytkownik nie istnieje", "text/plain");
+            if (company == null) return Results.Redirect("/company");
 
-            try
+            var templatePath = Path.Combine(env.WebRootPath, "companyDetails.html");
+            if (!File.Exists(templatePath)) return Results.NotFound("Błąd: Plik companyDetails.html nie istnieje.");
+
+            var html = await File.ReadAllTextAsync(templatePath, Encoding.UTF8);
+            bool iAmAdmin = user.Role == SystemRole.CompanyAdmin;
+
+            // Generate members table rows
+            var membersRows = new StringBuilder();
+            var sortedMembers = company.Members.OrderByDescending(m => m.Role == SystemRole.CompanyAdmin).ThenBy(m => m.Login).ToList();
+
+            foreach (var m in sortedMembers)
             {
-                string cssLink = "<link rel='stylesheet' href='/css/householdView.css'>";
+                var isMe = string.Equals(m.Login, user.Login, StringComparison.OrdinalIgnoreCase);
+                var isTargetAdmin = m.Role == SystemRole.CompanyAdmin;
+                var roleDisplay = isTargetAdmin ? "Administrator" : "Pracownik";
+                var loginDisplay = isMe ? $"{m.Login} (Ty)" : m.Login;
 
-                if (user.CompanyId is null)
+                string actionHtml = "";
+                if (iAmAdmin && !isTargetAdmin)
                 {
-                    var html = $@"
-                        {cssLink}
-                        <section class='card' style='display: flex; width: 600px; justify-content: center;'>
-                            <h2>Twoja firma</h2>
-                            <p>Nie jesteś jeszcze członkiem żadnej firmy.</p>
-                            <div class='actions-box'>
-                                <a href='createHousehold.html' class='btn-primary'>Utwórz firmę</a>
-                                <a href='joinHousehold.html' class='btn-primary'>Dołącz do firmy</a>
-                            </div>
-                        </section>
-                        <div style='margin-top: 2rem; display: flex; gap: 1rem;'>
-                            <div class='ad-placeholder' style='flex: 1; height: 400px;'><span>Miejsce na reklamę</span></div>
-                            <div class='ad-placeholder' style='flex: 1; height: 400px;'><span>Miejsce na reklamę</span></div>
-                        </div>";
-                    return Results.Content(html, "text/html");
+                    actionHtml = $"<button onclick=\"if(confirm('Usunąć {m.Login}?')) fetch('/remove-member?userId={m.Id}', {{method:'POST'}}).then(r=>location.reload())\" style='color:white; border:none; background:#dc3545; padding: 5px 10px; border-radius:4px; cursor:pointer;'>Usuń</button>";
                 }
-                else
-                {
-                    var house = user.Company!;
-                    bool iAmAdmin = user.Role == SystemRole.CompanyAdmin;
 
-                    var confirmText = iAmAdmin
-                        ? "Jako administrator, opuszczając firmę, spowodujesz jego trwałe usunięcie. Czy na pewno chcesz kontynuować?"
-                        : "Czy na pewno chcesz opuścić firmę?";
-
-                    var buttonClass = "btn-danger";
-
-                    // sort:  CompanyAdmin on top, the rest alphabetically
-                    var members = await db.Employees
-                        .Where(u => u.CompanyId == house.Id)
-                        .OrderByDescending(u => u.Role == SystemRole.CompanyAdmin)
-                        .ThenBy(u => u.Login)
-                        .ToListAsync();
-
-                    var rowsBuilder = new StringBuilder();
-
-                    if (members.Count == 0)
-                    {
-                        rowsBuilder.AppendLine("<tr><td colspan='5'>Brak członków w tej firmie.</td></tr>");
-                    }
-                    else
-                    {
-                        foreach (var m in members)
-                        {
-                            var isMe = string.Equals(m.Login, user.Login, StringComparison.OrdinalIgnoreCase);
-                            var isTargetAdmin = m.Role == SystemRole.CompanyAdmin;
-
-                            var loginEsc = WebUtility.HtmlEncode(m.Login);
-                            var emailEsc = WebUtility.HtmlEncode(m.Email);
-
-                            string roleDisplay;
-                            if (isTargetAdmin) roleDisplay = "Administrator";
-                            else roleDisplay = "Członek";
-
-                            var rowClass = isMe ? "member-row current-user" : "member-row";
-                            var loginDisplay = isMe ? $"{loginEsc} (Ty)" : loginEsc;
-
-                            string actionCell = "";
-
-                            if (iAmAdmin && !isTargetAdmin)
-                            {
-                                actionCell = $@"
-                                    <button 
-                                        class='removeBtn'
-                                        hx-post='/remove-member?userId={m.Id}'
-                                        hx-confirm='Czy na pewno chcesz usunąć użytkownika {loginEsc}?'
-                                        hx-target='#household-main'>
-                                        Usuń
-                                    </button>";
-                            }
-                            else if (!iAmAdmin)
-                            {
-                                
-                                actionCell = "<span style='color:#ccc; font-size:0.8em;'>(brak uprawnień)</span>";
-                            }
-
-                            else if(iAmAdmin && isTargetAdmin)
-                            {
-                                
-                                actionCell = "<span style='color:#ccc; font-size:0.8em;'>-</span>";
-                            }
-
-                            rowsBuilder.AppendLine($@"
-                                <tr class='{rowClass}'>
-                                    <td>{m.Id}</td>
-                                    <td>{loginDisplay}</td>
-                                    <td>{emailEsc}</td>
-                                    <td>{roleDisplay}</td>
-                                    <td style='text-align:center;'>{actionCell}</td>
-                                </tr>");
-                        }
-                    }
-
-                    var html = $@"
-                    {cssLink}
-                    
-                    <h1 class='page-title' style='margin-left: 0px !important;'>ERP_System</h1>
-
-                    <div class='main-card'>
-                        
-                        <div class='card'>
-                            <h3 class='card-header'>Szczegóły</h3>
-                            
-                            <div class='info-row'>
-                                <span class='info-label'>Nazwa:</span>
-                                <span class='info-value'>{WebUtility.HtmlEncode(house.Name)}</span>
-                            </div>
-
-                            <div class='info-row'>
-                                <span class='info-label'>Opis:</span>
-                                <span class='info-value'>{WebUtility.HtmlEncode(house.Description ?? string.Empty)}</span>
-                            </div>
-
-                            <div class='info-row'>
-                                <span class='info-label'>Kod zaproszenia:</span>
-                                <span class='info-value' style='font-family: monospace; font-size: 1.2em;'>{WebUtility.HtmlEncode(house.JoinCode)}</span>
-                            </div>
-
-                            <div>
-                                <form 
-                                    hx-post='/leave-household'
-                                    hx-target='#household-main'
-                                    hx-swap='innerHTML'
-                                    hx-confirm='{confirmText}'>
-                                    
-                                    <button type='submit' class='{buttonClass}'>
-                                        Opuść firmę
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-
-                        <div class='members-card'>
-                            <h3 class='card-header'>Członkowie firmy</h3>
-
-                            <table class='members-table'>
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>Login</th>
-                                            <th>Email</th>
-                                            <th>Rola</th>
-                                            <th>Akcje</th> </tr>
-                                    </thead>
-                                    <tbody>
-                                        {rowsBuilder}
-                                    </tbody>
-                            </table>
-                        </div>
-
-                    </div>
-                    
-                    <div style='margin-top: 2rem; display: flex; gap: 1rem;'>
-                        <div class='ad-placeholder' style='flex: 1; height: 150px;'><span>Miejsce na reklamę</span></div>
-                        <div class='ad-placeholder' style='flex: 1; height: 150px;'><span>Miejsce na reklamę</span></div>
-                    </div>";
-
-                    return Results.Content(html, "text/html");
-                }
+                membersRows.Append($@"
+                    <tr style='border-bottom: 1px solid #eee;'>
+                        <td style='padding: 12px;'>{m.Id}</td>
+                        <td style='padding: 12px;'>{loginDisplay}</td>
+                        <td style='padding: 12px;'>{m.Email}</td>
+                        <td style='padding: 12px;'>{roleDisplay}</td>
+                        <td style='padding: 12px; text-align: center;'>{actionHtml}</td>
+                    </tr>");
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Błąd wczytania strony: {ex.Message}");
-                return Results.Content("<div class='error'>Błąd serwera: nie udało się wczytać strony.</div>", "text/html");
-            }
+
+            // Prepare Leave Button texts
+            string leaveButtonText = iAmAdmin ? "Usuń firmę (jesteś adminem)" : "Opuść firmę";
+            string leaveConfirmText = iAmAdmin 
+                ? "Jako administrator, opuszczając firmę, spowodujesz jej trwałe usunięcie wraz z całą historią. Czy na pewno chcesz kontynuować?" 
+                : "Czy na pewno chcesz opuścić struktury firmy?";
+
+            // Inject data into template
+            html = html.Replace("{username}", username)
+                       .Replace("{admin_panel_button}", adminBtnHtml)
+                       .Replace("{companyShortName}", WebUtility.HtmlEncode(company.ShortName))
+                       .Replace("{companyFullName}", WebUtility.HtmlEncode(company.FullName))
+                       .Replace("{companyDescription}", WebUtility.HtmlEncode(company.Description ?? "Brak opisu firmy."))
+                       .Replace("{companyNip}", WebUtility.HtmlEncode(company.NIP))
+                       .Replace("{companyAddress}", WebUtility.HtmlEncode(company.Address))
+                       .Replace("{companyJoinCode}", WebUtility.HtmlEncode(company.JoinCode))
+                       .Replace("{memberCount}", company.Members.Count.ToString())
+                       .Replace("{membersRows}", membersRows.ToString())
+                       .Replace("{leaveButtonText}", leaveButtonText)
+                       .Replace("{leaveConfirmText}", leaveConfirmText);
+
+            return Results.Content(html, "text/html; charset=utf-8");
         }
     }
 }

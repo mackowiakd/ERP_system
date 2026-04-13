@@ -27,6 +27,6 @@ namespace ERP_System.Core.DBTables
         public int IntervalType { get; set; } // np. 0=Dni, 1=Tygodnie, 2=Miesiące, 3=Lata
 
         [ForeignKey(nameof(TransactionPatternId))]
-        public virtual DBFinancialOperations? Transaction { get; set; }
+        public virtual DBFinancialOperations? Invoice { get; set; }
     }
 }

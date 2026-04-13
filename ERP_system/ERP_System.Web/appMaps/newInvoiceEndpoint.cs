@@ -51,7 +51,7 @@ namespace ERP_System.Web.appMaps
                         returnUrl = "/dashboard";
                     }
                     // Blocked pages: Stay on New Transaction page
-                    else if (returnUrl.Contains("/reports") || returnUrl.Contains("/charts") || returnUrl.Contains("/household")) 
+                    else if (returnUrl.Contains("/reports") || returnUrl.Contains("/charts") || returnUrl.Contains("/company")) 
                     {
                          returnUrl = "/new-invoice";
                     }

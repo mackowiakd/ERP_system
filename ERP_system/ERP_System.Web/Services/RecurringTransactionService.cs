@@ -29,35 +29,35 @@ namespace ERP_System.Web.Services
                         // 1. Pobierz definicje, których czas nadszedł (NextRunDate <= Teraz) i są aktywne
                         // Include(t => t.Transaction) jest kluczowe, żeby pobrać dane wzorca (kwotę, kategorię itp.)
                         var tasksToRun = await db.RecurringOperations
-                            .Include(rt => rt.Transaction)
+                            .Include(rt => rt.Invoice)
                             .Where(rt => rt.IsActive && rt.NextRunDate <= DateTime.Now)
                             .ToListAsync(stoppingToken);
 
                         foreach (var rule in tasksToRun)
                         {
-                            if (rule.Transaction == null) continue; // Zabezpieczenie
+                            if (rule.Invoice == null) continue; // Zabezpieczenie
 
                             // 2. Stwórz NOWĄ transakcję na podstawie WZORCA
-                            var newTransaction = new DBFinancialOperations
+                            var newInvoice = new DBFinancialOperations
                             {
-                                CompanyId = rule.Transaction.CompanyId,
-                                CategoryId = rule.Transaction.CategoryId,
-                                EmployeeId = rule.Transaction.EmployeeId,
-                                Value = rule.Transaction.Value,
-                                TransactionType = rule.Transaction.TransactionType,
-                                Title = rule.Transaction.Title,
-                                Description = rule.Transaction.Description + " (Auto)",
+                                CompanyId = rule.Invoice.CompanyId,
+                                CategoryId = rule.Invoice.CategoryId,
+                                EmployeeId = rule.Invoice.EmployeeId,
+                                Value = rule.Invoice.Value,
+                                TransactionType = rule.Invoice.TransactionType,
+                                Title = rule.Invoice.Title,
+                                Description = rule.Invoice.Description + " (Auto)",
                                 Date = rule.NextRunDate, // Data transakcji to data planowana
                                 IsRepeatable = false, // Nowa transakcja nie jest szablonem!
                                 RecurringOperation = null
                             };
 
-                            db.FinancialOperations.Add(newTransaction);
+                            db.FinancialOperations.Add(newInvoice);
 
                             // 3. Oblicz następną datę wykonania
                             rule.NextRunDate = CalculateNextDate(rule.NextRunDate, rule.IntervalValue, (TransactionIntervalType)rule.IntervalType);
                             
-                            _logger.LogInformation($"Wygenerowano transakcję cykliczną dla User ID: {rule.Transaction.CompanyId}");
+                            _logger.LogInformation($"Wygenerowano transakcję cykliczną dla User ID: {rule.Invoice.CompanyId}");
                         }
 
                         if (tasksToRun.Any())

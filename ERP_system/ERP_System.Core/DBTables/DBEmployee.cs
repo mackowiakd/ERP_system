@@ -59,7 +59,7 @@ namespace ERP_System.Core.DBTables
         [ForeignKey(nameof(CompanyId))]
         public DBCompany? Company { get; set; }
 
-        public ICollection<DBTransactionCategories> Categories { get; set; } = new List<DBTransactionCategories>();
+        public ICollection<DBInvoiceCategories> Categories { get; set; } = new List<DBInvoiceCategories>();
         public ICollection<DBFinancialOperations> Transactions { get; set; } = new List<DBFinancialOperations>();
     }
 }

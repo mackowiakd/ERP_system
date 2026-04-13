@@ -9,6 +9,10 @@ using System.Linq;
 
 namespace ERP_System.Core
 {
+    /// <summary>
+    /// Service for generating financial statistics and chart data based on Invoices.
+    /// Transactions (FinancialOperations) are no longer used.
+    /// </summary>
     public class ChartService
     {
         private readonly AppDbContext _db;
@@ -26,74 +30,62 @@ namespace ERP_System.Core
             public string Color { get; set; } = "#ccc";
         }
 
+        // Internal DTO to simplify grouping of different data sources
+        private class RawStatEntry
+        {
+            public string Name { get; set; } = "";
+            public decimal Amount { get; set; }
+            public InvoiceType Type { get; set; }
+        }
+
+        /// <summary>
+        /// Calculates expenses and incomes statistics for a company within a date range.
+        /// Uses Invoices and projected Recurring Invoices.
+        /// </summary>
         public (List<CategoryStat> Expenses, List<CategoryStat> Incomes) GetStatistics(List<int> companyIds, DateTime startDate, DateTime endDate)
         {
-            // 1. Pobieramy operacje finansowe
-            var transactions = _db.FinancialOperations
-                .Include(t => t.Category)
-                .Where(t => companyIds.Contains(t.CompanyId) && t.Date >= startDate && t.Date <= endDate)
-                .ToList();
+            var statsData = new List<RawStatEntry>();
 
-            // 2. NOWOŚĆ: Pobieramy faktury i traktujemy je jako wirtualne transakcje do wykresów
+            // 1. Fetch Real Invoices
             var invoices = _db.Invoices
+                .Include(i => i.Contractor)
                 .Where(i => companyIds.Contains(i.CompanyId) && i.IssueDate >= startDate && i.IssueDate <= endDate)
                 .ToList();
 
             foreach (var inv in invoices)
             {
-                var contractorName = _db.Contractors.FirstOrDefault(c => c.Id == inv.ContractorId)?.Name ?? "Nieznany Kontrahent";
-                
-                transactions.Add(new DBFinancialOperations
+                statsData.Add(new RawStatEntry
                 {
-                    Id = 0,
-                    CompanyId = inv.CompanyId,
-                    EmployeeId = 0,
-                    Value = inv.Type == InvoiceType.Cost ? -inv.TotalGross : inv.TotalGross,
-                    Title = inv.InvoiceNumber,
-                    TransactionType = inv.Type == InvoiceType.Cost ? TransactionType.expense : TransactionType.income,
-                    Date = inv.IssueDate,
-                    CategoryId = 0,
-                    Category = new DBTransactionCategories { Name = contractorName, Id = 0 }
+                    Name = inv.Contractor?.Name ?? "Nieznany Kontrahent",
+                    Amount = inv.TotalGross,
+                    Type = inv.Type
                 });
             }
 
-            // 3. Pobieramy operacje cykliczne
+            // 2. Fetch Recurring Invoices (Pattern based on FinancialOperations for now)
             var recurringRules = _db.RecurringOperations
-                .Include(rt => rt.Transaction)
-                    .ThenInclude(t => t.Category)
-                .Where(rt => rt.Transaction != null && companyIds.Contains(rt.Transaction.CompanyId) && rt.IsActive)
+                .Include(rt => rt.Invoice)
+                .Where(rt => rt.Invoice != null && companyIds.Contains(rt.Invoice.CompanyId) && rt.IsActive)
                 .ToList();
 
-            // 3. Project Future Transactions
             foreach (var rule in recurringRules)
             {
                 var currentDate = rule.NextRunDate;
-                var unit = (TransactionIntervalType)rule.IntervalType; // ZMIANA z FrequencyUnit
+                var unit = (TransactionIntervalType)rule.IntervalType;
 
-                // Loop to find all occurrences within the requested range
                 while (currentDate <= endDate)
                 {
                     if (currentDate >= startDate)
                     {
-                        // Create a transient transaction object for calculation
-                        var projected = new DBFinancialOperations
+                        statsData.Add(new RawStatEntry
                         {
-                            Id = 0, // transient
-                            CompanyId = rule.Transaction!.CompanyId,   // POPRAWKA
-                            EmployeeId = rule.Transaction.EmployeeId, // POPRAWKA
-                            CategoryId = rule.Transaction.CategoryId,
-                            Category = rule.Transaction.Category,
-                            Value = rule.Transaction.Value,           // POPRAWKA: Pobieramy kwot� z transakcji, nie z regu�y
-                            Title = "Projected",
-                            TransactionType = rule.Transaction.TransactionType,
-                            Date = currentDate,
-                            IsRepeatable = false
-                        };
-
-                        transactions.Add(projected);
+                            Name = (rule.Invoice!.Title ?? "Cykliczna") + " (Plan)",
+                            Amount = Math.Abs(rule.Invoice.Value),
+                            Type = rule.Invoice.TransactionType == TransactionType.expense ? InvoiceType.Cost : InvoiceType.Sales
+                        });
                     }
 
-                    // Advance to next occurrence (ZMIANA z TransactionInterval na IntervalValue)
+                    // Move to next occurrence
                     currentDate = unit switch
                     {
                         TransactionIntervalType.Days => currentDate.AddDays(rule.IntervalValue),
@@ -105,29 +97,33 @@ namespace ERP_System.Core
                 }
             }
 
-            var expenses = transactions
-                .Where(t => t.TransactionType == TransactionType.expense)
-                .GroupBy(t => t.Category?.Name ?? "Brak kategorii")
-                .Select(g => new { Name = g.Key, Total = g.Sum(t => Math.Abs(t.Value)) })
+            // 3. Process Expenses
+            var rawExpenses = statsData
+                .Where(s => s.Type == InvoiceType.Cost)
+                .GroupBy(s => s.Name)
+                .Select(g => new { Name = g.Key, Total = g.Sum(s => s.Amount) })
                 .ToList();
 
-            var incomes = transactions
-                .Where(t => t.TransactionType == TransactionType.income)
-                .GroupBy(t => t.Category?.Name ?? "Brak kategorii")
-                .Select(g => new { Name = g.Key, Total = g.Sum(t => Math.Abs(t.Value)) })
+            var totalExpense = rawExpenses.Sum(x => x.Total);
+
+            // 4. Process Incomes
+            var rawIncomes = statsData
+                .Where(s => s.Type == InvoiceType.Sales)
+                .GroupBy(s => s.Name)
+                .Select(g => new { Name = g.Key, Total = g.Sum(s => s.Amount) })
                 .ToList();
 
-            var totalExpense = expenses.Sum(x => x.Total);
-            var totalIncome = incomes.Sum(x => x.Total);
+            var totalIncome = rawIncomes.Sum(x => x.Total);
 
-            var expenseStats = expenses.Select(x => new CategoryStat
+            // 5. Build CategoryStat results
+            var expenseStats = rawExpenses.Select(x => new CategoryStat
             {
                 CategoryName = x.Name,
                 TotalAmount = x.Total,
                 Percentage = totalExpense == 0 ? 0 : (double)(x.Total / totalExpense) * 100
             }).OrderByDescending(x => x.Percentage).ToList();
 
-            var incomeStats = incomes.Select(x => new CategoryStat
+            var incomeStats = rawIncomes.Select(x => new CategoryStat
             {
                 CategoryName = x.Name,
                 TotalAmount = x.Total,
@@ -155,20 +151,18 @@ namespace ERP_System.Core
             var startDate = new DateTime(now.Year, now.Month, 1);
             var endDate = now.Date.AddDays(1).AddTicks(-1);
 
-            // Przekazujemy ID firmy w liście
             return GenerateChartsHtml(userId, startDate, endDate, true);
         }
 
-        public string GenerateChartsHtml(int userId, DateTime startDate, DateTime endDate, bool includeHousehold = false)
+        public string GenerateChartsHtml(int userId, DateTime startDate, DateTime endDate, bool includeCompany = false)
         {
             List<int> ids = new List<int> { userId };
 
-            if (includeHousehold)
+            if (includeCompany)
             {
                 var user = _db.Employees.FirstOrDefault(u => u.Id == userId);
                 if (user != null && user.CompanyId.HasValue)
                 {
-                    // ZMIANA: Przekazujemy ID firmy zamiast listy ID użytkowników
                     ids = new List<int> { user.CompanyId.Value };
                 }
             }
@@ -178,8 +172,8 @@ namespace ERP_System.Core
 
             sb.Append(GetTooltipAssets());
             sb.Append("<div class='charts-container' style='display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px;'>");
-            sb.Append(GenerateSingleChartHtml(includeHousehold ? "Wydatki (Firma)" : "Wydatki", expenses));
-            sb.Append(GenerateSingleChartHtml(includeHousehold ? "Przychody (Firma)" : "Przychody", incomes));
+            sb.Append(GenerateSingleChartHtml(includeCompany ? "Wydatki (Firma)" : "Wydatki", expenses));
+            sb.Append(GenerateSingleChartHtml(includeCompany ? "Przychody (Firma)" : "Przychody", incomes));
             sb.Append("</div>");
             return sb.ToString();
         }

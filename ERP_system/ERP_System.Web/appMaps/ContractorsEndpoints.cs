@@ -40,9 +40,9 @@ namespace ERP_System.Web.appMaps
                 var loginUser = context.Request.Cookies["logged_user"];
                 var employee = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
 
-                // POPRAWKA: Sprawdzamy, czy CompanyId nie jest nullem
+                // POPRAWKA: Zwracamy pustą tablicę zamiast obiektu błędu, żeby frontend się nie wywalał
                 if (employee == null || employee.CompanyId == null) 
-                    return Results.Json(new { success = false, message = "Brak autoryzacji lub nie przypisano do firmy." });
+                    return Results.Json(new object[] { });
 
                 // POPRAWKA: Używamy .Value
                 var contractors = contractorService.GetCompanyContractors(employee.CompanyId.Value);

@@ -67,7 +67,7 @@
         </button>
         <button
           class="sidebar-link"
-          onclick="window.location.href = '/household'"
+          onclick="window.location.href = '/company'"
         >
           <i class="fas fa-users"></i> &nbsp; Pracownicy
         </button>
@@ -89,7 +89,7 @@
           </p>
 
           <form
-            hx-post="/join-household"
+            hx-post="/join-company"
             hx-target="#result"
             class="join-household-form"
           >
@@ -112,7 +112,7 @@
           <div id="result"></div>
 
           <div style="text-align: center">
-            <a href="/household" class="btn-secondary"
+            <a href="/company" class="btn-secondary"
               ><i class="fas fa-arrow-left"></i> Powrót</a
             >
           </div>

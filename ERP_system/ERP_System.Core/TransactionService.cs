@@ -19,15 +19,15 @@ namespace ERP_System.Core
             this.db = db;
         }
 
-        public void addTransaction(DBFinancialOperations transaction)
+        public void addTransaction(DBFinancialOperations invoice)
         {
-            if (transaction.CompanyId <= 0)                                                                                                                                                                      
+            if (invoice.CompanyId <= 0)                                                                                                                                                                      
             {                                                                                                                                                                                                    
                 throw new InvalidOperationException("<div class='error'>Błąd: Musisz najpierw założyć firmę lub do niej dołączyć, aby dodać fakturę!</div>");                                                    
             } 
             try
             {
-                db.Add(transaction);
+                db.Add(invoice);
                 db.SaveChanges();
             }
             catch (Exception ex)
@@ -143,11 +143,11 @@ namespace ERP_System.Core
             }
         }
 
-        public StringBuilder listTransactionsForDashboard(List<DBFinancialOperations> transactions)
+        public StringBuilder listTransactionsForDashboard(List<DBFinancialOperations> invoices)
         {
             var sb = new System.Text.StringBuilder();
 
-            foreach (var t in transactions)
+            foreach (var t in invoices)
             {
                 string date = t.Date.ToString("yyyy-MM-dd");
                 string displayDate = t.Date.ToString("dd.MM.yyyy");
@@ -187,9 +187,9 @@ namespace ERP_System.Core
         {
             // POPRAWKA: t.EmployeeId
             var recurringRules = db.RecurringOperations
-            .Include(rt => rt.Transaction)
+            .Include(rt => rt.Invoice)
             .ThenInclude(t => t.Category) // Pobieramy kategorię z podpiętej operacji!
-            .Where(rt => rt.Transaction != null && userId == rt.Transaction.EmployeeId && rt.IsActive).ToList();
+            .Where(rt => rt.Invoice != null && userId == rt.Invoice.EmployeeId && rt.IsActive).ToList();
             var temp = db.FinancialOperations.Where(t => t.EmployeeId == userId && t.Date <= DateTime.Now).OrderByDescending(t => t.Date).Take(amount).ToList();
             DateTime now = DateTime.Now;
             // 3. Project Future Transactions
@@ -207,13 +207,13 @@ namespace ERP_System.Core
                         var projected = new DBFinancialOperations
                         {
                             Id = 0, // transient
-                            CompanyId = rule.Transaction!.CompanyId,   // POPRAWKA
-                            EmployeeId = rule.Transaction.EmployeeId, // POPRAWKA
-                            CategoryId = rule.Transaction.CategoryId,
-                            Category = rule.Transaction.Category,
-                            Value = rule.Transaction.Value,           // POPRAWKA: Pobieramy kwotę z transakcji, nie z reguły
+                            CompanyId = rule.Invoice!.CompanyId,   // POPRAWKA
+                            EmployeeId = rule.Invoice.EmployeeId, // POPRAWKA
+                            CategoryId = rule.Invoice.CategoryId,
+                            Category = rule.Invoice.Category,
+                            Value = rule.Invoice.Value,           // POPRAWKA: Pobieramy kwotę z transakcji, nie z reguły
                             Title = "Projected",
-                            TransactionType = rule.Transaction.TransactionType,
+                            TransactionType = rule.Invoice.TransactionType,
                             Date = currentDate,
                             IsRepeatable = false
                         };

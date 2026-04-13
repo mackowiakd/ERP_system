@@ -23,7 +23,7 @@ namespace ERP_System.Core.DBTables
         public required int CategoryId { get; set; }
 
         [ForeignKey(nameof(CategoryId))]
-        public DBTransactionCategories? Category { get; set; }
+        public DBInvoiceCategories? Category { get; set; }
 
         [Column("company_id")]
         public required int CompanyId { get; set; }

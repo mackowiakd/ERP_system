@@ -11,7 +11,7 @@ namespace ERP_System.Core
 
         public DbSet<DBCompany> Companies { get; set; }
         public DbSet<DBEmployee> Employees { get; set; }
-        public DbSet<DBTransactionCategories> Categories { get; set; }
+        public DbSet<DBInvoiceCategories> Categories { get; set; }
         public DbSet<DBFinancialOperations> FinancialOperations { get; set; }
         public DbSet<DBRecurringOperations> RecurringOperations { get; set; }
         public DbSet<DBRole> Roles { get; set; }
@@ -31,7 +31,7 @@ namespace ERP_System.Core
 
             modelBuilder.Entity<DBFinancialOperations>()
                 .HasOne(a => a.RecurringOperation)
-                .WithOne(b => b.Transaction)
+                .WithOne(b => b.Invoice)
                 .HasForeignKey<DBRecurringOperations>(b => b.TransactionPatternId)
                 .OnDelete(DeleteBehavior.Cascade);
 
