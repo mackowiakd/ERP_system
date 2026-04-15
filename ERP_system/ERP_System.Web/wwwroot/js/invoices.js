@@ -139,6 +139,29 @@ document.addEventListener("DOMContentLoaded", () => {
         invoiceModal.style.display = "none";
         currentInvoice = null;
     }
+    async function deleteInvoice(id) {
+        if (!confirm("Czy na pewno chcesz usunąć tę fakturę?")) return;
+
+        try {
+            const res = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
+            const result = await res.json();
+
+            if (result.success) {
+                if (typeof loadInvoices === 'function') {
+                    await loadInvoices();
+                } else if (window.loadInvoices) {
+                    await window.loadInvoices();
+                }
+            } else {
+                alert("Błąd: " + result.message);
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+            alert("Wystąpił błąd podczas usuwania faktury.");
+        }
+    }
+
+    window.deleteInvoice = deleteInvoice;
 
     // Patch loadInvoices to add details button
     window.loadInvoices = async function () {
@@ -173,7 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <td>${statusPl}</td>
                         <td style="text-align: right;">
                             <button onclick="showInvoiceModal(${inv.id})" class="btn-details"><i class="fas fa-eye"></i> Szczegóły</button>
-                            <button onclick="deleteInvoice(${inv.id})" class="btn-delete"><i class="fas fa-trash"></i> Usuń</button>
+                            <button onclick="deleteInvoice('${inv.id}')" class="btn-delete"><i class="fas fa-trash"></i> Usuń</button>
                         </td>
                     </tr>
                 `;
