@@ -51,6 +51,7 @@
         </button>
         <span class="mobile-logo">Home Budget Manager</span>
       </div>
+<<<<<<< HEAD
 
       <aside class="sidebar">
         <p class="sidebar-title">
@@ -280,6 +281,70 @@
           <div style="margin-top: 1em">
             <button id="edit-invoice-btn">Edytuj</button>
             <button id="delete-invoice-btn">Usuń</button>
+=======
+      <!-- Invoice Details/Edit Modal -->
+      <div class="modal" id="invoice-modal">
+          <div class="modal-content">
+              <span class="close-btn" id="close-invoice-modal">&times;</span>
+              <h2 id="invoice-modal-title">Szczegóły faktury</h2>
+              <div id="invoice-details-view">
+                  <p><strong>Nr Faktury:</strong> <span id="modal-invoice-number"></span></p>
+                  <p><strong>Kontrahent:</strong> <span id="modal-contractor"></span></p>
+                  <p><strong>Wystawiono:</strong> <span id="modal-issue-date"></span></p>
+                  <p><strong>Termin:</strong> <span id="modal-due-date"></span></p>
+                  <p><strong>Brutto:</strong> <span id="modal-total-gross"></span></p>
+                  <p><strong>Typ:</strong> <span id="modal-type"></span></p>
+                  <p><strong>Status:</strong> <span id="modal-status"></span></p>
+                  <p><strong>Opis:</strong> <span id="modal-notes"></span></p>
+                  <div style="margin-top:1em;">
+                      <button id="edit-invoice-btn">Edytuj</button>
+                      <button id="delete-invoice-btn">Usuń</button>
+                  </div>
+              </div>
+              <form id="invoice-edit-form" style="display:none; margin-top:1em;">
+                  <div class="form-group">
+                      <label for="edit-invoice-number">Nr Faktury</label>
+                      <input type="text" id="edit-invoice-number" required maxlength="20" />
+                  </div>
+                  <div class="form-group">
+                      <label for="edit-contractor">Kontrahent</label>
+                      <input type="text" id="edit-contractor" required />
+                  </div>
+                  <div class="form-group">
+                      <label for="edit-issue-date">Wystawiono</label>
+                      <input type="date" id="edit-issue-date" required />
+                  </div>
+                  <div class="form-group">
+                      <label for="edit-due-date">Termin</label>
+                      <input type="date" id="edit-due-date" required />
+                  </div>
+                  <div class="form-group">
+                      <label for="edit-total-gross">Brutto</label>
+                      <input type="number" step="0.01" id="edit-total-gross" required />
+                  </div>
+                  <div class="form-group">
+                      <label for="edit-type">Typ</label>
+                      <select id="edit-type">
+                          <option value="Sales">Sprzedażowa</option>
+                          <option value="Cost">Kosztowa</option>
+                      </select>
+                  </div>
+                  <div class="form-group">
+                      <label for="edit-status">Status</label>
+                      <select id="edit-status">
+                          <option value="Unpaid">Nieopłacona</option>
+                          <option value="Paid">Opłacona</option>
+                          <option value="PartiallyPaid">Częściowo opłacona</option>
+                      </select>
+                  </div>
+                  <div class="form-group">
+                      <label for="edit-notes">Opis</label>
+                      <textarea id="edit-notes" rows="3"></textarea>
+                  </div>
+                  <button type="submit" class="save-btn">Zapisz</button>
+                  <button type="button" id="cancel-edit-btn">Anuluj</button>
+              </form>
+>>>>>>> 05bacd0295392bf30bfa4e08b934b4df25f7f21c
           </div>
         </div>
         <form id="invoice-edit-form" style="display: none; margin-top: 1em">
