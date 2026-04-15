@@ -10,6 +10,14 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css"
+    />
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   </head>
   <body>
@@ -130,6 +138,30 @@
             sidebar.classList.remove("open");
           }
         });
+      });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const textarea =
+          document.querySelector('textarea[name="query"]') ||
+          document.querySelector("textarea");
+
+        if (textarea) {
+          const editor = CodeMirror.fromTextArea(textarea, {
+            mode: "text/x-sql",
+            theme: "dracula", // Ciemny motyw jak w matrixie!
+            lineNumbers: true,
+            matchBrackets: true,
+            indentUnit: 4,
+          });
+
+          editor.on("change", function () {
+            textarea.value = editor.getValue();
+          });
+        }
       });
     </script>
   </body>
