@@ -44,7 +44,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function fetchEvents() {
         try {
-            const response = await fetch('/api/calendar-events?t=' + new Date().getTime());
+            // Oblicz zakres dat dla aktualnego widoku
+            let start, end;
+            if (currentView === 'month') {
+                start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            } else if (currentView === 'week') {
+                start = new Date(currentDate);
+                start.setDate(currentDate.getDate() - currentDate.getDay());
+                end = new Date(start);
+                end.setDate(start.getDate() + 6);
+            } else {
+                start = new Date(currentDate);
+                end = new Date(currentDate);
+            }
+
+            // Dodaj bufor (np. +/- 1 miesiąc) żeby płynniej działało przy nawigacji
+            const bufferStart = new Date(start);
+            bufferStart.setMonth(start.getMonth() - 1);
+            const bufferEnd = new Date(end);
+            bufferEnd.setMonth(end.getMonth() + 1);
+
+            const url = `/api/calendar-events?start=${bufferStart.toISOString()}&end=${bufferEnd.toISOString()}&t=${new Date().getTime()}`;
+            const response = await fetch(url);
             if (response.ok) {
                 events = await response.json();
             } else {
@@ -59,13 +81,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function setupEventListeners() {
         // Navigation buttons
-        todayBtn.addEventListener('click', goToToday);
-        prevBtn.addEventListener('click', navigatePrevious);
-        nextBtn.addEventListener('click', navigateNext);
+        todayBtn.addEventListener('click', async () => {
+            currentDate = new Date();
+            await fetchEvents();
+            renderCalendar();
+        });
+        prevBtn.addEventListener('click', async () => {
+            navigatePrevious();
+            await fetchEvents();
+            renderCalendar();
+        });
+        nextBtn.addEventListener('click', async () => {
+            navigateNext();
+            await fetchEvents();
+            renderCalendar();
+        });
 
         // View options
         viewOptions.forEach(option => {
-            option.addEventListener('click', () => switchView(option.dataset.view));
+            option.addEventListener('click', async () => {
+                currentView = option.dataset.view;
+                await fetchEvents();
+                switchView(option.dataset.view);
+            });
         });
 
         // Event creation - Redirect to new transaction page

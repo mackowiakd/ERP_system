@@ -27,37 +27,59 @@ namespace ERP_System.Web.Services
                         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
                         // 1. Pobierz definicje, których czas nadszedł (NextRunDate <= Teraz) i są aktywne
-                        // Include(t => t.Transaction) jest kluczowe, żeby pobrać dane wzorca (kwotę, kategorię itp.)
                         var tasksToRun = await db.RecurringOperations
                             .Include(rt => rt.Invoice)
+                            .Include(rt => rt.BaseInvoice)
                             .Where(rt => rt.IsActive && rt.NextRunDate <= DateTime.Now)
                             .ToListAsync(stoppingToken);
 
                         foreach (var rule in tasksToRun)
                         {
-                            if (rule.Invoice == null) continue; // Zabezpieczenie
-
-                            // 2. Stwórz NOWĄ transakcję na podstawie WZORCA
-                            var newInvoice = new DBFinancialOperations
+                            if (rule.Invoice != null)
                             {
-                                CompanyId = rule.Invoice.CompanyId,
-                                CategoryId = rule.Invoice.CategoryId,
-                                EmployeeId = rule.Invoice.EmployeeId,
-                                Value = rule.Invoice.Value,
-                                TransactionType = rule.Invoice.TransactionType,
-                                Title = rule.Invoice.Title,
-                                Description = rule.Invoice.Description + " (Auto)",
-                                Date = rule.NextRunDate, // Data transakcji to data planowana
-                                IsRepeatable = false, // Nowa transakcja nie jest szablonem!
-                                RecurringOperation = null
-                            };
-
-                            db.FinancialOperations.Add(newInvoice);
+                                // Stary system (FinancialOperations)
+                                var newTransaction = new DBFinancialOperations
+                                {
+                                    CompanyId = rule.Invoice.CompanyId,
+                                    CategoryId = rule.Invoice.CategoryId,
+                                    EmployeeId = rule.Invoice.EmployeeId,
+                                    Value = rule.Invoice.Value,
+                                    TransactionType = rule.Invoice.TransactionType,
+                                    Title = rule.Invoice.Title,
+                                    Description = rule.Invoice.Description + " (Auto)",
+                                    Date = rule.NextRunDate,
+                                    IsRepeatable = false
+                                };
+                                db.FinancialOperations.Add(newTransaction);
+                            }
+                            else if (rule.BaseInvoice != null)
+                            {
+                                // Nowy system (Invoices)
+                                var newInvoice = new DBInvoice
+                                {
+                                    CompanyId = rule.BaseInvoice.CompanyId,
+                                    ContractorId = rule.BaseInvoice.ContractorId,
+                                    InvoiceNumber = rule.BaseInvoice.InvoiceNumber + " (C)",
+                                    IssueDate = rule.NextRunDate,
+                                    DueDate = rule.NextRunDate.AddDays(14),
+                                    PaymentMethod = rule.BaseInvoice.PaymentMethod,
+                                    TotalNet = rule.BaseInvoice.TotalNet,
+                                    TotalGross = rule.BaseInvoice.TotalGross,
+                                    Type = rule.BaseInvoice.Type,
+                                    Notes = rule.BaseInvoice.Notes,
+                                    Status = InvoiceStatus.Unpaid
+                                };
+                                db.Invoices.Add(newInvoice);
+                            }
+                            else
+                            {
+                                continue;
+                            }
 
                             // 3. Oblicz następną datę wykonania
                             rule.NextRunDate = CalculateNextDate(rule.NextRunDate, rule.IntervalValue, (TransactionIntervalType)rule.IntervalType);
                             
-                            _logger.LogInformation($"Wygenerowano transakcję cykliczną dla User ID: {rule.Invoice.CompanyId}");
+                            _logger.LogInformation($"Wygenerowano transakcję/fakturę cykliczną");
                         }
 
                         if (tasksToRun.Any())

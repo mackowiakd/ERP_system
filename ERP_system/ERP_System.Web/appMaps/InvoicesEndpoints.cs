@@ -17,7 +17,10 @@ namespace ERP_System.Web.appMaps
             decimal TotalGross, 
             InvoiceType Type, 
             string Notes,
-            InvoiceStatus Status
+            InvoiceStatus Status,
+            bool IsRecurring = false,
+            int? FrequencyUnit = null,
+            int? IntervalValue = null
         );
         public record EditInvoiceDto(
             string InvoiceNumber,
@@ -130,7 +133,8 @@ namespace ERP_System.Web.appMaps
                 var result = invoiceService.AddInvoice(
                     employee.CompanyId.Value, dto.ContractorId, dto.InvoiceNumber, 
                     dto.IssueDate, dto.DueDate, dto.PaymentMethod, 
-                    dto.TotalNet, dto.TotalGross, dto.Type, dto.Notes, dto.Status
+                    dto.TotalNet, dto.TotalGross, dto.Type, dto.Notes, dto.Status,
+                    dto.IsRecurring, dto.FrequencyUnit, dto.IntervalValue
                 );
 
                 if (result == "Pomyślnie dodano fakturę")
