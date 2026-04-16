@@ -48,123 +48,108 @@ namespace ERP_System.Web.appMaps
                 var userId = int.Parse(context.Request.Cookies["user_id"]!);
                 var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
 
-                if (user == null)
+                if (user == null || !user.CompanyId.HasValue)
                     return Results.Unauthorized();
 
-                List<int> userIds = new List<int>();
-                if (user.CompanyId.HasValue)
-                {
-                    userIds = await db.Employees
-                        .Where(u => u.CompanyId == user.CompanyId.Value)
-                        .Select(u => u.Id)
-                        .ToListAsync();
-                }
-                else
-                {
-                    userIds.Add(user.Id);
-                }
-                List<int> companyIds = new List<int>();
-                {
-                    if (user.CompanyId.HasValue)
-                    {
-                        companyIds.Add(user.CompanyId.Value);
-                    }
-                }
-                List<dynamic> invoices = new List<dynamic>();
-                /*List<dynamic> transactions = new List<dynamic>();
+                int companyId = user.CompanyId.Value;
 
-                var regularTransactions = await db.FinancialOperations
-                    .Include(t => t.Employee)
-                    .Where(t => user.CompanyId.HasValue ? t.CompanyId == user.CompanyId.Value : t.EmployeeId == user.Id)
-                    .OrderBy(t => t.Date)
-                    .Select(t => new
-                    {
-                        id = t.Id.ToString(),
-                        title = t.Title,
-                        startTime = t.Date.ToString("yyyy-MM-ddTHH:mm:ss"),
-                        endTime = t.Date.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
-                        amount = t.Value,
-                        description = t.Description ?? "",
-                        categoryId = t.CategoryId,
-                        color = t.Value < 0 ? "#e74a3b" : "#1cc88a",
-                        reminder = false,
-                        isRecurring = false
-                    })
+                // Parametry daty z frontendu (jeśli podane)
+                DateTime startDate = DateTime.MinValue;
+                DateTime endDate = DateTime.MaxValue;
+
+                if (DateTime.TryParse(context.Request.Query["start"], out var s)) startDate = s;
+                if (DateTime.TryParse(context.Request.Query["end"], out var e)) endDate = e;
+
+                var events = new List<dynamic>();
+
+                // 1. Zwykłe faktury
+                var invoices = await db.Invoices
+                    .Include(i => i.Contractor)
+                    .Where(i => i.CompanyId == companyId && i.IssueDate >= startDate && i.IssueDate <= endDate)
                     .ToListAsync();
 
-                transactions.AddRange(regularTransactions);*/
-
-                /*var repetableTransactions = await db.RecurringOperations
-                    .Include(rt => rt.Transaction) // ZMIANA: Poprawne użycie Include
-                        .ThenInclude(t => t.Employee)
-                    .Where(rt => rt.Transaction != null && (user.CompanyId.HasValue ? rt.Transaction.CompanyId == user.CompanyId.Value : rt.Transaction.EmployeeId == user.Id) && rt.IsActive)
-                    .ToListAsync();
-
-                foreach (var rt in repetableTransactions)
+                foreach (var i in invoices)
                 {
-                    var baseTitle = !string.IsNullOrWhiteSpace(rt.Transaction!.Title)
-                        ? rt.Transaction.Title
-                        : "Brak tytułu";
-
-                    var nextDate = rt.NextRunDate;
-                    for (int i = 0; i < 12; i++) // Generate next 12 occurrences
-                    {
-                        transactions.Add(new
-                        {
-                            id = rt.Transaction.Id.ToString(), 
-                            title = $"Cykliczna: {baseTitle}",
-                            startTime = nextDate.ToString("yyyy-MM-ddTHH:mm:ss"),
-                            endTime = nextDate.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
-                            amount = rt.Transaction.Value, 
-                            description = rt.Transaction.Description ?? "",
-                            categoryId = rt.Transaction.CategoryId,
-                            color = "#f6c23e",
-                            reminder = false,
-                            isRecurring = true
-                        });
-
-                        nextDate = rt.IntervalType switch
-                        {
-                            0 => nextDate.AddDays(rt.IntervalValue),
-                            1 => nextDate.AddDays(rt.IntervalValue * 7),
-                            2 => nextDate.AddMonths(rt.IntervalValue),
-                            3 => nextDate.AddYears(rt.IntervalValue),
-                            _ => nextDate.AddMonths(1),
-                        };
-                    }
-                }*/
-                var selectedInvoices = await db.Invoices
-                    .Where(i => companyIds.Contains(i.CompanyId))
-                    .OrderBy(i => i.DueDate)
-                    .Select(i => new
+                    events.Add(new
                     {
                         id = i.Id.ToString(),
-                        title = $"{i.InvoiceNumber}",
+                        title = i.InvoiceNumber,
                         startTime = i.IssueDate.ToString("yyyy-MM-ddTHH:mm:ss"),
-                        endTime = i.DueDate.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
+                        endTime = i.DueDate.ToString("yyyy-MM-ddTHH:mm:ss"),
                         amount = i.TotalGross,
-                        direction = i.Type,
-                        contractorName = (i.Contractor.Name ?? "Nieznany"),
-                        adres = i.Contractor.Address,
-                        NIP = i.Contractor.TaxId,
-                        notes = i.Notes,
-                        type = i.Type,
-                        status = i.Status,
-                        //kontrahent
-                        description = "Nazwa Kontrahenta: " + i.Contractor.Name + " | Adres: " + (i.Contractor.Address ?? "Brak ") + " | NIP: " + i.Contractor.TaxId,
-                        //finanse
-                        description2 = "Typ: " + (i.Type == InvoiceType.Sales ? "Sprzedażowa" : "Kosztowa") + " | Status: " + (i.Status == InvoiceStatus.Paid ? "Opłacona" : "Nieopłacona") 
-                        + " | Kwota: " + i.TotalGross.ToString() + "zł",
-                        description3 = (i.Notes ?? "Brak zawartości"),
-
-                        categoryId = (int?)null,
+                        type = (int)i.Type,
+                        status = (int)i.Status,
+                        description = $"Faktura: {i.InvoiceNumber} | Kontrahent: {i.Contractor?.Name ?? "Nieznany"}",
+                        description2 = $"Typ: {(i.Type == InvoiceType.Sales ? "Sprzedażowa" : "Kosztowa")} | Status: {(i.Status == InvoiceStatus.Paid ? "Opłacona" : "Nieopłacona")}",
+                        description3 = i.Notes ?? "",
                         color = i.Type == InvoiceType.Cost ? "#e74a3b" : "#1cc88a",
-                        reminder = false,
                         isRecurring = false
-                    })
+                    });
+                }
+
+                // 2. Projekcja faktur cyklicznych
+                var recurringOps = await db.RecurringOperations
+                    .Include(r => r.BaseInvoice)
+                    .ThenInclude(i => i.Contractor)
+                    .Where(r => r.BaseInvoice != null && r.BaseInvoice.CompanyId == companyId && r.IsActive)
                     .ToListAsync();
-                invoices.AddRange(selectedInvoices);
-                return Results.Json(invoices);
+
+                foreach (var ro in recurringOps)
+                {
+                    var inv = ro.BaseInvoice!;
+                    var current = inv.IssueDate;
+                    var intervalType = (ERP_System.Core.Enums.TransactionIntervalType)ro.IntervalType;
+
+                    // Przesuń się do pierwszej daty w zakresie lub startowej
+                    while (current < startDate)
+                    {
+                        current = intervalType switch
+                        {
+                            ERP_System.Core.Enums.TransactionIntervalType.Days => current.AddDays(ro.IntervalValue),
+                            ERP_System.Core.Enums.TransactionIntervalType.Weeks => current.AddDays(ro.IntervalValue * 7),
+                            ERP_System.Core.Enums.TransactionIntervalType.Months => current.AddMonths(ro.IntervalValue),
+                            ERP_System.Core.Enums.TransactionIntervalType.Years => current.AddYears(ro.IntervalValue),
+                            _ => current.AddMonths(1)
+                        };
+                    }
+
+                    // Generuj wystąpienia w zakresie (max 100 dla bezpieczeństwa na jedną regułę)
+                    int safety = 0;
+                    while (current <= endDate && safety < 100)
+                    {
+                        // Pomijamy datę bazową jeśli już została dodana jako zwykła faktura
+                        if (current != inv.IssueDate || !invoices.Any(x => x.Id == inv.Id))
+                        {
+                            events.Add(new
+                            {
+                                id = "rec_" + inv.Id + "_" + current.Ticks,
+                                title = "[CYKL] " + inv.InvoiceNumber,
+                                startTime = current.ToString("yyyy-MM-ddTHH:mm:ss"),
+                                endTime = current.AddDays(1).ToString("yyyy-MM-ddTHH:mm:ss"),
+                                amount = inv.TotalGross,
+                                type = (int)inv.Type,
+                                status = (int)inv.Status,
+                                description = $"Faktura CYKLICZNA: {inv.InvoiceNumber} | Kontrahent: {inv.Contractor?.Name ?? "Nieznany"}",
+                                description2 = $"Typ: {(inv.Type == InvoiceType.Sales ? "Sprzedażowa" : "Kosztowa")} | Status: Planowana",
+                                description3 = inv.Notes ?? "",
+                                color = "#f6c23e", // Kolor żółty dla cyklicznych
+                                isRecurring = true
+                            });
+                        }
+
+                        current = intervalType switch
+                        {
+                            ERP_System.Core.Enums.TransactionIntervalType.Days => current.AddDays(ro.IntervalValue),
+                            ERP_System.Core.Enums.TransactionIntervalType.Weeks => current.AddDays(ro.IntervalValue * 7),
+                            ERP_System.Core.Enums.TransactionIntervalType.Months => current.AddMonths(ro.IntervalValue),
+                            ERP_System.Core.Enums.TransactionIntervalType.Years => current.AddYears(ro.IntervalValue),
+                            _ => current.AddMonths(1)
+                        };
+                        safety++;
+                    }
+                }
+
+                return Results.Json(events);
             });
         }
     }

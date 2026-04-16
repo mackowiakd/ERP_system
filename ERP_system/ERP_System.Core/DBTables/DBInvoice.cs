@@ -82,6 +82,8 @@ namespace ERP_System.Core.DBTables
         [Column("invoice_status")]
         public InvoiceStatus Status { get; set; }
 
+        public virtual DBRecurringOperations? RecurringOperation { get; set; }
+
         public ICollection<DBContractor>? RelatedContractorInvoices { get; set; } = new List<DBContractor>();
     }
 }

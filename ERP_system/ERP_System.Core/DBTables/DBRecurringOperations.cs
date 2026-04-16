@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ERP_System.Core.DBTables
@@ -7,26 +7,31 @@ namespace ERP_System.Core.DBTables
     public class DBRecurringOperations
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; }
+
         [Column("pattern_id")]
-        public int TransactionPatternId { get; set; }
+        public int? TransactionPatternId { get; set; }
+
+        [Column("invoice_id")]
+        public int? InvoiceId { get; set; }
 
         [Required]
         [Column("interval_value")]
         public int IntervalValue { get; set; }
-
-       
 
         public bool IsActive { get; set; } = true;
 
         [Column("next_run_date")]
         public DateTime NextRunDate { get; set; }
 
-       
-
         [Column("IntervalType")] 
         public int IntervalType { get; set; } // np. 0=Dni, 1=Tygodnie, 2=Miesiące, 3=Lata
 
         [ForeignKey(nameof(TransactionPatternId))]
         public virtual DBFinancialOperations? Invoice { get; set; }
+
+        [ForeignKey(nameof(InvoiceId))]
+        public virtual DBInvoice? BaseInvoice { get; set; }
     }
 }

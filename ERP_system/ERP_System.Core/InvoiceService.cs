@@ -28,7 +28,8 @@ namespace ERP_System.Core
         // 2. DODAWANIE NOWEJ FAKTURY
         public string AddInvoice(int companyId, int contractorId, string invoiceNumber, 
                                  DateTime issueDate, DateTime dueDate, PaymentMethod paymentMethod, 
-                                 decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status)
+                                 decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status,
+                                 bool isRecurring = false, int? frequencyUnit = null, int? intervalValue = null)
         {
             try
             {
@@ -50,12 +51,42 @@ namespace ERP_System.Core
                 _db.Invoices.Add(newInvoice);
                 _db.SaveChanges();
 
+                if (isRecurring && frequencyUnit.HasValue && intervalValue.HasValue)
+                {
+                    var nextRunDate = issueDate;
+                    // Obliczamy pierwszą przyszłą datę
+                    nextRunDate = CalculateNextDate(nextRunDate, intervalValue.Value, (ERP_System.Core.Enums.TransactionIntervalType)frequencyUnit.Value);
+
+                    var recurringOp = new DBRecurringOperations
+                    {
+                        InvoiceId = newInvoice.Id,
+                        IntervalValue = intervalValue.Value,
+                        IntervalType = frequencyUnit.Value,
+                        NextRunDate = nextRunDate,
+                        IsActive = true
+                    };
+                    _db.RecurringOperations.Add(recurringOp);
+                    _db.SaveChanges();
+                }
+
                 return "Pomyślnie dodano fakturę";
             }
             catch (Exception ex)
             {
                 return $"Błąd podczas dodawania faktury: {ex.Message}";
             }
+        }
+
+        private DateTime CalculateNextDate(DateTime current, int value, ERP_System.Core.Enums.TransactionIntervalType type)
+        {
+            return type switch
+            {
+                ERP_System.Core.Enums.TransactionIntervalType.Days => current.AddDays(value),
+                ERP_System.Core.Enums.TransactionIntervalType.Weeks => current.AddDays(value * 7),
+                ERP_System.Core.Enums.TransactionIntervalType.Months => current.AddMonths(value),
+                ERP_System.Core.Enums.TransactionIntervalType.Years => current.AddYears(value),
+                _ => current.AddMonths(1)
+            };
         }
 
         // 3. USUWANIE FAKTURY

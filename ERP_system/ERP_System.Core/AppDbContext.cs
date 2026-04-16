@@ -33,6 +33,14 @@ namespace ERP_System.Core
                 .HasOne(a => a.RecurringOperation)
                 .WithOne(b => b.Invoice)
                 .HasForeignKey<DBRecurringOperations>(b => b.TransactionPatternId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DBInvoice>()
+                .HasOne(i => i.RecurringOperation)
+                .WithOne(r => r.BaseInvoice)
+                .HasForeignKey<DBRecurringOperations>(r => r.InvoiceId)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<DBInvoice>()

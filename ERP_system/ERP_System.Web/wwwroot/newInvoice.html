@@ -206,6 +206,21 @@
                            class="form-input"/>
                 </div>
             </div>
+
+            <div class="flex-row" style="align-items: center; gap: 10px; margin-bottom: 20px;">
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 0;">
+                    <input type="checkbox" id="invIsRecurring" style="width: 20px; height: 20px;">
+                    <label for="invIsRecurring" style="margin-bottom: 0;">Faktura cykliczna</label>
+                </div>
+                <div id="recurringOptions" style="display: none; flex: 1; gap: 10px;">
+                    <select id="invRecurringType" class="form-input">
+                        <option value="daily">Co dzień</option>
+                        <option value="monthly" selected>Co miesiąc</option>
+                        <option value="quarterly">Co kwartał</option>
+                        <option value="yearly">Co rok</option>
+                    </select>
+                </div>
+            </div>
                 <button type="submit" class="btn-submit">Zapisz Fakturę</button>
                 <a href="/invoices" class="btn-cancel">Anuluj</a>
 </form>
@@ -231,11 +246,44 @@
                 console.log("Błąd ładowania kontrahentów");
             }
 
+            // Obsługa pokazania opcji cyklicznych
+            const isRecurringCheckbox = document.getElementById("invIsRecurring");
+            const recurringOptions = document.getElementById("recurringOptions");
+            isRecurringCheckbox.addEventListener("change", () => {
+                recurringOptions.style.display = isRecurringCheckbox.checked ? "block" : "none";
+            });
+
             // Obsługa wysyłania formularza
             document
                 .getElementById("new-invoice-form")
                 .addEventListener("submit", async (e) => {
                     e.preventDefault();
+
+                    let frequencyUnit = null;
+                    let intervalValue = null;
+                    const isRecurring = document.getElementById("invIsRecurring").checked;
+                    
+                    if (isRecurring) {
+                        const recurringType = document.getElementById("invRecurringType").value;
+                        switch (recurringType) {
+                            case "daily":
+                                frequencyUnit = 0; // Days
+                                intervalValue = 1;
+                                break;
+                            case "monthly":
+                                frequencyUnit = 2; // Months
+                                intervalValue = 1;
+                                break;
+                            case "quarterly":
+                                frequencyUnit = 2; // Months
+                                intervalValue = 3;
+                                break;
+                            case "yearly":
+                                frequencyUnit = 3; // Years
+                                intervalValue = 1;
+                                break;
+                        }
+                    }
 
                     // Zbieranie danych
                     const payload = {
@@ -253,6 +301,9 @@
                         ),
                         Notes: String(document.getElementById("InvNotes").value),
                         Status: parseInt(document.getElementById("invStatus").value),
+                        IsRecurring: isRecurring,
+                        FrequencyUnit: frequencyUnit,
+                        IntervalValue: intervalValue
                     };
 
                     // Wysyłka do API
