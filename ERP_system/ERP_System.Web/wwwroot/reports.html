@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Raporty - ERP_System</title>
+    <link rel="stylesheet" href="/css/dashboard.css" />
+    <link rel="stylesheet" href="/css/raports.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="layout">
+      <!-- Mobile Header - visible only on small screens -->
+      <div class="mobile-header">
+        <button id="sidebar-toggle" aria-label="Menu">
+          <i class="fas fa-bars"></i>
+        </button>
+        <span class="mobile-logo">System Mini-ERP</span>
+      </div>
+
+      <!-- Navigation Sidebar -->
+      <aside class="sidebar">
+        <p class="sidebar-title">
+          <i class="fas fa-wallet"></i> Mini-ERP System
+        </p>
+        <span class="user-name" style="display: block"
+          >Zalogowano jako: {username}</span
+        >
+        <br />Menu główne<br />
+        <button
+          class="sidebar-link"
+          onclick="window.location.href = '/dashboard'"
+        >
+          <i class="fas fa-fw fa-tachometer-alt"></i> &nbsp; Pulpit
+        </button>
+        <button
+          class="sidebar-link"
+          onclick="window.location.href = '/invoices'"
+        >
+          <i class="fas fa-file-invoice-dollar"></i> &nbsp; Faktury
+        </button>
+        <button
+          class="sidebar-link"
+          onclick="window.location.href = '/contractors'"
+        >
+          <i class="fas fa-handshake"></i> &nbsp; Kontrahenci
+        </button>
+        <button class="sidebar-link" onclick="window.location.href = '/charts'">
+          <i class="fas fa-exchange-alt"></i> &nbsp; Finanse i Wypłaty
+        </button>
+        <br />Narzędzia<br />
+        <button
+          class="sidebar-link"
+          onclick="window.location.href = '/calendar'"
+        >
+          <i class="fas fa-fw fa-calendar-alt"></i> &nbsp; Kalendarz
+        </button>
+        <button
+          class="sidebar-link"
+          onclick="window.location.href = '/reports'"
+        >
+          <i class="fas fa-chart-pie"></i> &nbsp; Raporty PDF
+        </button>
+        <button
+          class="sidebar-link"
+          onclick="window.location.href = '/company'"
+        >
+          <i class="fas fa-users"></i> &nbsp; Pracownicy
+        </button>
+        {admin_panel_button}
+        
+        <!-- Standard logout form -->
+        <form
+          method="post"
+          action="/logout"
+          style="margin-top: auto; width: 100%"
+        >
+          <button type="submit" class="btn-logout">Wyloguj</button>
+        </form>
+      </aside>
+
+      <!-- Main report generation card -->
+      <main class="container">
+        <section class="card">
+          <h2>Generator Raportów PDF</h2>
+          <p class="card-desc">
+            Wybierz zakres dat i wygeneruj szczegółowy raport PDF dla swojej firmy.
+          </p>
+
+          <form
+            class="report-controls"
+            method="post"
+          >
+            <!-- Report scope selection: Individual or Company-wide -->
+            <div
+              class="form-group"
+              style="margin-bottom: 1rem;"
+            >
+              <label>Zakres raportu:</label>
+              <div
+                style="
+                  display: flex;
+                  gap: 1rem;
+                  align-items: center;
+                  margin-top: 0.5rem;
+                "
+              >
+                <label
+                  style="
+                    font-weight: normal;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    cursor: pointer;
+                  "
+                >
+                  <input
+                    type="radio"
+                    name="reportScope"
+                    value="individual"
+                  />
+                  Tylko ja
+                </label>
+                <label
+                  style="
+                    font-weight: normal;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    cursor: pointer;
+                  "
+                >
+                  <input type="radio" name="reportScope" value="company" checked />
+                  Firma
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="startDate">Od:</label>
+              <input
+                type="date"
+                id="startDate"
+                name="startDate"
+                value="{startDate}"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="endDate">Do / Na dzień:</label>
+              <input
+                type="date"
+                id="endDate"
+                name="endDate"
+                value="{endDate}"
+                required
+              />
+              <br />
+            </div>
+
+            <!-- Two buttons directing to different PDF generation endpoints -->
+            <div class="form-group" style="display: flex; gap: 10px; margin-top: 15px;">
+              <button type="submit" class="btn-generate" formaction="/reports/generate/turnoverReport">
+                Pobierz Raport Zestawienie Obrotów
+              </button>
+              <button type="submit" class="btn-generate" formaction="/reports/generate/agingReport">
+                Pobierz Raport Wiekowania Rozrachunków
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Placeholder slots for additional UI elements or ads -->
+        <div class="ads-row">
+          <div class="ad-placeholder"><span>Miejsce na reklamę</span></div>
+          <div class="ad-placeholder"><span>Miejsce na reklamę</span></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Interactive UI Logic -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const toggleBtn = document.getElementById("sidebar-toggle");
+        const sidebar = document.querySelector(".sidebar");
+
+        if (toggleBtn) {
+          toggleBtn.addEventListener("click", () => {
+            sidebar.classList.toggle("open");
+          });
+        }
+
+        // Close sidebar when clicking outside on mobile devices
+        document.addEventListener("click", (e) => {
+          if (
+            window.innerWidth <= 768 &&
+            sidebar.classList.contains("open") &&
+            !sidebar.contains(e.target) &&
+            !toggleBtn.contains(e.target)
+          ) {
+            sidebar.classList.remove("open");
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

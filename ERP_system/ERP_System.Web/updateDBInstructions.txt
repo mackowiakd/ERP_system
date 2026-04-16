@@ -1,0 +1,9 @@
+W konsoli paczek (Tools -> NuGet Package Manager -> Package Manager Console) wykonujemy polecenia:
+
+- Jak zmieniamy cia�o bazy to najpierw robimy migracj�:
+
+	Add-Migration tutajDodajOpis -Project ERP_System.Core -StartupProject ERP_System.Web
+
+- Jak chcemy zaktualizowa� baz� danych tak dla siebie albo po migracji (najpierw musi si� uda� migracja), to wpisujemy:
+
+	Update-Database -Project ERP_System.Core -StartupProject ERP_System.Web

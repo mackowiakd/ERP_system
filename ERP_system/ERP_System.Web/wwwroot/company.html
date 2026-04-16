@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Moja Firma - ERP_System</title>
+    <link rel="stylesheet" href="/css/dashboard.css" />
+    <link rel="stylesheet" href="/css/raports.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="layout">
+      <!-- Mobile Header -->
+      <div class="mobile-header">
+        <button id="sidebar-toggle" aria-label="Menu">
+          <i class="fas fa-bars"></i>
+        </button>
+        <span class="mobile-logo">System Mini-ERP</span>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <p class="sidebar-title">
+          <i class="fas fa-wallet"></i> Mini-ERP System
+        </p>
+        <span class="user-name" style="display: block">Zalogowano jako: {username}</span>
+        <br />Menu główne<br />
+        <button class="sidebar-link" onclick="window.location.href = '/dashboard'">
+          <i class="fas fa-fw fa-tachometer-alt"></i> &nbsp; Pulpit
+        </button>
+        <button class="sidebar-link" onclick="window.location.href = '/invoices'">
+          <i class="fas fa-file-invoice-dollar"></i> &nbsp; Faktury
+        </button>
+        <button class="sidebar-link" onclick="window.location.href = '/contractors'">
+          <i class="fas fa-handshake"></i> &nbsp; Kontrahenci
+        </button>
+        <button class="sidebar-link" onclick="window.location.href = '/charts'">
+          <i class="fas fa-exchange-alt"></i> &nbsp; Finanse i Wypłaty
+        </button>
+        <br />Narzędzia<br />
+        <button class="sidebar-link" onclick="window.location.href = '/calendar'">
+          <i class="fas fa-fw fa-calendar-alt"></i> &nbsp; Kalendarz
+        </button>
+        <button class="sidebar-link" onclick="window.location.href = '/reports'">
+          <i class="fas fa-chart-pie"></i> &nbsp; Raporty PDF
+        </button>
+        <button class="sidebar-link" onclick="window.location.href = '/company'">
+          <i class="fas fa-users"></i> &nbsp; Moja Firma
+        </button>
+        {admin_panel_button}
+        <form method="post" action="/logout" style="margin-top: auto; width: 100%">
+          <button type="submit" class="btn-logout">Wyloguj</button>
+        </form>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="container">
+        <section class="card" style="text-align: center; max-width: 600px; margin: 2rem auto;">
+          <h2>Twoja Firma</h2>
+          <p class="card-desc">
+            Obecnie nie należysz do żadnej firmy. Wybierz jedną z poniższych opcji, aby rozpocząć pracę w systemie.
+          </p>
+
+          <div style="display: flex; gap: 20px; justify-content: center; margin-top: 30px;">
+            <button class="btn-primary" onclick="window.location.href='/create-company-view'" style="padding: 15px 25px; font-size: 1.1em;">
+                <i class="fas fa-plus-circle"></i> Utwórz nową firmę
+            </button>
+            <button class="btn-primary" onclick="window.location.href='/join-company-view'" style="padding: 15px 25px; font-size: 1.1em; background-color: #4e73df;">
+                <i class="fas fa-sign-in-alt"></i> Dołącz do firmy
+            </button>
+          </div>
+        </section>
+
+        <!-- Ad Placeholders - strictly preserved -->
+        <div class="ads-row" style="margin-top: 2rem; display: flex; gap: 1rem;">
+          <div class="ad-placeholder" style="flex: 1; height: 150px; background: #eaecf4; display: flex; align-items: center; justify-content: center; border-radius: 8px;"><span>Miejsce na reklamę</span></div>
+          <div class="ad-placeholder" style="flex: 1; height: 150px; background: #eaecf4; display: flex; align-items: center; justify-content: center; border-radius: 8px;"><span>Miejsce na reklamę</span></div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const toggleBtn = document.getElementById("sidebar-toggle");
+        const sidebar = document.querySelector(".sidebar");
+
+        if (toggleBtn) {
+          toggleBtn.addEventListener("click", () => {
+            sidebar.classList.toggle("open");
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
