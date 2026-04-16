@@ -58,32 +58,43 @@ namespace ERP_System.Web.appMaps
             });
 
             // POST /reports/generate/turnoverReport - Generates a Turnover PDF.
-            app.MapPost("/reports/generate/turnoverReport", async (HttpContext context, ReportService reportService) =>
+            // POST /reports/generate - Generates a Turnover PDF.
+            app.MapPost("/reports/generate", (HttpContext context, ReportService reportService) =>
             {
-                if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))
+                // 1. Parsowanie userId z ciasteczek
+                if (!context.Request.Cookies.TryGetValue("user_id", out var userIdString) ||
+                    !int.TryParse(userIdString, out int userId))
                 {
                     return Results.Redirect("/");
                 }
 
                 var form = context.Request.Form;
-                // Parse date range from the submitted form
+
+                // 2. Parsowanie dat (Od - Do)
                 if (!DateTime.TryParse(form["startDate"], out DateTime startDate) ||
                     !DateTime.TryParse(form["endDate"], out DateTime endDate))
                 {
-                     return Results.Content("Nieprawidłowy zakres dat.");
+                    return Results.Content("Nieprawidłowa data");
                 }
-                
-                // Adjust end date to capture the full day
+
+                // Przesuwamy datę końcową na 23:59:59 (żeby objąć cały ostatni dzień)
                 endDate = endDate.Date.AddDays(1).AddTicks(-1);
 
+                // 3. Sprawdzenie zakresu (Firmowy vs Indywidualny)
                 var scope = form["reportScope"].ToString();
-                bool includeCompany = scope == "company";
+                bool includeCompany = scope == "company" || scope == "household";
 
-                // Call service to generate the specific turnover report
-                var pdfBytes = reportService.GenerateTurnoverReport(userId, startDate, endDate, includeCompany);
-                var filename = $"Raport_Obrotow_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.pdf";
+                // 4. Pobieranie nowych parametrów filtracji (Nasza nowa baza danych!)
+                string typeFilter = form["transactionTypeFilter"]; // Costs, Revenue, All
+                int? contractorId = int.TryParse(form["contractorId"], out int cId) ? cId : null;
+                decimal? minAmount = decimal.TryParse(form["minAmount"], out decimal minA) ? minA : null;
+                decimal? maxAmount = decimal.TryParse(form["maxAmount"], out decimal maxA) ? maxA : null;
 
-                return Results.File(pdfBytes, "application/pdf", filename);
+                // 5. Wywołanie naszego serwisu z nowymi filtrami
+                var pdfBytes = reportService.GenerateProfitAndLossReport(
+                    userId, startDate, endDate, includeCompany, typeFilter, contractorId, minAmount, maxAmount);
+
+                return Results.File(pdfBytes, "application/pdf", $"Zestawienie_Obrotow_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.pdf");
             });
 
             // POST /reports/generate/agingReport - Generates an Aging PDF.

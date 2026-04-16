@@ -83,100 +83,127 @@
 
       <!-- Main report generation card -->
       <main class="container">
-        <section class="card">
-          <h2>Generator Raportów PDF</h2>
-          <p class="card-desc">
-            Wybierz zakres dat i wygeneruj szczegółowy raport PDF dla swojej firmy.
-          </p>
+          <section class="card">
+              <h2>Generator Raportów PDF</h2>
+              <p class="card-desc">
+                  Wybierz zakres dat, ustaw filtry i wygeneruj szczegółowy raport PDF dla swojej firmy.
+              </p>
+              <form class="report-controls" method="post" id="dynamicReportForm">
 
-          <form
-            class="report-controls"
-            method="post"
-          >
-            <!-- Report scope selection: Individual or Company-wide -->
-            <div
-              class="form-group"
-              style="margin-bottom: 1rem;"
-            >
-              <label>Zakres raportu:</label>
-              <div
-                style="
-                  display: flex;
-                  gap: 1rem;
-                  align-items: center;
-                  margin-top: 0.5rem;
-                "
-              >
-                <label
-                  style="
-                    font-weight: normal;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    cursor: pointer;
-                  "
-                >
-                  <input
-                    type="radio"
-                    name="reportScope"
-                    value="individual"
-                  />
-                  Tylko ja
-                </label>
-                <label
-                  style="
-                    font-weight: normal;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    cursor: pointer;
-                  "
-                >
-                  <input type="radio" name="reportScope" value="company" checked />
-                  Firma
-                </label>
-              </div>
-            </div>
+                  <div class="form-group" style="background-color: #e3e6f0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                      <label style="font-weight: bold; font-size: 1.1em;"><i class="fas fa-file-alt"></i> Wybierz rodzaj raportu:</label>
+                      <select id="reportTypeSelector" style="width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; font-weight: bold;">
+                          <option value="turnover">1. Zestawienie Obrotów (Zyski i Straty)</option>
+                          <option value="aging">2. Wiekowanie Rozrachunków</option>
+                      </select>
+                  </div>
 
-            <div class="form-group">
-              <label for="startDate">Od:</label>
-              <input
-                type="date"
-                id="startDate"
-                name="startDate"
-                value="{startDate}"
-                required
-              />
-            </div>
-            <div class="form-group">
-              <label for="endDate">Do / Na dzień:</label>
-              <input
-                type="date"
-                id="endDate"
-                name="endDate"
-                value="{endDate}"
-                required
-              />
-              <br />
-            </div>
+                  <div class="form-group" style="margin-bottom: 1rem;">
+                      <label>Zakres raportu:</label>
+                      <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                          <label style="cursor: pointer;"><input type="radio" name="reportScope" value="individual" /> Tylko ja</label>
+                          <label style="cursor: pointer;"><input type="radio" name="reportScope" value="company" checked /> Firma</label>
+                      </div>
+                  </div>
 
-            <!-- Two buttons directing to different PDF generation endpoints -->
-            <div class="form-group" style="display: flex; gap: 10px; margin-top: 15px;">
-              <button type="submit" class="btn-generate" formaction="/reports/generate/turnoverReport">
-                Pobierz Raport Zestawienie Obrotów
-              </button>
-              <button type="submit" class="btn-generate" formaction="/reports/generate/agingReport">
-                Pobierz Raport Wiekowania Rozrachunków
-              </button>
-            </div>
+                  <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                      <div class="form-group" style="flex: 1;" id="startDateContainer">
+                          <label for="startDate">Od:</label>
+                          <input type="date" id="startDate" name="startDate" value="{startDate}" required style="width: 100%; padding: 8px;" />
+                      </div>
+                      <div class="form-group" style="flex: 1;">
+                          <label for="endDate" id="endDateLabel">Do:</label>
+                          <input type="date" id="endDate" name="endDate" value="{endDate}" required style="width: 100%; padding: 8px;" />
+                      </div>
+                  </div>
+
+                  <div id="advancedFilters" style="background-color: #f8f9fc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e3e6f0;">
+                      <h4 style="margin-top: 0; margin-bottom: 15px; color: #4e73df;">Zaawansowane Filtry (Dla Zestawienia)</h4>
+
+                      <div class="form-group" style="margin-bottom: 10px;">
+                          <label>Typ operacji:</label>
+                          <select name="transactionTypeFilter" style="width: 100%; padding: 8px;">
+                              <option value="All">Wszystkie operacje (Bilans)</option>
+                              <option value="Costs">Tylko Koszty (Wydatki)</option>
+                              <option value="Revenue">Tylko Przychody</option>
+                          </select>
+                      </div>
+
+                      <div style="display: flex; gap: 1rem; margin-bottom: 10px;">
+                          <div class="form-group" style="flex: 1;">
+                              <label>Kwota od:</label>
+                              <input type="number" name="minAmount" style="width: 100%; padding: 8px;">
+                          </div>
+                          <div class="form-group" style="flex: 1;">
+                              <label>Kwota do:</label>
+                              <input type="number" name="maxAmount" style="width: 100%; padding: 8px;">
+                          </div>
+                      </div>
+
+                      <div class="form-group">
+                          <label>Kontrahent (Opcjonalnie):</label>
+                          <select name="contractorId" id="contractorSelect" style="width: 100%; padding: 8px;">
+                              <option value="">Wszyscy kontrahenci</option>
+                          </select>
+                      </div>
+                  </div>
+
+                  <button type="submit" id="mainSubmitBtn" class="btn-generate" formaction="/reports/generate" style="width: 100%; padding: 12px; background: #4e73df; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                      <i class="fas fa-file-pdf"></i> Pobierz Raport
+                  </button>
+              </form>
+
+              <script>
+                  const selector = document.getElementById('reportTypeSelector');
+                  const advFilters = document.getElementById('advancedFilters');
+                  const startDateContainer = document.getElementById('startDateContainer');
+                  const endDateLabel = document.getElementById('endDateLabel');
+                  const submitBtn = document.getElementById('mainSubmitBtn');
+
+                  selector.addEventListener('change', function () {
+                      if (this.value === 'turnover') {
+                          advFilters.style.display = 'block'; // Pokaż filtry kwot i typów
+                          startDateContainer.style.display = 'block'; // Pokaż datę "Od"
+                          endDateLabel.innerText = "Do:";
+                          submitBtn.formAction = "/reports/generate"; // Endpoint dla Raportu 1
+                          submitBtn.style.background = "#4e73df";
+                      } else {
+                          advFilters.style.display = 'none'; // Ukryj filtry
+                          startDateContainer.style.display = 'none'; // Wiekowanie robi się tylko "na dzień"
+                          endDateLabel.innerText = "Dane na dzień:";
+                          submitBtn.formAction = "/reports/generate/agingReport"; // Endpoint dla Raportu 2
+                          submitBtn.style.background = "#1cc88a";
+                      }
+                  });
+              </script>
+
+          </section>
+
+          <form action="/reports/generate" method="POST">
+              <input type="date" name="startDate" required>
+              <input type="date" name="endDate" required>
+
+              <select name="transactionTypeFilter">
+                  <option value="All">Wszystko</option>
+                  <option value="Costs">Tylko Koszty</option>
+                  <option value="Revenue">Tylko Przychody</option>
+              </select>
+
+              <input type="number" name="minAmount" placeholder="Kwota od...">
+              <input type="number" name="maxAmount" placeholder="Kwota do...">
+
+              <select name="contractorId" id="contractorSelect">
+                  <option value="">Wszyscy kontrahenci</option>
+              </select>
+
+              <button type="submit">Generuj Zestawienie Obrotów</button>
           </form>
-        </section>
 
-        <!-- Placeholder slots for additional UI elements or ads -->
-        <div class="ads-row">
-          <div class="ad-placeholder"><span>Miejsce na reklamę</span></div>
-          <div class="ad-placeholder"><span>Miejsce na reklamę</span></div>
-        </div>
+          <!-- Placeholder slots for additional UI elements or ads -->
+          <div class="ads-row">
+              <div class="ad-placeholder"><span>Miejsce na reklamę</span></div>
+              <div class="ad-placeholder"><span>Miejsce na reklamę</span></div>
+          </div>
       </main>
     </div>
 
