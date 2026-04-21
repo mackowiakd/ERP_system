@@ -121,11 +121,81 @@
                   placeholder="np. FV/2024/01"
                 />
               </div>
+
               <div class="form-group" style="flex: 2">
                 <label>Wybierz Kontrahenta</label>
-                <select id="invContractor" required class="form-input">
-                  <option value="">Wybierz...</option>
-                </select>
+                <div style="display: flex; gap: 10px">
+                  <select
+                    id="invContractor"
+                    required
+                    class="form-input"
+                    style="flex: 1"
+                  >
+                    <option value="">Wybierz...</option>
+                  </select>
+                  <button
+                    type="button"
+                    id="btnShowNewContractor"
+                    class="btn-submit"
+                    style="margin-top: 0; background-color: #17a2b8"
+                  >
+                    <i class="fas fa-plus"></i> Nowy
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div
+              id="newContractorBlock"
+              style="
+                display: none;
+                background-color: #e9ecef;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+                border: 2px dashed #17a2b8;
+              "
+            >
+              <h4 style="margin-top: 0; color: #17a2b8">
+                <i class="fas fa-bolt"></i> Szybkie dodanie kontrahenta
+              </h4>
+              <div class="flex-row">
+                <div class="form-group" style="flex: 2">
+                  <label>Nazwa Firmy</label>
+                  <input
+                    type="text"
+                    id="quickContrName"
+                    class="form-input"
+                    placeholder="np. Januszex Sp. z o.o."
+                  />
+                </div>
+                <div class="form-group" style="flex: 1">
+                  <label>NIP</label>
+                  <input
+                    type="text"
+                    id="quickContrNip"
+                    class="form-input"
+                    placeholder="np. 1234567890"
+                  />
+                </div>
+              </div>
+              <div style="text-align: right; margin-top: 10px">
+                <button
+                  type="button"
+                  id="btnCancelContractor"
+                  class="btn-cancel"
+                  style="padding: 5px 10px"
+                >
+                  Anuluj
+                </button>
+                <button
+                  type="button"
+                  id="btnSaveContractor"
+                  class="btn-submit"
+                  style="margin-top: 0; padding: 5px 10px"
+                >
+                  Zapisz i Wybierz
+                </button>
               </div>
             </div>
 
@@ -150,16 +220,35 @@
               </div>
             </div>
 
-            <div class="flex-row">
+            <div
+              class="flex-row"
+              style="
+                background-color: #f8f9fa;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 15px;
+              "
+            >
               <div class="form-group" style="flex: 1">
                 <label>Kwota Netto (PLN)</label>
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   id="invNet"
                   required
                   class="form-input"
+                  placeholder="0.00"
                 />
+              </div>
+              <div class="form-group" style="flex: 1">
+                <label>Stawka VAT</label>
+                <select id="vatRate" class="form-input">
+                  <option value="23">23% (Podstawowa)</option>
+                  <option value="8">8% (Obniżona)</option>
+                  <option value="5">5% (Obniżona)</option>
+                  <option value="0">0% / ZW</option>
+                </select>
               </div>
               <div class="form-group" style="flex: 1">
                 <label>Kwota Brutto (PLN)</label>
@@ -169,6 +258,12 @@
                   id="invGross"
                   required
                   class="form-input"
+                  readonly
+                  style="
+                    background-color: #e9ecef;
+                    font-weight: bold;
+                    cursor: not-allowed;
+                  "
                 />
               </div>
             </div>
@@ -199,77 +294,235 @@
               </div>
             </div>
             <div class="flex-row">
-                <div class="form-group" style="flex: 1">
-                    <label>Zawartość faktury</label>
-                    <input type="text"
-                           id="InvNotes"
-                           class="form-input"/>
-                </div>
+              <div class="form-group" style="flex: 1">
+                <label>Zawartość faktury</label>
+                <input type="text" id="InvNotes" class="form-input" />
+              </div>
             </div>
-                <button type="submit" class="btn-submit">Zapisz Fakturę</button>
-                <a href="/invoices" class="btn-cancel">Anuluj</a>
-</form>
+
+            <div
+              class="flex-row"
+              style="align-items: center; gap: 10px; margin-bottom: 20px"
+            >
+              <div
+                class="form-group"
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  margin-bottom: 0;
+                "
+              >
+                <input
+                  type="checkbox"
+                  id="invIsRecurring"
+                  style="width: 20px; height: 20px"
+                />
+                <label for="invIsRecurring" style="margin-bottom: 0"
+                  >Faktura cykliczna</label
+                >
+              </div>
+              <div
+                id="recurringOptions"
+                style="display: none; flex: 1; gap: 10px"
+              >
+                <select id="invRecurringType" class="form-input">
+                  <option value="daily">Co dzień</option>
+                  <option value="monthly" selected>Co miesiąc</option>
+                  <option value="quarterly">Co kwartał</option>
+                  <option value="yearly">Co rok</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn-submit">Zapisz Fakturę</button>
+            <a href="/invoices" class="btn-cancel">Anuluj</a>
+          </form>
         </section>
       </main>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            // Ustaw dzisiejszą datę domyślnie
-            document.getElementById("invIssueDate").valueAsDate = new Date();
-            document.getElementById("invDueDate").valueAsDate = new Date();
+      document.addEventListener("DOMContentLoaded", async () => {
+        // Ustaw dzisiejszą datę domyślnie
+        document.getElementById("invIssueDate").valueAsDate = new Date();
+        document.getElementById("invDueDate").valueAsDate = new Date();
 
-            // Pobierz kontrahentów do listy rozwijanej
-            try {
-                const res = await fetch("/api/contractors");
-                const data = await res.json();
-                const select = document.getElementById("invContractor");
-                data.forEach((c) => {
-                    select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-                });
-            } catch (e) {
-                console.log("Błąd ładowania kontrahentów");
+        // Pobierz kontrahentów do listy rozwijanej
+        try {
+          const res = await fetch("/api/contractors");
+          const data = await res.json();
+          const select = document.getElementById("invContractor");
+          data.forEach((c) => {
+            select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+          });
+        } catch (e) {
+          console.log("Błąd ładowania kontrahentów");
+        }
+
+        // Obsługa pokazania opcji cyklicznych
+        const isRecurringCheckbox = document.getElementById("invIsRecurring");
+        const recurringOptions = document.getElementById("recurringOptions");
+        isRecurringCheckbox.addEventListener("change", () => {
+          recurringOptions.style.display = isRecurringCheckbox.checked
+            ? "block"
+            : "none";
+        });
+
+        // Obsługa wysyłania formularza
+        document
+          .getElementById("new-invoice-form")
+          .addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            let frequencyUnit = null;
+            let intervalValue = null;
+            const isRecurring =
+              document.getElementById("invIsRecurring").checked;
+
+            if (isRecurring) {
+              const recurringType =
+                document.getElementById("invRecurringType").value;
+              switch (recurringType) {
+                case "daily":
+                  frequencyUnit = 0; // Days
+                  intervalValue = 1;
+                  break;
+                case "monthly":
+                  frequencyUnit = 2; // Months
+                  intervalValue = 1;
+                  break;
+                case "quarterly":
+                  frequencyUnit = 2; // Months
+                  intervalValue = 3;
+                  break;
+                case "yearly":
+                  frequencyUnit = 3; // Years
+                  intervalValue = 1;
+                  break;
+              }
             }
 
-            // Obsługa wysyłania formularza
-            document
-                .getElementById("new-invoice-form")
-                .addEventListener("submit", async (e) => {
-                    e.preventDefault();
+            // Zbieranie danych
+            const payload = {
+              InvoiceNumber: document.getElementById("invNumber").value,
+              ContractorId: parseInt(
+                document.getElementById("invContractor").value,
+              ),
+              IssueDate: document.getElementById("invIssueDate").value,
+              DueDate: document.getElementById("invDueDate").value,
+              TotalNet: parseFloat(document.getElementById("invNet").value),
+              TotalGross: parseFloat(document.getElementById("invGross").value),
+              Type: parseInt(document.getElementById("invType").value),
+              PaymentMethod: parseInt(
+                document.getElementById("invPayment").value,
+              ),
+              Notes: String(document.getElementById("InvNotes").value),
+              Status: parseInt(document.getElementById("invStatus").value),
+              IsRecurring: isRecurring,
+              FrequencyUnit: frequencyUnit,
+              IntervalValue: intervalValue,
+            };
 
-                    // Zbieranie danych
-                    const payload = {
-                        InvoiceNumber: document.getElementById("invNumber").value,
-                        ContractorId: parseInt(
-                            document.getElementById("invContractor").value,
-                        ),
-                        IssueDate: document.getElementById("invIssueDate").value,
-                        DueDate: document.getElementById("invDueDate").value,
-                        TotalNet: parseFloat(document.getElementById("invNet").value),
-                        TotalGross: parseFloat(document.getElementById("invGross").value),
-                        Type: parseInt(document.getElementById("invType").value),
-                        PaymentMethod: parseInt(
-                            document.getElementById("invPayment").value,
-                        ),
-                        Notes: String(document.getElementById("InvNotes").value),
-                        Status: parseInt(document.getElementById("invStatus").value),
-                    };
+            // Wysyłka do API
+            const res = await fetch("/api/invoices", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
 
-                    // Wysyłka do API
-                    const res = await fetch("/api/invoices", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload),
-                    });
+            const result = await res.json();
+            if (result.success) {
+              window.location.href = "/invoices"; // Po sukcesie przenieś na listę
+            } else {
+              alert("Błąd: " + result.message);
+            }
+          });
+        // 1. Walidacja Dat "w locie"
+        const issueDateEl = document.getElementById("invIssueDate");
+        const dueDateEl = document.getElementById("invDueDate");
 
-                    const result = await res.json();
-                    if (result.success) {
-                        window.location.href = "/invoices"; // Po sukcesie przenieś na listę
-                    } else {
-                        alert("Błąd: " + result.message);
-                    }
-                });
+        issueDateEl.addEventListener("change", () => {
+          dueDateEl.min = issueDateEl.value; // Zablokuj wsteczne daty w kalendarzu
+          if (dueDateEl.value && dueDateEl.value < issueDateEl.value) {
+            dueDateEl.value = issueDateEl.value;
+          }
         });
+
+        // 2. Automatyczne przeliczanie Netto + VAT = Brutto
+        const netEl = document.getElementById("invNet");
+        const vatEl = document.getElementById("vatRate");
+        const grossEl = document.getElementById("invGross");
+
+        function calculateGross() {
+          let net = parseFloat(netEl.value) || 0;
+          let vat = parseFloat(vatEl.value) || 0;
+          let gross = net * (1 + vat / 100);
+          grossEl.value = gross.toFixed(2);
+        }
+
+        netEl.addEventListener("input", calculateGross);
+        vatEl.addEventListener("change", calculateGross);
+
+        // 3. Obsługa Szybkiego Dodawania Kontrahenta
+        const btnShowNew = document.getElementById("btnShowNewContractor");
+        const btnCancel = document.getElementById("btnCancelContractor");
+        const btnSave = document.getElementById("btnSaveContractor");
+        const newContractorBlock =
+          document.getElementById("newContractorBlock");
+        const contractorSelect = document.getElementById("invContractor");
+
+        btnShowNew.addEventListener("click", () => {
+          newContractorBlock.style.display = "block";
+          btnShowNew.style.display = "none";
+        });
+
+        btnCancel.addEventListener("click", () => {
+          newContractorBlock.style.display = "none";
+          btnShowNew.style.display = "block";
+          document.getElementById("quickContrName").value = "";
+          document.getElementById("quickContrNip").value = "";
+        });
+
+        btnSave.addEventListener("click", async () => {
+          const name = document.getElementById("quickContrName").value;
+          const nip = document.getElementById("quickContrNip").value;
+
+          if (!name || !nip) {
+            alert("Wypełnij nazwę i NIP!");
+            return;
+          }
+
+          // Wysłanie zapytania do API żeby utworzyć nowego kontrahenta
+          try {
+            const res = await fetch("/api/contractors", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ Name: name, Nip: nip }),
+            });
+            const result = await res.json();
+
+            if (result.success || result.id) {
+              // Tworzymy nową opcję na liście
+              const newOption = new Option(
+                name,
+                result.id || result.contractorId,
+                true,
+                true,
+              );
+              contractorSelect.add(newOption);
+
+              // Zamykamy formularz i czyścimy pola
+              btnCancel.click();
+              alert("Dodano kontrahenta pomyślnie!");
+            } else {
+              alert("Błąd dodawania: " + result.message);
+            }
+          } catch (e) {
+            console.log("Błąd:", e);
+            alert("Wystąpił błąd podczas dodawania kontrahenta.");
+          }
+        });
+      });
     </script>
   </body>
 </html>

@@ -3,6 +3,7 @@ using System;
 using ERP_System.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ERP_System.Core.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260415110607_AddRecurringInvoices")]
+    partial class AddRecurringInvoices
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.11");
@@ -315,9 +318,9 @@ namespace ERP_System.Core.Migrations
 
             modelBuilder.Entity("ERP_System.Core.DBTables.DBRecurringOperations", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                    b.Property<int>("TransactionPatternId")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("pattern_id");
 
                     b.Property<int>("IntervalType")
                         .HasColumnType("INTEGER")
@@ -338,16 +341,9 @@ namespace ERP_System.Core.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("next_run_date");
 
-                    b.Property<int?>("TransactionPatternId")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("pattern_id");
-
-                    b.HasKey("Id");
+                    b.HasKey("TransactionPatternId");
 
                     b.HasIndex("InvoiceId")
-                        .IsUnique();
-
-                    b.HasIndex("TransactionPatternId")
                         .IsUnique();
 
                     b.ToTable("repetable_transactions");
@@ -519,7 +515,8 @@ namespace ERP_System.Core.Migrations
                     b.HasOne("ERP_System.Core.DBTables.DBFinancialOperations", "Invoice")
                         .WithOne("RecurringOperation")
                         .HasForeignKey("ERP_System.Core.DBTables.DBRecurringOperations", "TransactionPatternId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("BaseInvoice");
 
