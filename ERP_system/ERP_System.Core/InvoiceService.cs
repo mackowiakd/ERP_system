@@ -25,7 +25,6 @@ namespace ERP_System.Core
                       .ToList();
         }
 
-        // 2. DODAWANIE NOWEJ FAKTURY
         public string AddInvoice(int companyId, int contractorId, string invoiceNumber, 
                                  DateTime issueDate, DateTime dueDate, PaymentMethod paymentMethod, 
                                  decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status,
@@ -33,6 +32,18 @@ namespace ERP_System.Core
         {
             try
             {
+                if (totalNet < 0 || totalGross < 0)
+                    return "Błąd: Kwoty netto i brutto nie mogą być ujemne!";
+
+                if (dueDate.Date < issueDate.Date)
+                    return "Błąd: Termin płatności nie może być wcześniejszy niż data wystawienia!";
+
+                if (string.IsNullOrWhiteSpace(invoiceNumber))
+                    return "Błąd: Numer faktury nie może być pusty!";
+
+                if (contractorId <= 0)
+                    return "Błąd: Należy wybrać prawidłowego kontrahenta!";
+                
                 var newInvoice = new DBInvoice
                 {
                     CompanyId = companyId,
