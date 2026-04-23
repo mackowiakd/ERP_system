@@ -179,26 +179,6 @@
 
           </section>
 
-          <form action="/reports/generate" method="POST">
-              <input type="date" name="startDate" required>
-              <input type="date" name="endDate" required>
-
-              <select name="transactionTypeFilter">
-                  <option value="All">Wszystko</option>
-                  <option value="Costs">Tylko Koszty</option>
-                  <option value="Revenue">Tylko Przychody</option>
-              </select>
-
-              <input type="number" name="minAmount" placeholder="Kwota od...">
-              <input type="number" name="maxAmount" placeholder="Kwota do...">
-
-              <select name="contractorId" id="contractorSelect">
-                  <option value="">Wszyscy kontrahenci</option>
-              </select>
-
-              <button type="submit">Generuj Zestawienie Obrotów</button>
-          </form>
-
           <!-- Placeholder slots for additional UI elements or ads -->
           <div class="ads-row">
               <div class="ad-placeholder"><span>Miejsce na reklamę</span></div>
