@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -7,30 +6,27 @@ namespace ERP_System.Core.DBTables
     [Table("contractors")]
     public class DBContractor
     {
-        [Key]
         [Column("contractor_id")]
         public int Id { get; set; }
-
+        
         [Required]
-        [Column("company_id")]
-        public required int CompanyId { get; set; }
-
-        [ForeignKey(nameof(CompanyId))]
-        public DBCompany? Company { get; set; }
-
-        [Required]
-        [MaxLength(200)]
         [Column("contractor_name")]
-        public required string Name { get; set; }
-
-        [Column("contractor_address")]
-        public string? Address { get; set; }
-
+        public string Name { get; set; } = string.Empty;
+        
         [Required]
-        [MaxLength(20)]
         [Column("contractor_tax_id")]
-        public required string TaxId { get; set; }
+        public string TaxId { get; set; } = string.Empty; // NIP
 
-        public ICollection<DBInvoice> Invoices { get; set; } = new List<DBInvoice>();
+        [Column("company_id")]
+        public int CompanyId { get; set; }
+
+        // --- NASZE NOWE POLA (EF dodał je z domyślnymi nazwami, więc nie potrzebują [Column]) ---
+        public string Street { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string ZipCode { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public bool IsDeleted { get; set; } = false;
+
+        public virtual DBCompany? Company { get; set; }
     }
 }

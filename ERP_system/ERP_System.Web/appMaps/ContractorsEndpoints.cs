@@ -1,107 +1,96 @@
 using ERP_System.Core;
+using ERP_System.Core.DBTables;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 
 namespace ERP_System.Web.appMaps
 {
-    public class ContractorsEndpoints : IEndpoint
+    public static class ContractorsEndpoints
     {
-        public record CreateContractorDto(string Name, string TaxId, string Address);
-
-        public void Map(IEndpointRouteBuilder app)
+        public static void MapContractorEndpoints(this IEndpointRouteBuilder app)
         {
-            // 1. ZWRACANIE WIDOKU HTML (Strona)
-            app.MapGet("/contractors", async (HttpContext context, AppDbContext db) =>
+            // WYSWIETLANIE STRONY HTML
+            app.MapGet("/contractors", async context =>
             {
-                var loginUser = context.Request.Cookies["logged_user"];
-                var user = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
-
-                if (user == null)
+                // Sprawdzamy ciasteczko user_id (zgodnie z LoginEndpoint)
+                if (!context.Request.Cookies.ContainsKey("user_id"))
                 {
-                    context.Response.Redirect("/login");
-                    return Results.Empty;
+                    context.Response.Redirect("/");
+                    return;
                 }
 
-                var html = await System.IO.File.ReadAllTextAsync("wwwroot/contractors.html");
-                html = html.Replace("{username}", user.Login);
-                
-                // POPRAWKA: Dodano .ToString() aby poprawnie porównać rolę
-                if (user.Role.ToString() == "Admin") {
-                    html = html.Replace("{admin_panel_button}", "<button class=\"sidebar-link\" onclick=\"window.location.href='/admin'\"><i class=\"fas fa-cog\"></i> &nbsp; Panel Firmy</button>");
-                } else {
-                    html = html.Replace("{admin_panel_button}", "");
-                }
+                context.Response.ContentType = "text/html; charset=utf-8";
+                await context.Response.SendFileAsync("wwwroot/contractors.html");
+            });
+            
+            // POBIERANIE LISTY
+            app.MapGet("/api/contractors", async (HttpContext context, ContractorService service, AppDbContext db) =>
+            {
+                if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))
+                    return Results.Unauthorized();
 
-                return Results.Content(html, "text/html");
+                // Pobieramy użytkownika z bazy, żeby wyciągnąć jego CompanyId (tak jak w Dashboardzie)
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
+                if (user == null || user.CompanyId == null) return Results.Json(new List<DBContractor>());
+
+                var contractors = service.GetCompanyContractors(user.CompanyId.Value);
+                return Results.Json(contractors);
             });
 
-            // 2. POBIERANIE LISTY (API)
-            app.MapGet("/api/contractors", async (HttpContext context, AppDbContext db, ContractorService contractorService) =>
+            // DODAWANIE NOWEGO KONTRAHENTA
+            app.MapPost("/api/contractors", async (HttpContext context, ContractorService service, AppDbContext db) =>
             {
-                var loginUser = context.Request.Cookies["logged_user"];
-                var employee = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
-
-                // POPRAWKA: Zwracamy pustą tablicę zamiast obiektu błędu, żeby frontend się nie wywalał
-                if (employee == null || employee.CompanyId == null) 
-                    return Results.Json(new object[] { });
-
-                // POPRAWKA: Używamy .Value
-                var contractors = contractorService.GetCompanyContractors(employee.CompanyId.Value);
-                
-                var result = contractors.Select(c => new
-                {
-                    id = c.Id,
-                    name = c.Name,
-                    address = c.Address,
-                    taxId = c.TaxId
-                });
-
-                return Results.Json(result);
-            });
-
-            // 3. DODAWANIE KONTRAHENTA (API)
-            app.MapPost("/api/contractors", async (CreateContractorDto dto, HttpContext context, AppDbContext db, ContractorService contractorService) =>
-            {
-                var loginUser = context.Request.Cookies["logged_user"];
-                var employee = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
-
-                // POPRAWKA: Sprawdzamy, czy CompanyId nie jest nullem
-                if (employee == null || employee.CompanyId == null) 
-                    return Results.Json(new { success = false, message = "Brak autoryzacji lub nie przypisano do firmy." });
-
-                if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.TaxId))
-                    return Results.Json(new { success = false, message = "Nazwa i NIP są wymagane" });
-
-                // POPRAWKA: Używamy .Value
-                var result = contractorService.AddContractor(employee.CompanyId.Value, dto.Name, dto.TaxId, dto.Address);
-
-                if (result == "Pomyślnie dodano kontrahenta")
-                {
-                    return Results.Json(new { success = true });
+                ContractorRequest? body;
+                try {
+                    body = await context.Request.ReadFromJsonAsync<ContractorRequest>();
+                } catch {
+                    return Results.BadRequest(new { success = false, message = "Nieprawidłowy format danych." });
                 }
 
-                return Results.Json(new { success = false, message = result });
+                if (body == null) return Results.BadRequest();
+
+                if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))
+                    return Results.Unauthorized();
+
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
+                if (user == null || user.CompanyId == null) return Results.BadRequest(new { message = "Nie należysz do żadnej firmy." });
+
+                try 
+                {
+                    var contractor = service.AddContractor(
+                        user.CompanyId.Value, 
+                        body.Name, 
+                        body.TaxId, 
+                        body.Street, 
+                        body.City, 
+                        body.ZipCode, 
+                        body.Email
+                    );
+
+                    return Results.Ok(new { success = true, id = contractor.Id });
+                }
+                catch (Exception ex)
+                {
+                    return Results.Ok(new { success = false, message = ex.Message });
+                }
             });
 
-            // 4. USUWANIE KONTRAHENTA (API)
-            app.MapDelete("/api/contractors/{id}", async (int id, HttpContext context, AppDbContext db, ContractorService contractorService) =>
+            // USUWANIE
+            app.MapDelete("/api/contractors/{id:int}", async (int id, HttpContext context, ContractorService service, AppDbContext db) =>
             {
-                var loginUser = context.Request.Cookies["logged_user"];
-                var employee = await db.Employees.FirstOrDefaultAsync(u => u.Login == loginUser);
+                if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))
+                    return Results.Unauthorized();
 
-                // POPRAWKA: Sprawdzamy, czy CompanyId nie jest nullem
-                if (employee == null || employee.CompanyId == null) 
-                    return Results.Json(new { success = false, message = "Brak autoryzacji lub nie przypisano do firmy." });
+                var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
+                if (user == null || user.CompanyId == null) return Results.Unauthorized();
 
-                // POPRAWKA: Używamy .Value
-                var result = contractorService.DeleteContractor(id, employee.CompanyId.Value);
-
-                if (result == "Pomyślnie usunięto kontrahenta")
-                {
-                    return Results.Json(new { success = true });
-                }
-
-                return Results.Json(new { success = false, message = result });
+                var result = service.DeleteContractor(id, user.CompanyId.Value);
+                return Results.Ok(new { success = true, message = result });
             });
         }
     }
+
+    public record ContractorRequest(string Name, string TaxId, string Street, string City, string ZipCode, string Email);
 }

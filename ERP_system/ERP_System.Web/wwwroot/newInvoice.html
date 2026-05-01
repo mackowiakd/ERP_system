@@ -137,7 +137,7 @@
                     type="button"
                     id="btnShowNewContractor"
                     class="btn-submit"
-                    style="margin-top: 0; background-color: #17a2b8"
+                    style="margin-top: 0; background-color: #4562c2"
                   >
                     <i class="fas fa-plus"></i> Nowy
                   </button>
@@ -149,24 +149,21 @@
               id="newContractorBlock"
               style="
                 display: none;
-                background-color: #e9ecef;
+                background: #f8f9fa;
                 padding: 15px;
+                border: 1px solid #dee2e6;
                 border-radius: 8px;
-                margin-bottom: 15px;
-                border: 2px dashed #17a2b8;
+                margin-bottom: 20px;
               "
             >
-              <h4 style="margin-top: 0; color: #17a2b8">
-                <i class="fas fa-bolt"></i> Szybkie dodanie kontrahenta
-              </h4>
               <div class="flex-row">
                 <div class="form-group" style="flex: 2">
-                  <label>Nazwa Firmy</label>
+                  <label>Nazwa</label>
                   <input
                     type="text"
                     id="quickContrName"
                     class="form-input"
-                    placeholder="np. Januszex Sp. z o.o."
+                    placeholder="Nazwa firmy..."
                   />
                 </div>
                 <div class="form-group" style="flex: 1">
@@ -175,26 +172,65 @@
                     type="text"
                     id="quickContrNip"
                     class="form-input"
-                    placeholder="np. 1234567890"
+                    placeholder="1234567890"
+                    maxlength="10"
                   />
                 </div>
               </div>
-              <div style="text-align: right; margin-top: 10px">
+              <div class="form-group">
+                <label>E-mail</label>
+                <input
+                  type="email"
+                  id="quickContrEmail"
+                  class="form-input"
+                  placeholder="przyklad@firma.pl"
+                />
+              </div>
+              <div class="form-group">
+                <label>Ulica</label>
+                <input
+                  type="text"
+                  id="quickContrStreet"
+                  class="form-input"
+                  placeholder="ul. Polna 5"
+                />
+              </div>
+              <div class="flex-row">
+                <div class="form-group" style="flex: 1">
+                  <label>Kod</label>
+                  <input
+                    type="text"
+                    id="quickContrZip"
+                    class="form-input"
+                    placeholder="00-000"
+                  />
+                </div>
+                <div class="form-group" style="flex: 2">
+                  <label>Miasto</label>
+                  <input
+                    type="text"
+                    id="quickContrCity"
+                    class="form-input"
+                    placeholder="Kraków"
+                  />
+                </div>
+              </div>
+              <div style="margin-top: 10px; display: flex; gap: 10px">
                 <button
                   type="button"
-                  id="btnCancelContractor"
-                  class="btn-cancel"
-                  style="padding: 5px 10px"
+                  id="btnSaveQuickContractor"
+                  class="btn-primary"
+                  style="flex: 1"
                 >
-                  Anuluj
+                  Zapisz
                 </button>
                 <button
                   type="button"
-                  id="btnSaveContractor"
-                  class="btn-submit"
-                  style="margin-top: 0; padding: 5px 10px"
+                  id="btnCancelQuickContractor"
+                  class="btn-secondary"
+                  style="flex: 1"
                 >
-                  Zapisz i Wybierz
+                  Anuluj
                 </button>
               </div>
             </div>
@@ -335,7 +371,7 @@
               </div>
             </div>
             <button type="submit" class="btn-submit">Zapisz Fakturę</button>
-            <a href="/invoices" class="btn-cancel">Anuluj</a>
+            <button href="/invoices" class="btn-cancel">Anuluj</button>
           </form>
         </section>
       </main>
@@ -343,32 +379,187 @@
 
     <script>
       document.addEventListener("DOMContentLoaded", async () => {
-        // Ustaw dzisiejszą datę domyślnie
+        // 1. Ustaw dzisiejszą datę domyślnie
         document.getElementById("invIssueDate").valueAsDate = new Date();
         document.getElementById("invDueDate").valueAsDate = new Date();
 
-        // Pobierz kontrahentów do listy rozwijanej
+        // 2. Kalkulator VAT
+        const netInput = document.getElementById("invNet");
+        const vatInput = document.getElementById("vatRate");
+        const grossInput = document.getElementById("invGross");
+
+        const calculateGross = () => {
+          let net = parseFloat(netInput.value) || 0;
+          let vat = parseFloat(vatInput.value) || 0;
+          grossInput.value = (net * (1 + vat / 100)).toFixed(2);
+        };
+
+        if (netInput && vatInput) {
+          netInput.addEventListener("input", calculateGross);
+          vatInput.addEventListener("input", calculateGross);
+        }
+
+        // 3. Blokada Dat
+        const issueDate = document.getElementById("invIssueDate");
+        const dueDate = document.getElementById("invDueDate");
+
+        if (issueDate && dueDate) {
+          issueDate.addEventListener("change", () => {
+            dueDate.min = issueDate.value;
+            if (dueDate.value < issueDate.value) {
+              dueDate.value = issueDate.value;
+            }
+          });
+        }
+
+        // 4. Pobierz kontrahentów do listy
         try {
           const res = await fetch("/api/contractors");
           const data = await res.json();
           const select = document.getElementById("invContractor");
+          select.innerHTML = '<option value="">Wybierz kontrahenta...</option>';
           data.forEach((c) => {
-            select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            select.innerHTML += `<option value="${c.id}">${c.name} (NIP: ${c.taxId})</option>`;
           });
         } catch (e) {
-          console.log("Błąd ładowania kontrahentów");
+          console.log("Błąd ładowania kontrahentów", e);
         }
 
-        // Obsługa pokazania opcji cyklicznych
+        // 5. Obsługa pokazania opcji cyklicznych
         const isRecurringCheckbox = document.getElementById("invIsRecurring");
         const recurringOptions = document.getElementById("recurringOptions");
-        isRecurringCheckbox.addEventListener("change", () => {
-          recurringOptions.style.display = isRecurringCheckbox.checked
-            ? "block"
-            : "none";
-        });
+        if (isRecurringCheckbox && recurringOptions) {
+          isRecurringCheckbox.addEventListener("change", () => {
+            recurringOptions.style.display = isRecurringCheckbox.checked
+              ? "block"
+              : "none";
+          });
+        }
 
-        // Obsługa wysyłania formularza
+        // 6. Obsługa Szybkiego Dodawania Kontrahenta (Wersja PANCERNA)
+        const newContractorBlock =
+          document.getElementById("newContractorBlock");
+        const btnShowNew = document.getElementById("btnShowNewContractor");
+
+        if (btnShowNew) {
+          btnShowNew.addEventListener("click", (e) => {
+            e.preventDefault(); // Zatrzymuje ewentualne przeładowanie strony
+            newContractorBlock.style.display = "block";
+            btnShowNew.style.display = "none";
+          });
+        }
+
+        // Łapiemy przycisk anuluj, niezależnie od tego jak się nazywa w Twoim HTML
+        const btnCancelQuick =
+          document.getElementById("btnCancelQuickContractor") ||
+          document.getElementById("btnCancelContractor");
+        if (btnCancelQuick) {
+          btnCancelQuick.addEventListener("click", (e) => {
+            e.preventDefault();
+            newContractorBlock.style.display = "none";
+            if (btnShowNew) btnShowNew.style.display = "block";
+
+            // Bezpieczne czyszczenie pól
+            const clearField = (id) => {
+              if (document.getElementById(id))
+                document.getElementById(id).value = "";
+            };
+            clearField("quickContrName");
+            clearField("quickContrNip");
+            clearField("quickContrEmail");
+            clearField("quickContrStreet");
+            clearField("quickContrZip");
+            clearField("quickContrCity");
+          });
+        }
+
+        // Łapiemy przycisk zapisz (obsługuje stare i nowe nazwy ID)
+        const btnSaveQuick =
+          document.getElementById("btnSaveQuickContractor") ||
+          document.getElementById("btnSaveContractor");
+        if (btnSaveQuick) {
+          btnSaveQuick.addEventListener("click", async (e) => {
+            e.preventDefault(); // KRYTYCZNE: Zatrzymuje formularz przed "odświeżeniem" strony
+
+            // Funkcja pomocnicza: pobiera wartość z pola lub pusty string, jeśli pole nie istnieje
+            const getVal = (id) =>
+              document.getElementById(id)?.value.trim() || "";
+
+            const nip = getVal("quickContrNip");
+            const email = getVal("quickContrEmail");
+            const zip = getVal("quickContrZip");
+            const name = getVal("quickContrName");
+            const street = getVal("quickContrStreet");
+            const city = getVal("quickContrCity");
+
+            // Walidacja
+            if (name === "" || nip === "") {
+              alert(
+                "NOWY BŁĄD: Program nie widzi wpisanej nazwy lub NIPu. Sprawdź konsolę (F12).",
+              );
+              return;
+            }
+
+            if (!/^\d{10}$/.test(nip)) {
+              alert("Błąd: NIP kontrahenta musi mieć 10 cyfr.");
+              return;
+            }
+
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+              alert("Błąd: Niepoprawny format e-mail.");
+              return;
+            }
+
+            if (zip && !/^\d{2}-\d{3}$/.test(zip)) {
+              alert("Błąd: Kod pocztowy musi mieć format 00-000.");
+              return;
+            }
+
+            const payload = {
+              Name: name,
+              TaxId: nip,
+              Email: email,
+              Street: street,
+              ZipCode: zip,
+              City: city,
+            };
+
+            try {
+              const res = await fetch("/api/contractors", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              const r = await res.json();
+
+              if (r.success || r.id) {
+                const contractorSelect =
+                  document.getElementById("invContractor");
+                if (contractorSelect) {
+                  const option = new Option(
+                    `${payload.Name} (NIP: ${payload.TaxId})`,
+                    r.id || r.contractorId,
+                    true,
+                    true,
+                  );
+                  contractorSelect.add(option);
+                }
+
+                if (newContractorBlock)
+                  newContractorBlock.style.display = "none";
+                if (btnShowNew) btnShowNew.style.display = "block";
+                alert("Kontrahent dodany pomyślnie!");
+              } else {
+                alert("Błąd serwera: " + r.message);
+              }
+            } catch (err) {
+              console.error("Szczegóły błędu:", err);
+              alert("Wystąpił błąd krytyczny przy komunikacji z serwerem.");
+            }
+          });
+        }
+
+        // 7. Obsługa wysyłania formularza faktury
         document
           .getElementById("new-invoice-form")
           .addEventListener("submit", async (e) => {
@@ -376,33 +567,35 @@
 
             let frequencyUnit = null;
             let intervalValue = null;
-            const isRecurring =
-              document.getElementById("invIsRecurring").checked;
+            const isRecurringCheckbox =
+              document.getElementById("invIsRecurring");
+            const isRecurring = isRecurringCheckbox
+              ? isRecurringCheckbox.checked
+              : false;
 
             if (isRecurring) {
               const recurringType =
                 document.getElementById("invRecurringType").value;
               switch (recurringType) {
                 case "daily":
-                  frequencyUnit = 0; // Days
+                  frequencyUnit = 0;
                   intervalValue = 1;
                   break;
                 case "monthly":
-                  frequencyUnit = 2; // Months
+                  frequencyUnit = 2;
                   intervalValue = 1;
                   break;
                 case "quarterly":
-                  frequencyUnit = 2; // Months
+                  frequencyUnit = 2;
                   intervalValue = 3;
                   break;
                 case "yearly":
-                  frequencyUnit = 3; // Years
+                  frequencyUnit = 3;
                   intervalValue = 1;
                   break;
               }
             }
 
-            // Zbieranie danych
             const payload = {
               InvoiceNumber: document.getElementById("invNumber").value,
               ContractorId: parseInt(
@@ -416,112 +609,30 @@
               PaymentMethod: parseInt(
                 document.getElementById("invPayment").value,
               ),
-              Notes: String(document.getElementById("InvNotes").value),
+              Notes: document.getElementById("invNotes").value,
               Status: parseInt(document.getElementById("invStatus").value),
               IsRecurring: isRecurring,
               FrequencyUnit: frequencyUnit,
               IntervalValue: intervalValue,
             };
 
-            // Wysyłka do API
-            const res = await fetch("/api/invoices", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            });
+            try {
+              const res = await fetch("/api/invoices", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
 
-            const result = await res.json();
-            if (result.success) {
-              window.location.href = "/invoices"; // Po sukcesie przenieś na listę
-            } else {
-              alert("Błąd: " + result.message);
+              const result = await res.json();
+              if (result.success) {
+                window.location.href = "/invoices";
+              } else {
+                alert("Błąd przy zapisie faktury: " + result.message);
+              }
+            } catch (e) {
+              console.error("Błąd wysyłki", e);
             }
           });
-        // 1. Walidacja Dat "w locie"
-        const issueDateEl = document.getElementById("invIssueDate");
-        const dueDateEl = document.getElementById("invDueDate");
-
-        issueDateEl.addEventListener("change", () => {
-          dueDateEl.min = issueDateEl.value; // Zablokuj wsteczne daty w kalendarzu
-          if (dueDateEl.value && dueDateEl.value < issueDateEl.value) {
-            dueDateEl.value = issueDateEl.value;
-          }
-        });
-
-        // 2. Automatyczne przeliczanie Netto + VAT = Brutto
-        const netEl = document.getElementById("invNet");
-        const vatEl = document.getElementById("vatRate");
-        const grossEl = document.getElementById("invGross");
-
-        function calculateGross() {
-          let net = parseFloat(netEl.value) || 0;
-          let vat = parseFloat(vatEl.value) || 0;
-          let gross = net * (1 + vat / 100);
-          grossEl.value = gross.toFixed(2);
-        }
-
-        netEl.addEventListener("input", calculateGross);
-        vatEl.addEventListener("change", calculateGross);
-
-        // 3. Obsługa Szybkiego Dodawania Kontrahenta
-        const btnShowNew = document.getElementById("btnShowNewContractor");
-        const btnCancel = document.getElementById("btnCancelContractor");
-        const btnSave = document.getElementById("btnSaveContractor");
-        const newContractorBlock =
-          document.getElementById("newContractorBlock");
-        const contractorSelect = document.getElementById("invContractor");
-
-        btnShowNew.addEventListener("click", () => {
-          newContractorBlock.style.display = "block";
-          btnShowNew.style.display = "none";
-        });
-
-        btnCancel.addEventListener("click", () => {
-          newContractorBlock.style.display = "none";
-          btnShowNew.style.display = "block";
-          document.getElementById("quickContrName").value = "";
-          document.getElementById("quickContrNip").value = "";
-        });
-
-        btnSave.addEventListener("click", async () => {
-          const name = document.getElementById("quickContrName").value;
-          const nip = document.getElementById("quickContrNip").value;
-
-          if (!name || !nip) {
-            alert("Wypełnij nazwę i NIP!");
-            return;
-          }
-
-          // Wysłanie zapytania do API żeby utworzyć nowego kontrahenta
-          try {
-            const res = await fetch("/api/contractors", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ Name: name, Nip: nip }),
-            });
-            const result = await res.json();
-
-            if (result.success || result.id) {
-              // Tworzymy nową opcję na liście
-              const newOption = new Option(
-                name,
-                result.id || result.contractorId,
-                true,
-                true,
-              );
-              contractorSelect.add(newOption);
-
-              // Zamykamy formularz i czyścimy pola
-              btnCancel.click();
-              alert("Dodano kontrahenta pomyślnie!");
-            } else {
-              alert("Błąd dodawania: " + result.message);
-            }
-          } catch (e) {
-            console.log("Błąd:", e);
-            alert("Wystąpił błąd podczas dodawania kontrahenta.");
-          }
-        });
       });
     </script>
   </body>

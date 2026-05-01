@@ -114,29 +114,65 @@
 
           <form id="add-contractor-form" class="report-controls">
             <div class="form-group">
-              <label for="contractorName">Nazwa firmy:</label>
+              <label>Nazwa Firmy</label>
               <input
                 type="text"
-                id="contractorName"
-                required
+                id="name"
                 class="form-input"
+                required
+                placeholder="Wpisz nazwę firmy..."
               />
             </div>
             <div class="form-group">
-              <label for="contractorTaxId">NIP:</label>
+              <label>NIP</label>
               <input
                 type="text"
-                id="contractorTaxId"
-                required
+                id="taxId"
                 class="form-input"
+                pattern="\d{10}"
+                maxlength="10"
+                title="NIP musi składać się z 10 cyfr"
+                required
+                placeholder="1234567890"
               />
             </div>
-              <div class="form-group">
-              <label for="contractorAddress">Adres:</label>
+            <div class="form-group">
+              <label>E-mail</label>
+              <input
+                type="email"
+                id="email"
+                class="form-input"
+                required
+                placeholder="przyklad@firma.pl"
+              />
+            </div>
+            <div class="form-group">
+              <label>Ulica i numer</label>
               <input
                 type="text"
-                id="contractorAddress"
+                id="street"
                 class="form-input"
+                placeholder="ul. Prosta 10/2"
+              />
+            </div>
+            <div class="form-group">
+              <label>Kod pocztowy</label>
+              <input
+                type="text"
+                id="zipCode"
+                class="form-input"
+                pattern="\d{2}-\d{3}"
+                placeholder="00-000"
+                title="Kod pocztowy musi być w formacie 00-000"
+              />
+            </div>
+            <div class="form-group">
+              <label>Miasto</label>
+              <input
+                type="text"
+                id="city"
+                class="form-input"
+                placeholder="Warszawa"
               />
             </div>
             <div class="form-group">
@@ -149,13 +185,13 @@
           <h2>Lista Kontrahentów</h2>
           <table class="contractors-table">
             <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nazwa firmy</th>
-                    <th>NIP</th>
-                    <th>Adres</th>
-                    <th style="text-align: right">Akcje</th>
-                </tr>
+              <tr>
+                <th>ID</th>
+                <th>Nazwa firmy</th>
+                <th>NIP</th>
+                <th>Adres</th>
+                <th style="text-align: right">Akcje</th>
+              </tr>
             </thead>
             <tbody id="contractors-list">
               <tr>
@@ -170,87 +206,120 @@
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const toggleBtn = document.getElementById("sidebar-toggle");
-            const sidebar = document.querySelector(".sidebar");
-            if (toggleBtn) {
-                toggleBtn.addEventListener("click", () =>
-                    sidebar.classList.toggle("open"),
-                );
-            }
-
-            loadContractors();
-
-            document
-                .getElementById("add-contractor-form")
-                .addEventListener("submit", async (e) => {
-                    e.preventDefault();
-
-                    const name = document.getElementById("contractorName").value;
-                    const taxId = document.getElementById("contractorTaxId").value;
-                    const address = document.getElementById("contractorAddress").value;
-
-                    const res = await fetch("/api/contractors", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ Name: name, TaxId: taxId, Address: address }),
-                    });
-                    const result = await res.json();
-
-                    if (result.success) {
-                        document.getElementById("add-contractor-form").reset();
-                        loadContractors();
-                    } else {
-                        alert("Błąd: " + result.message);
-                    }
-                });
-        });
-
-        async function loadContractors() {
-            const tbody = document.getElementById("contractors-list");
-            try {
-                const res = await fetch("/api/contractors");
-                const data = await res.json();
-
-                tbody.innerHTML = "";
-
-                if (data.length === 0) {
-                    tbody.innerHTML =
-                        '<tr><td colspan="4" style="text-align:center;">Brak dodanych kontrahentów.</td></tr>';
-                    return;
-                }
-
-                data.forEach((c) => {
-                    tbody.innerHTML += `
-                                <tr>
-                                    <td>${c.id}</td>
-                                    <td>${c.name}</td>
-                                    <td>${c.taxId}</td>
-                                    <td>${c.address}</td>
-                                    <td style="text-align: right;">
-                                        <button onclick="deleteContractor(${c.id})" class="btn-delete"><i class="fas fa-trash"></i> Usuń</button>
-                                    </td>
-                                </tr>
-                            `;
-                });
-            } catch (error) {
-                tbody.innerHTML =
-                    '<tr><td colspan="4" style="text-align:center; color: red;">Błąd połączenia z serwerem.</td></tr>';
-            }
+      document.addEventListener("DOMContentLoaded", () => {
+        const toggleBtn = document.getElementById("sidebar-toggle");
+        const sidebar = document.querySelector(".sidebar");
+        if (toggleBtn) {
+          toggleBtn.addEventListener("click", () =>
+            sidebar.classList.toggle("open"),
+          );
         }
 
-        async function deleteContractor(id) {
-            if (!confirm("Czy na pewno chcesz usunąć tego kontrahenta?")) return;
+        loadContractors();
 
-            const res = await fetch(`/api/contractors/${id}`, { method: "DELETE" });
+        // WALIDACJA I WYSYŁKA - dopiero przy wysyłaniu formularza
+        document
+          .getElementById("add-contractor-form")
+          .addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            // Upewnij się, że ID w Twoim HTML odpowiadają tym tutaj!
+            const name = document.getElementById("name").value.trim();
+            const taxId = document.getElementById("taxId").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const street = document.getElementById("street").value.trim();
+            const zip = document.getElementById("zipCode").value.trim();
+            const city = document.getElementById("city").value.trim();
+
+            // Walidacja NIP
+            if (!/^\d{10}$/.test(taxId)) {
+              alert("Błąd: NIP musi składać się z dokładnie 10 cyfr.");
+              return;
+            }
+
+            // Walidacja Email
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+              alert("Błąd: Niepoprawny format adresu e-mail.");
+              return;
+            }
+
+            // Walidacja Kodu Pocztowego
+            if (zip && !/^\d{2}-\d{3}$/.test(zip)) {
+              alert("Błąd: Kod pocztowy musi mieć format 00-000.");
+              return;
+            }
+
+            const res = await fetch("/api/contractors", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                Name: name,
+                TaxId: taxId,
+                Email: email,
+                Street: street,
+                ZipCode: zip,
+                City: city,
+              }),
+            });
+
             const result = await res.json();
 
-            if (result.success) {
-                loadContractors();
+            if (result.success || result.id) {
+              document.getElementById("add-contractor-form").reset();
+              loadContractors();
+              alert("Kontrahent zapisany!");
             } else {
-                alert("Błąd: " + result.message);
+              alert("Błąd: " + result.message);
             }
+          });
+      });
+
+      async function loadContractors() {
+        const tbody = document.getElementById("contractors-list");
+        try {
+          const res = await fetch("/api/contractors");
+          const data = await res.json();
+
+          tbody.innerHTML = "";
+
+          if (data.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="5" style="text-align:center;">Brak dodanych kontrahentów.</td></tr>';
+            return;
+          }
+
+          data.forEach((c) => {
+            // Wyświetlamy teraz miasto i ulicę w tabeli zamiast starego "address"
+            tbody.innerHTML += `
+            <tr>
+                <td>${c.id}</td>
+                <td>${c.name}</td>
+                <td>${c.taxId}</td>
+                <td>${c.street || ""} ${c.city || ""}</td>
+                <td style="text-align: right;">
+                    <button onclick="deleteContractor(${c.id})" class="btn-delete"><i class="fas fa-trash"></i> Usuń</button>
+                </td>
+            </tr>
+        `;
+          });
+        } catch (error) {
+          tbody.innerHTML =
+            '<tr><td colspan="5" style="text-align:center; color: red;">Błąd połączenia z serwerem.</td></tr>';
         }
+      }
+
+      async function deleteContractor(id) {
+        if (!confirm("Czy na pewno chcesz usunąć tego kontrahenta?")) return;
+
+        const res = await fetch(`/api/contractors/${id}`, { method: "DELETE" });
+        const result = await res.json();
+
+        if (result.success) {
+          loadContractors();
+        } else {
+          alert("Błąd: " + result.message);
+        }
+      }
     </script>
   </body>
 </html>
