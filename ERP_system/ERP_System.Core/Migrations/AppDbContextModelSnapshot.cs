@@ -17,21 +17,6 @@ namespace ERP_System.Core.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.11");
 
-            modelBuilder.Entity("DBContractorDBInvoice", b =>
-                {
-                    b.Property<int>("InvoicesId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("RelatedContractorInvoicesId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("InvoicesId", "RelatedContractorInvoicesId");
-
-                    b.HasIndex("RelatedContractorInvoicesId");
-
-                    b.ToTable("DBContractorDBInvoice");
-                });
-
             modelBuilder.Entity("ERP_System.Core.DBTables.DBCompany", b =>
                 {
                     b.Property<int>("Id")
@@ -90,29 +75,47 @@ namespace ERP_System.Core.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("contractor_id");
 
-                    b.Property<string>("Address")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("contractor_address");
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("CompanyId")
                         .HasColumnType("INTEGER")
                         .HasColumnName("company_id");
 
+                    b.Property<int?>("DBInvoiceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(200)
                         .HasColumnType("TEXT")
                         .HasColumnName("contractor_name");
 
+                    b.Property<string>("Street")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("TaxId")
                         .IsRequired()
-                        .HasMaxLength(20)
                         .HasColumnType("TEXT")
                         .HasColumnName("contractor_tax_id");
+
+                    b.Property<string>("ZipCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId");
+
+                    b.HasIndex("DBInvoiceId");
 
                     b.ToTable("contractors");
                 });
@@ -397,21 +400,6 @@ namespace ERP_System.Core.Migrations
                         });
                 });
 
-            modelBuilder.Entity("DBContractorDBInvoice", b =>
-                {
-                    b.HasOne("ERP_System.Core.DBTables.DBInvoice", null)
-                        .WithMany()
-                        .HasForeignKey("InvoicesId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ERP_System.Core.DBTables.DBContractor", null)
-                        .WithMany()
-                        .HasForeignKey("RelatedContractorInvoicesId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("ERP_System.Core.DBTables.DBCompany", b =>
                 {
                     b.HasOne("ERP_System.Core.DBTables.DBEmployee", "CompanyAdmin")
@@ -430,6 +418,10 @@ namespace ERP_System.Core.Migrations
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("ERP_System.Core.DBTables.DBInvoice", null)
+                        .WithMany("RelatedContractorInvoices")
+                        .HasForeignKey("DBInvoiceId");
 
                     b.Navigation("Company");
                 });
@@ -546,6 +538,8 @@ namespace ERP_System.Core.Migrations
             modelBuilder.Entity("ERP_System.Core.DBTables.DBInvoice", b =>
                 {
                     b.Navigation("RecurringOperation");
+
+                    b.Navigation("RelatedContractorInvoices");
                 });
 #pragma warning restore 612, 618
         }
