@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ERP_System.Core.Migrations
 {
     /// <inheritdoc />
-    public partial class ErpSystemUpdate : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -32,7 +32,9 @@ namespace ERP_System.Core.Migrations
                     company_id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     company_admin_id = table.Column<int>(type: "INTEGER", nullable: false),
-                    company_name = table.Column<string>(type: "TEXT", nullable: false),
+                    company_short_name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    company_full_name = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
+                    company_address = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
                     company_description = table.Column<string>(type: "TEXT", nullable: true),
                     company_join_code = table.Column<string>(type: "TEXT", nullable: false),
                     company_nip = table.Column<string>(type: "TEXT", maxLength: 15, nullable: false)
@@ -40,27 +42,6 @@ namespace ERP_System.Core.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_company", x => x.company_id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "contractors",
-                columns: table => new
-                {
-                    contractor_id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    company_id = table.Column<int>(type: "INTEGER", nullable: false),
-                    contractor_name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    contractor_tax_id = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_contractors", x => x.contractor_id);
-                    table.ForeignKey(
-                        name: "FK_contractors_company_company_id",
-                        column: x => x.company_id,
-                        principalTable: "company",
-                        principalColumn: "company_id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -83,40 +64,6 @@ namespace ERP_System.Core.Migrations
                         column: x => x.employee_company_id,
                         principalTable: "company",
                         principalColumn: "company_id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "invoices",
-                columns: table => new
-                {
-                    invoice_id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    company_id = table.Column<int>(type: "INTEGER", nullable: false),
-                    contractor_id = table.Column<int>(type: "INTEGER", nullable: false),
-                    invoice_number = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
-                    issue_date = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    due_date = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    payment_method = table.Column<int>(type: "INTEGER", nullable: false),
-                    total_net = table.Column<decimal>(type: "TEXT", nullable: false),
-                    total_gross = table.Column<decimal>(type: "TEXT", nullable: false),
-                    invoice_type = table.Column<int>(type: "INTEGER", nullable: false),
-                    invoice_status = table.Column<int>(type: "INTEGER", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_invoices", x => x.invoice_id);
-                    table.ForeignKey(
-                        name: "FK_invoices_company_company_id",
-                        column: x => x.company_id,
-                        principalTable: "company",
-                        principalColumn: "company_id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_invoices_contractors_contractor_id",
-                        column: x => x.contractor_id,
-                        principalTable: "contractors",
-                        principalColumn: "contractor_id",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -147,27 +94,65 @@ namespace ERP_System.Core.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "DBContractorDBInvoice",
+                name: "contractors",
                 columns: table => new
                 {
-                    InvoicesId = table.Column<int>(type: "INTEGER", nullable: false),
-                    RelatedContractorInvoicesId = table.Column<int>(type: "INTEGER", nullable: false)
+                    contractor_id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    contractor_name = table.Column<string>(type: "TEXT", nullable: false),
+                    contractor_tax_id = table.Column<string>(type: "TEXT", nullable: false),
+                    company_id = table.Column<int>(type: "INTEGER", nullable: false),
+                    Street = table.Column<string>(type: "TEXT", nullable: false),
+                    City = table.Column<string>(type: "TEXT", nullable: false),
+                    ZipCode = table.Column<string>(type: "TEXT", nullable: false),
+                    Email = table.Column<string>(type: "TEXT", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "INTEGER", nullable: false),
+                    DBInvoiceId = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_DBContractorDBInvoice", x => new { x.InvoicesId, x.RelatedContractorInvoicesId });
+                    table.PrimaryKey("PK_contractors", x => x.contractor_id);
                     table.ForeignKey(
-                        name: "FK_DBContractorDBInvoice_contractors_RelatedContractorInvoicesId",
-                        column: x => x.RelatedContractorInvoicesId,
+                        name: "FK_contractors_company_company_id",
+                        column: x => x.company_id,
+                        principalTable: "company",
+                        principalColumn: "company_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "invoices",
+                columns: table => new
+                {
+                    invoice_id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    company_id = table.Column<int>(type: "INTEGER", nullable: false),
+                    contractor_id = table.Column<int>(type: "INTEGER", nullable: false),
+                    invoice_number = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    issue_date = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    due_date = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    payment_method = table.Column<int>(type: "INTEGER", nullable: false),
+                    total_net = table.Column<decimal>(type: "TEXT", nullable: false),
+                    total_gross = table.Column<decimal>(type: "TEXT", nullable: false),
+                    invoice_type = table.Column<int>(type: "INTEGER", nullable: false),
+                    Notes = table.Column<string>(type: "TEXT", nullable: true),
+                    invoice_status = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_invoices", x => x.invoice_id);
+                    table.ForeignKey(
+                        name: "FK_invoices_company_company_id",
+                        column: x => x.company_id,
+                        principalTable: "company",
+                        principalColumn: "company_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_invoices_contractors_contractor_id",
+                        column: x => x.contractor_id,
                         principalTable: "contractors",
                         principalColumn: "contractor_id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_DBContractorDBInvoice_invoices_InvoicesId",
-                        column: x => x.InvoicesId,
-                        principalTable: "invoices",
-                        principalColumn: "invoice_id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -219,7 +204,10 @@ namespace ERP_System.Core.Migrations
                 name: "repetable_transactions",
                 columns: table => new
                 {
-                    pattern_id = table.Column<int>(type: "INTEGER", nullable: false),
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    pattern_id = table.Column<int>(type: "INTEGER", nullable: true),
+                    invoice_id = table.Column<int>(type: "INTEGER", nullable: true),
                     interval_value = table.Column<int>(type: "INTEGER", nullable: false),
                     IsActive = table.Column<bool>(type: "INTEGER", nullable: false),
                     next_run_date = table.Column<DateTime>(type: "TEXT", nullable: false),
@@ -227,12 +215,18 @@ namespace ERP_System.Core.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_repetable_transactions", x => x.pattern_id);
+                    table.PrimaryKey("PK_repetable_transactions", x => x.Id);
                     table.ForeignKey(
                         name: "FK_repetable_transactions_FinancialOperations_pattern_id",
                         column: x => x.pattern_id,
                         principalTable: "FinancialOperations",
                         principalColumn: "transaction_id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_repetable_transactions_invoices_invoice_id",
+                        column: x => x.invoice_id,
+                        principalTable: "invoices",
+                        principalColumn: "invoice_id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -259,9 +253,9 @@ namespace ERP_System.Core.Migrations
                 column: "company_id");
 
             migrationBuilder.CreateIndex(
-                name: "IX_DBContractorDBInvoice_RelatedContractorInvoicesId",
-                table: "DBContractorDBInvoice",
-                column: "RelatedContractorInvoicesId");
+                name: "IX_contractors_DBInvoiceId",
+                table: "contractors",
+                column: "DBInvoiceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_employees_employee_company_id",
@@ -305,6 +299,18 @@ namespace ERP_System.Core.Migrations
                 column: "contractor_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_repetable_transactions_invoice_id",
+                table: "repetable_transactions",
+                column: "invoice_id",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_repetable_transactions_pattern_id",
+                table: "repetable_transactions",
+                column: "pattern_id",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_transaction_categories_company_id",
                 table: "transaction_categories",
                 column: "company_id");
@@ -321,6 +327,13 @@ namespace ERP_System.Core.Migrations
                 principalTable: "employees",
                 principalColumn: "employee_id",
                 onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_contractors_invoices_DBInvoiceId",
+                table: "contractors",
+                column: "DBInvoiceId",
+                principalTable: "invoices",
+                principalColumn: "invoice_id");
         }
 
         /// <inheritdoc />
@@ -330,8 +343,17 @@ namespace ERP_System.Core.Migrations
                 name: "FK_company_employees_company_admin_id",
                 table: "company");
 
-            migrationBuilder.DropTable(
-                name: "DBContractorDBInvoice");
+            migrationBuilder.DropForeignKey(
+                name: "FK_contractors_company_company_id",
+                table: "contractors");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_invoices_company_company_id",
+                table: "invoices");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_contractors_invoices_DBInvoiceId",
+                table: "contractors");
 
             migrationBuilder.DropTable(
                 name: "repetable_transactions");
@@ -343,19 +365,19 @@ namespace ERP_System.Core.Migrations
                 name: "FinancialOperations");
 
             migrationBuilder.DropTable(
-                name: "invoices");
-
-            migrationBuilder.DropTable(
                 name: "transaction_categories");
-
-            migrationBuilder.DropTable(
-                name: "contractors");
 
             migrationBuilder.DropTable(
                 name: "employees");
 
             migrationBuilder.DropTable(
                 name: "company");
+
+            migrationBuilder.DropTable(
+                name: "invoices");
+
+            migrationBuilder.DropTable(
+                name: "contractors");
         }
     }
 }
