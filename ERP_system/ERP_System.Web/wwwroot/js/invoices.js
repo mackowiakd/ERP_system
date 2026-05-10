@@ -174,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (data.length === 0) {
                 tbody.innerHTML =
-                    '<tr><td colspan="8" style="text-align:center;">Brak wystawionych faktur.</td></tr>';
+                    '<tr><td colspan="9" style="text-align:center;">Brak wystawionych faktur.</td></tr>';
                 return;
             }
 
@@ -189,6 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <tr>
                         <td><strong>${inv.invoiceNumber}</strong></td>
                         <td>${inv.contractorName}</td>
+                        <td><span class="category-badge" style="background: #e9ecef; padding: 2px 8px; border-radius: 12px; font-size: 0.85em;">${inv.categoryName}</span></td>
                         <td>${inv.issueDate}</td>
                         <td>${inv.dueDate}</td>
                         <td>${inv.totalGross.toFixed(2)} PLN</td>
@@ -203,7 +204,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         } catch (error) {
             tbody.innerHTML =
-                '<tr><td colspan="8" style="text-align:center; color: red;">Błąd połączenia z serwerem.</td></tr>';
+                '<tr><td colspan="9" style="text-align:center; color: red;">Błąd połączenia z serwerem.</td></tr>';
         }
     };
 

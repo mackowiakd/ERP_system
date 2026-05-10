@@ -20,6 +20,7 @@ namespace ERP_System.Core
         {
             return _db.Invoices
                       .Include(i => i.Contractor) // Dociągamy dane kontrahenta (żeby mieć jego nazwę)
+                      .Include(i => i.Category)   // Dociągamy dane kategorii
                       .Where(i => i.CompanyId == companyId)
                       .OrderByDescending(i => i.IssueDate) // Sortujemy od najnowszych
                       .ToList();
@@ -28,6 +29,7 @@ namespace ERP_System.Core
         public string AddInvoice(int companyId, int contractorId, string invoiceNumber, 
                                  DateTime issueDate, DateTime dueDate, PaymentMethod paymentMethod, 
                                  decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status,
+                                 int? categoryId = null,
                                  bool isRecurring = false, int? frequencyUnit = null, int? intervalValue = null)
         {
             try
@@ -56,7 +58,8 @@ namespace ERP_System.Core
                     TotalGross = totalGross,
                     Type = type,
                     Notes = notes,
-                    Status = status
+                    Status = status,
+                    CategoryId = categoryId
                 };
 
                 _db.Invoices.Add(newInvoice);
@@ -170,7 +173,8 @@ namespace ERP_System.Core
         // 5. EDYTOWANIE ISTNIEJĄCEJ FAKTURY
         public string EditInvoice(int invoiceId, string invoiceNumber,
                                   DateTime issueDate,
-                                  decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status)
+                                  decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status,
+                                  int? categoryId = null)
         {
             var invoice = _db.Invoices.FirstOrDefault(i => i.Id == invoiceId);
             if (invoice == null)
@@ -186,6 +190,7 @@ namespace ERP_System.Core
                 invoice.Type = type;
                 invoice.Notes = notes;
                 invoice.Status = status;
+                invoice.CategoryId = categoryId;
                 _db.SaveChanges();
                 return "Pomyślnie zaktualizowano fakturę";
             }
