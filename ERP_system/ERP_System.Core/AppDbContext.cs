@@ -49,6 +49,12 @@ namespace ERP_System.Core
                 .HasForeignKey(i => i.ContractorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<DBInvoice>()
+                .HasOne(i => i.Category)
+                .WithMany()
+                .HasForeignKey(i => i.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             modelBuilder.Entity<DBRole>().HasData(
                 Enum.GetValues(typeof(SystemRole))
                     .Cast<SystemRole>()

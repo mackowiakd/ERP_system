@@ -146,6 +146,8 @@
                 class="form-input"
                 required
                 placeholder="przyklad@firma.pl"
+                pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
+                title="Wpisz poprawny adres e-mail (np. nazwa@domena.pl)"
               />
             </div>
             <div class="form-group">
@@ -163,6 +165,7 @@
                 type="text"
                 id="zipCode"
                 class="form-input"
+                inputmode="numeric"
                 pattern="\d{2}-\d{3}"
                 placeholder="00-000"
                 title="Kod pocztowy musi być w formacie 00-000"
@@ -219,6 +222,15 @@
         }
 
         loadContractors();
+
+        const zipInput = document.getElementById("zipCode");
+        zipInput.addEventListener("input", (e) => {
+          let val = e.target.value.replace(/\D/g, ""); // Tylko cyfry
+          if (val.length > 2) {
+            val = val.substring(0, 2) + "-" + val.substring(2, 5);
+          }
+          e.target.value = val;
+        });
 
         // WALIDACJA I WYSYŁKA - dopiero przy wysyłaniu formularza
         document

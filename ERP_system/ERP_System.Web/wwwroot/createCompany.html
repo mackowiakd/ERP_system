@@ -75,7 +75,13 @@
             </div>
             <div class="form-group">
               <label for="nip">NIP:</label>
-              <input type="text" id="nip" name="nip" required class="form-input" placeholder="np. 1234567890">
+              <input type="text" id="nip" name="nip" required 
+              pattern="\d{10}"
+              maxlength="10"
+              title="NIP musi składać się z 10 cyfr"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+              class="form-input" 
+              placeholder="np. 1234567890">
             </div>
             <div class="form-group">
               <label for="address">Adres:</label>

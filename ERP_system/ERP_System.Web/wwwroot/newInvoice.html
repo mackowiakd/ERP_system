@@ -133,20 +133,23 @@
                   >
                     <option value="">Wybierz...</option>
                   </select>
-                  <button
-                    type="button"
-                    id="btnShowNewContractor"
-                    class="btn-submit"
-                    style="margin-top: 0; background-color: #4562c2"
-                  >
-                    <i class="fas fa-plus"></i> Nowy
-                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex-row">
+              <div class="form-group" style="flex: 1">
+                <label>Kategoria Księgowa</label>
+                <div style="display: flex; gap: 10px">
+                  <select id="invCategory" class="form-input" style="flex: 1">
+                    <option value="">Wybierz...</option>
+                  </select>
                 </div>
               </div>
             </div>
 
             <div
-              id="newContractorBlock"
+              id="newCategoryBlock"
               style="
                 display: none;
                 background: #f8f9fa;
@@ -156,69 +159,28 @@
                 margin-bottom: 20px;
               "
             >
-              <div class="flex-row">
-                <div class="form-group" style="flex: 2">
-                  <label>Nazwa</label>
-                  <input
-                    type="text"
-                    id="quickContrName"
-                    class="form-input"
-                    placeholder="Nazwa firmy..."
-                  />
-                </div>
-                <div class="form-group" style="flex: 1">
-                  <label>NIP</label>
-                  <input
-                    type="text"
-                    id="quickContrNip"
-                    class="form-input"
-                    placeholder="1234567890"
-                    maxlength="10"
-                  />
-                </div>
-              </div>
               <div class="form-group">
-                <label>E-mail</label>
-                <input
-                  type="email"
-                  id="quickContrEmail"
-                  class="form-input"
-                  placeholder="przyklad@firma.pl"
-                />
-              </div>
-              <div class="form-group">
-                <label>Ulica</label>
+                <label>Nazwa Kategorii</label>
                 <input
                   type="text"
-                  id="quickContrStreet"
+                  id="quickCatName"
                   class="form-input"
-                  placeholder="ul. Polna 5"
+                  placeholder="np. Zakupy biurowe"
                 />
               </div>
-              <div class="flex-row">
-                <div class="form-group" style="flex: 1">
-                  <label>Kod</label>
-                  <input
-                    type="text"
-                    id="quickContrZip"
-                    class="form-input"
-                    placeholder="00-000"
-                  />
-                </div>
-                <div class="form-group" style="flex: 2">
-                  <label>Miasto</label>
-                  <input
-                    type="text"
-                    id="quickContrCity"
-                    class="form-input"
-                    placeholder="Kraków"
-                  />
-                </div>
+              <div class="form-group">
+                <label>Opis (opcjonalnie)</label>
+                <input
+                  type="text"
+                  id="quickCatDesc"
+                  class="form-input"
+                  placeholder="Krótki opis..."
+                />
               </div>
               <div style="margin-top: 10px; display: flex; gap: 10px">
                 <button
                   type="button"
-                  id="btnSaveQuickContractor"
+                  id="btnSaveQuickCategory"
                   class="btn-primary"
                   style="flex: 1"
                 >
@@ -226,7 +188,7 @@
                 </button>
                 <button
                   type="button"
-                  id="btnCancelQuickContractor"
+                  id="btnCancelQuickCategory"
                   class="btn-secondary"
                   style="flex: 1"
                 >
@@ -421,140 +383,96 @@
           data.forEach((c) => {
             select.innerHTML += `<option value="${c.id}">${c.name} (NIP: ${c.taxId})</option>`;
           });
+          // Dodaj opcję przekierowania na końcu
+          select.innerHTML +=
+            '<option value="REDIRECT_CONTRACTORS" style="font-weight: bold; color: #4562c2;">+ Dodaj/Zarządzaj kontrahentami...</option>';
         } catch (e) {
           console.log("Błąd ładowania kontrahentów", e);
         }
 
-        // 5. Obsługa pokazania opcji cyklicznych
-        const isRecurringCheckbox = document.getElementById("invIsRecurring");
-        const recurringOptions = document.getElementById("recurringOptions");
-        if (isRecurringCheckbox && recurringOptions) {
-          isRecurringCheckbox.addEventListener("change", () => {
-            recurringOptions.style.display = isRecurringCheckbox.checked
-              ? "block"
-              : "none";
-          });
+        // Pobierz kategorie
+        async function loadCategories() {
+          try {
+            const res = await fetch("/categories/data");
+            const data = await res.json();
+            const select = document.getElementById("invCategory");
+            select.innerHTML = '<option value="">Wybierz kategorię...</option>';
+            data.forEach((cat) => {
+              select.innerHTML += `<option value="${cat.id}">${cat.name}</option>`;
+            });
+            // Opcja dodania nowej kategorii w locie
+            select.innerHTML +=
+              '<option value="ADD_NEW_CATEGORY" style="font-weight: bold; color: #4562c2;">+ Dodaj nową kategorię...</option>';
+          } catch (e) {
+            console.log("Błąd ładowania kategorii", e);
+          }
         }
+        loadCategories();
 
-        // 6. Obsługa Szybkiego Dodawania Kontrahenta (Wersja PANCERNA)
-        const newContractorBlock =
-          document.getElementById("newContractorBlock");
-        const btnShowNew = document.getElementById("btnShowNewContractor");
-
-        if (btnShowNew) {
-          btnShowNew.addEventListener("click", (e) => {
-            e.preventDefault(); // Zatrzymuje ewentualne przeładowanie strony
-            newContractorBlock.style.display = "block";
-            btnShowNew.style.display = "none";
+        // Obsługa przekierowania z listy kontrahentów
+        document
+          .getElementById("invContractor")
+          .addEventListener("change", (e) => {
+            if (e.target.value === "REDIRECT_CONTRACTORS") {
+              window.location.href = "/contractors";
+            }
           });
-        }
 
-        // Łapiemy przycisk anuluj, niezależnie od tego jak się nazywa w Twoim HTML
-        const btnCancelQuick =
-          document.getElementById("btnCancelQuickContractor") ||
-          document.getElementById("btnCancelContractor");
-        if (btnCancelQuick) {
-          btnCancelQuick.addEventListener("click", (e) => {
+        // Obsługa wyboru z listy kategorii
+        const newCategoryBlock = document.getElementById("newCategoryBlock");
+        document
+          .getElementById("invCategory")
+          .addEventListener("change", (e) => {
+            if (e.target.value === "ADD_NEW_CATEGORY") {
+              newCategoryBlock.style.display = "block";
+              // Resetujemy wybór, aby użytkownik mógł ponownie wybrać tę samą opcję później jeśli anuluje
+              e.target.value = "";
+            } else {
+              newCategoryBlock.style.display = "none";
+            }
+          });
+
+        const btnCancelQuickCat = document.getElementById(
+          "btnCancelQuickCategory",
+        );
+        if (btnCancelQuickCat) {
+          btnCancelQuickCat.addEventListener("click", (e) => {
             e.preventDefault();
-            newContractorBlock.style.display = "none";
-            if (btnShowNew) btnShowNew.style.display = "block";
-
-            // Bezpieczne czyszczenie pól
-            const clearField = (id) => {
-              if (document.getElementById(id))
-                document.getElementById(id).value = "";
-            };
-            clearField("quickContrName");
-            clearField("quickContrNip");
-            clearField("quickContrEmail");
-            clearField("quickContrStreet");
-            clearField("quickContrZip");
-            clearField("quickContrCity");
+            newCategoryBlock.style.display = "none";
+            document.getElementById("quickCatName").value = "";
+            document.getElementById("quickCatDesc").value = "";
           });
         }
 
-        // Łapiemy przycisk zapisz (obsługuje stare i nowe nazwy ID)
-        const btnSaveQuick =
-          document.getElementById("btnSaveQuickContractor") ||
-          document.getElementById("btnSaveContractor");
-        if (btnSaveQuick) {
-          btnSaveQuick.addEventListener("click", async (e) => {
-            e.preventDefault(); // KRYTYCZNE: Zatrzymuje formularz przed "odświeżeniem" strony
+        const btnSaveQuickCat = document.getElementById("btnSaveQuickCategory");
+        if (btnSaveQuickCat) {
+          btnSaveQuickCat.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const name = document.getElementById("quickCatName").value.trim();
+            const desc = document.getElementById("quickCatDesc").value.trim();
 
-            // Funkcja pomocnicza: pobiera wartość z pola lub pusty string, jeśli pole nie istnieje
-            const getVal = (id) =>
-              document.getElementById(id)?.value.trim() || "";
-
-            const nip = getVal("quickContrNip");
-            const email = getVal("quickContrEmail");
-            const zip = getVal("quickContrZip");
-            const name = getVal("quickContrName");
-            const street = getVal("quickContrStreet");
-            const city = getVal("quickContrCity");
-
-            // Walidacja
-            if (name === "" || nip === "") {
-              alert(
-                "NOWY BŁĄD: Program nie widzi wpisanej nazwy lub NIPu. Sprawdź konsolę (F12).",
-              );
+            if (!name) {
+              alert("Nazwa kategorii jest wymagana.");
               return;
             }
-
-            if (!/^\d{10}$/.test(nip)) {
-              alert("Błąd: NIP kontrahenta musi mieć 10 cyfr.");
-              return;
-            }
-
-            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-              alert("Błąd: Niepoprawny format e-mail.");
-              return;
-            }
-
-            if (zip && !/^\d{2}-\d{3}$/.test(zip)) {
-              alert("Błąd: Kod pocztowy musi mieć format 00-000.");
-              return;
-            }
-
-            const payload = {
-              Name: name,
-              TaxId: nip,
-              Email: email,
-              Street: street,
-              ZipCode: zip,
-              City: city,
-            };
 
             try {
-              const res = await fetch("/api/contractors", {
+              const res = await fetch("/categories/add", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                body: JSON.stringify({ Name: name, Description: desc }),
               });
               const r = await res.json();
 
-              if (r.success || r.id) {
-                const contractorSelect =
-                  document.getElementById("invContractor");
-                if (contractorSelect) {
-                  const option = new Option(
-                    `${payload.Name} (NIP: ${payload.TaxId})`,
-                    r.id || r.contractorId,
-                    true,
-                    true,
-                  );
-                  contractorSelect.add(option);
-                }
-
-                if (newContractorBlock)
-                  newContractorBlock.style.display = "none";
-                if (btnShowNew) btnShowNew.style.display = "block";
-                alert("Kontrahent dodany pomyślnie!");
+              if (r.success) {
+                await loadCategories(); // Przeładuj listę
+                newCategoryBlock.style.display = "none";
+                alert("Kategoria dodana!");
               } else {
-                alert("Błąd serwera: " + r.message);
+                alert("Błąd: " + r.message);
               }
             } catch (err) {
-              console.error("Szczegóły błędu:", err);
-              alert("Wystąpił błąd krytyczny przy komunikacji z serwerem.");
+              alert("Błąd komunikacji z serwerem.");
             }
           });
         }
@@ -601,6 +519,9 @@
               ContractorId: parseInt(
                 document.getElementById("invContractor").value,
               ),
+              CategoryId: document.getElementById("invCategory").value
+                ? parseInt(document.getElementById("invCategory").value)
+                : null,
               IssueDate: document.getElementById("invIssueDate").value,
               DueDate: document.getElementById("invDueDate").value,
               TotalNet: parseFloat(document.getElementById("invNet").value),

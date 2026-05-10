@@ -80,7 +80,7 @@ namespace ERP_System.Web.appMaps
                 if (string.IsNullOrWhiteSpace(dto.Name))
                     return Results.Json(new { success = false, message = "Nazwa wymagana" });
 
-                var result = catService.addCategory(user.Id, dto.Name, dto.Description);
+                var result = catService.addCategory(user.CompanyId, dto.Name, dto.Description);
 
                 if (result == "Poprawnie dodano kategorię")
                 {
@@ -98,7 +98,7 @@ namespace ERP_System.Web.appMaps
                 if (user == null)
                     return Results.Json(new { success = false, message = "Użytkownik nieznaleziony" });
 
-                var result = catService.deleteCategory(user.Id, id);
+                var result = catService.deleteCategory(user.CompanyId, id);
                 if (result == "Pomyślnie usunięto kategorię")
                 {
                     return Results.Json(new { success = true });
@@ -114,7 +114,7 @@ namespace ERP_System.Web.appMaps
                 if (user == null)
                     return Results.Json(new { success = false, message = "Użytkownik nieznaleziony" });
 
-                var result = catService.modifyCategory(user.Id, id, dto.Name, dto.Description ?? "");
+                var result = catService.modifyCategory(user.CompanyId, id, dto.Name, dto.Description ?? "");
                 if (result == "Pomyślnie zedytowano kategorię")
                 {
                     return Results.Json(new { success = true });

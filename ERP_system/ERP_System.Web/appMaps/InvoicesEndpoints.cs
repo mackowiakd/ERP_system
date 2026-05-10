@@ -18,6 +18,7 @@ namespace ERP_System.Web.appMaps
             InvoiceType Type, 
             string Notes,
             InvoiceStatus Status,
+            int? CategoryId = null,
             bool IsRecurring = false,
             int? FrequencyUnit = null,
             int? IntervalValue = null
@@ -29,7 +30,8 @@ namespace ERP_System.Web.appMaps
             decimal TotalGross, 
             InvoiceType Type, 
             string Notes, 
-            InvoiceStatus Status
+            InvoiceStatus Status,
+            int? CategoryId = null
         );
 
         public void Map(IEndpointRouteBuilder app)
@@ -70,6 +72,7 @@ namespace ERP_System.Web.appMaps
                     id = i.Id,
                     invoiceNumber = i.InvoiceNumber,
                     contractorName = i.Contractor?.Name ?? "Nieznany Kontrahent",
+                    categoryName = i.Category?.Name ?? "Brak",
                     issueDate = i.IssueDate.ToString("yyyy-MM-dd"),
                     dueDate = i.DueDate.ToString("yyyy-MM-dd"),
                     totalGross = i.TotalGross,
@@ -100,6 +103,7 @@ namespace ERP_System.Web.appMaps
             {
                 var invoice = await db.Invoices
                     .Include(i => i.Contractor)
+                    .Include(i => i.Category)
                     .FirstOrDefaultAsync(i => i.Id == id);
 
                 if (invoice == null) return Results.NotFound();
@@ -109,6 +113,8 @@ namespace ERP_System.Web.appMaps
                     id = invoice.Id,
                     invoiceNumber = invoice.InvoiceNumber,
                     contractorName = invoice.Contractor?.Name ?? "Nieznany Kontrahent",
+                    categoryName = invoice.Category?.Name ?? "Brak",
+                    categoryId = invoice.CategoryId,
                     issueDate = invoice.IssueDate.ToString("yyyy-MM-dd"),
                     dueDate = invoice.DueDate.ToString("yyyy-MM-dd"),
                     totalGross = invoice.TotalGross,
@@ -134,6 +140,7 @@ namespace ERP_System.Web.appMaps
                     employee.CompanyId.Value, dto.ContractorId, dto.InvoiceNumber, 
                     dto.IssueDate, dto.DueDate, dto.PaymentMethod, 
                     dto.TotalNet, dto.TotalGross, dto.Type, dto.Notes, dto.Status,
+                    dto.CategoryId,
                     dto.IsRecurring, dto.FrequencyUnit, dto.IntervalValue
                 );
 
@@ -173,7 +180,7 @@ namespace ERP_System.Web.appMaps
                     return Results.Json(new { success = false, message = "Brak autoryzacji lub nie przypisano do firmy." });
                 if (string.IsNullOrWhiteSpace(dto.InvoiceNumber))
                     return Results.Json(new { success = false, message = "Numer faktury jest wymagany" });
-                var result = invoiceService.EditInvoice(id, dto.InvoiceNumber, dto.IssueDate, dto.TotalNet, dto.TotalGross, dto.Type, dto.Notes, dto.Status);
+                var result = invoiceService.EditInvoice(id, dto.InvoiceNumber, dto.IssueDate, dto.TotalNet, dto.TotalGross, dto.Type, dto.Notes, dto.Status, dto.CategoryId);
                 if (result == "Pomyślnie edytowano fakturę")
                 {
                     return Results.Json(new { success = true });
