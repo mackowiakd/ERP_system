@@ -15,12 +15,10 @@ namespace ERP_System.Web.appMaps
             app.MapGet("/charts", async (HttpContext context, IWebHostEnvironment env, AppDbContext db) =>
             {
                 
-                // Ścieżka do pliku HTML
                 var filePath = Path.Combine(env.WebRootPath, "charts.html");
                 var html = await File.ReadAllTextAsync(filePath);
 
                 // Basic layout similar to dashboard
-                // We'll use a simple form to pick dates, defaulting to current month
                 var now = DateTime.Now;
                 var startDate = new DateTime(now.Year, now.Month, 1).ToString("yyyy-MM-dd");
                 var endDate = now.ToString("yyyy-MM-dd");

@@ -68,7 +68,6 @@ namespace ERP_System.Core
                 if (isRecurring && frequencyUnit.HasValue && intervalValue.HasValue)
                 {
                     var nextRunDate = issueDate;
-                    // Obliczamy pierwszą przyszłą datę
                     nextRunDate = CalculateNextDate(nextRunDate, intervalValue.Value, (ERP_System.Core.Enums.TransactionIntervalType)frequencyUnit.Value);
 
                     var recurringOp = new DBRecurringOperations
@@ -103,10 +102,9 @@ namespace ERP_System.Core
             };
         }
 
-        // 3. USUWANIE FAKTURY
         public string DeleteInvoice(int invoiceId, int companyId)
         {
-            // Szukamy faktury, upewniając się, że należy do naszej firmy
+            // search for invoice, making sure user is a member of a company
             var invoice = _db.Invoices.FirstOrDefault(i => i.Id == invoiceId && i.CompanyId == companyId);
 
             if (invoice == null)
@@ -126,7 +124,7 @@ namespace ERP_System.Core
             }
         }
 
-        // 4. GENEROWANIE HTML DLA PULPITU (Dashboard)
+        // generation of html for dashboard
         public System.Text.StringBuilder ListInvoicesForDashboard(int companyId, int count = 8)
         {
             var invoices = _db.Invoices
@@ -142,7 +140,7 @@ namespace ERP_System.Core
             {
                 string date = inv.IssueDate.ToString("dd.MM.yyyy");
                 string amount = inv.TotalGross.ToString("C2", new System.Globalization.CultureInfo("pl-PL"));
-                // Dla faktur kosztowych (zakupowych) dajemy czerwony kolor, dla sprzedażowych zielony
+                // red for cost, green for sales
                 string colorClass = inv.Type == InvoiceType.Cost ? "amount-expense" : "amount-income";
                 string contractor = inv.Contractor?.Name ?? "Nieznany";
                 
@@ -170,7 +168,7 @@ namespace ERP_System.Core
             return sb;
         }
 
-        // 5. EDYTOWANIE ISTNIEJĄCEJ FAKTURY
+        // edit invoice
         public string EditInvoice(int invoiceId, string invoiceNumber,
                                   DateTime issueDate,
                                   decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status,

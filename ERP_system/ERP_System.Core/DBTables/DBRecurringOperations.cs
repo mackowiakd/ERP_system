@@ -26,7 +26,7 @@ namespace ERP_System.Core.DBTables
         public DateTime NextRunDate { get; set; }
 
         [Column("IntervalType")] 
-        public int IntervalType { get; set; } // np. 0=Dni, 1=Tygodnie, 2=Miesiące, 3=Lata
+        public int IntervalType { get; set; } 
 
         [ForeignKey(nameof(TransactionPatternId))]
         public virtual DBFinancialOperations? Invoice { get; set; }

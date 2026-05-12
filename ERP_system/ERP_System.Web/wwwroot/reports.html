@@ -98,14 +98,6 @@
                       </select>
                   </div>
 
-                  <!-- <div class="form-group" style="margin-bottom: 1rem;">
-                      <label>Zakres raportu:</label>
-                      <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
-                          <label style="cursor: pointer;"><input type="radio" name="reportScope" value="individual" /> Tylko ja</label>
-                          <label style="cursor: pointer;"><input type="radio" name="reportScope" value="company" checked /> Firma</label>
-                      </div>
-                  </div> -->
-
                   <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
                       <div class="form-group" style="flex: 1;" id="startDateContainer">
                           <label for="startDate">Od:</label>
@@ -122,14 +114,14 @@
 
                       <div class="form-group" style="margin-bottom: 10px;">
                           <label>Typ operacji:</label>
-                          <select name="typeFilter" style="width: 100%; padding: 8px;">
+                          <select name="transactionTypeFilter" style="width: 100%; padding: 8px;">
                               <option value="All">Wszystkie operacje (Bilans)</option>
                               <option value="Costs">Tylko Koszty (Wydatki)</option>
                               <option value="Revenue">Tylko Przychody</option>
                           </select>
                       </div>
 
-                      <div style="display: flex; gap: 1rem; margin-bottom: 10px;">
+                      <div id="amountFilters" style="display: flex; gap: 1rem; margin-bottom: 10px;">
                           <div class="form-group" style="flex: 1;">
                               <label>Kwota od:</label>
                               <input type="number" name="minAmount" style="width: 100%; padding: 8px;">
@@ -156,22 +148,25 @@
               <script>
                   const selector = document.getElementById('reportTypeSelector');
                   const advFilters = document.getElementById('advancedFilters');
+                  const amountFilters = document.getElementById('amountFilters');
                   const startDateContainer = document.getElementById('startDateContainer');
                   const endDateLabel = document.getElementById('endDateLabel');
                   const submitBtn = document.getElementById('mainSubmitBtn');
 
                   selector.addEventListener('change', function () {
                       if (this.value === 'turnover') {
-                          advFilters.style.display = 'block'; // Pokaż filtry kwot i typów
-                          startDateContainer.style.display = 'block'; // Pokaż datę "Od"
+                          advFilters.style.display = 'block'; // Show filter selection
+                          amountFilters.style.display = 'flex'; // Show amount selection
+                          startDateContainer.style.display = 'block'; 
                           endDateLabel.innerText = "Do:";
-                          submitBtn.formAction = "/reports/generate"; // Endpoint dla Raportu 1
+                          submitBtn.formAction = "/reports/generate"; 
                           submitBtn.style.background = "#4e73df";
                       } else {
-                          advFilters.style.display = 'none'; // Ukryj filtry
-                          startDateContainer.style.display = 'none'; // Wiekowanie robi się tylko "na dzień"
+                          advFilters.style.display = 'block'; // Show filter selection
+                          amountFilters.style.display = 'none'; // Hide amount selection
+                          startDateContainer.style.display = 'none'; 
                           endDateLabel.innerText = "Dane na dzień:";
-                          submitBtn.formAction = "/reports/generate/agingReport"; // Endpoint dla Raportu 2
+                          submitBtn.formAction = "/reports/generate/agingReport"; 
                           submitBtn.style.background = "#1cc88a";
                       }
                   });

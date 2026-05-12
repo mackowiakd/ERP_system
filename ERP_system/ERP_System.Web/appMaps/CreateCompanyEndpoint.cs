@@ -48,13 +48,16 @@ namespace ERP_System.Web.appMaps
                 var shortName = form["name"].ToString();
                 var fullName = form["fullName"].ToString();
                 var nip = form["nip"].ToString();
-                var address = form["address"].ToString();
+                var street = form["street"].ToString();
+                var zipCode = form["zipCode"].ToString();
+                var city = form["city"].ToString();
                 var description = form["description"].ToString();
                 var userLogin = context.Request.Cookies["logged_user"];
 
                 // Validation
                 if (string.IsNullOrWhiteSpace(shortName) || string.IsNullOrWhiteSpace(fullName) || 
-                    string.IsNullOrWhiteSpace(nip) || string.IsNullOrWhiteSpace(address))
+                    string.IsNullOrWhiteSpace(nip) || string.IsNullOrWhiteSpace(street) ||
+                    string.IsNullOrWhiteSpace(zipCode) || string.IsNullOrWhiteSpace(city))
                 {
                     return Results.Content("<div class='error' style='color: red; margin-top: 10px;'>Błąd: Wszystkie pola (poza opisem) są wymagane.</div>", "text/html");
                 }
@@ -76,7 +79,10 @@ namespace ERP_System.Web.appMaps
                     ShortName = shortName,
                     FullName = fullName,
                     NIP = nip,
-                    Address = address,
+                    Street = street,
+                    ZipCode = zipCode,
+                    City = city,
+                    Address = $"{street}, {zipCode} {city}", // For compatibility
                     Description = description,
                     CompanyAdmin = user,
                     CompanyAdminId = user.Id,

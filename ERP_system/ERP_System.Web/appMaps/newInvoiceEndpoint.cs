@@ -129,7 +129,7 @@ namespace ERP_System.Web.appMaps
                 var description = form["description"].ToString(); // Optional
                 var category = int.Parse(form["categoryId"]);
 
-                // Data
+                // Date
                 string dateStr = form["transactionDate"].ToString();
                 string timeStr = form["transactionTime"].ToString();
 

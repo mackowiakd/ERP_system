@@ -42,7 +42,6 @@ namespace ERP_System.Web.appMaps
 
                 var categories = categoryService.listAllCompanyCategories(user.CompanyId);
 
-                // 3. Zbuduj HTML
                 var htmlBuilder = new System.Text.StringBuilder();
                 htmlBuilder.Append("<select id='category' name='categoryId' required class='form-input' onchange='handleCategoryChange(this)'>");
 

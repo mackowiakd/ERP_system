@@ -53,7 +53,7 @@ namespace ERP_System.Web.appMaps
 
                 int companyId = user.CompanyId.Value;
 
-                // Parametry daty z frontendu (jeśli podane)
+                // load date from ui
                 DateTime startDate = DateTime.MinValue;
                 DateTime endDate = DateTime.MaxValue;
 
@@ -62,7 +62,7 @@ namespace ERP_System.Web.appMaps
 
                 var events = new List<dynamic>();
 
-                // 1. Zwykłe faktury
+                // regular invoice
                 var invoices = await db.Invoices
                     .Include(i => i.Contractor)
                     .Where(i => i.CompanyId == companyId && i.IssueDate >= startDate && i.IssueDate <= endDate)
@@ -87,7 +87,7 @@ namespace ERP_System.Web.appMaps
                     });
                 }
 
-                // 2. Projekcja faktur cyklicznych
+                // reccuring invoices
                 var recurringOps = await db.RecurringOperations
                     .Include(r => r.BaseInvoice)
                     .ThenInclude(i => i.Contractor)
@@ -100,7 +100,7 @@ namespace ERP_System.Web.appMaps
                     var current = inv.IssueDate;
                     var intervalType = (ERP_System.Core.Enums.TransactionIntervalType)ro.IntervalType;
 
-                    // Przesuń się do pierwszej daty w zakresie lub startowej
+                    // go to start date
                     while (current < startDate)
                     {
                         current = intervalType switch
@@ -113,11 +113,10 @@ namespace ERP_System.Web.appMaps
                         };
                     }
 
-                    // Generuj wystąpienia w zakresie (max 100 dla bezpieczeństwa na jedną regułę)
+                    // generate reccuring transactions in the future (max 100 for safety)
                     int safety = 0;
                     while (current <= endDate && safety < 100)
                     {
-                        // Pomijamy datę bazową jeśli już została dodana jako zwykła faktura
                         if (current != inv.IssueDate || !invoices.Any(x => x.Id == inv.Id))
                         {
                             events.Add(new
@@ -132,7 +131,7 @@ namespace ERP_System.Web.appMaps
                                 description = $"Faktura CYKLICZNA: {inv.InvoiceNumber} | Kontrahent: {inv.Contractor?.Name ?? "Nieznany"}",
                                 description2 = $"Typ: {(inv.Type == InvoiceType.Sales ? "Sprzedażowa" : "Kosztowa")} | Status: Planowana",
                                 description3 = inv.Notes ?? "",
-                                color = "#f6c23e", // Kolor żółty dla cyklicznych
+                                color = "#f6c23e", // yelow color for reccuring invoices
                                 isRecurring = true
                             });
                         }

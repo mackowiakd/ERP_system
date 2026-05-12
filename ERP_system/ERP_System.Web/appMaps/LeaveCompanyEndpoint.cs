@@ -9,7 +9,7 @@ namespace ERP_System.Web.appMaps
     {
         public void Map(IEndpointRouteBuilder app)
         {
-            app.MapPost("/leave-household", async (HttpContext context, AppDbContext db) =>
+            app.MapPost("/leave-company", async (HttpContext context, AppDbContext db) =>
             {
                 // load user
                 var login = context.Request.Cookies["logged_user"];
@@ -28,48 +28,43 @@ namespace ERP_System.Web.appMaps
                     return Results.Content("<div class='error'>Nie należysz do żadnej firmy.</div>", "text/html");
                 }
 
-                // load household (company)
-                var house = await db.Companies.FirstOrDefaultAsync(h => h.Id == user.CompanyId);
-                if (house == null)
+                // load company
+                var company = await db.Companies.FirstOrDefaultAsync(h => h.Id == user.CompanyId);
+                if (company == null)
                 {
                     return Results.Content("<div class='error'>Firma nie istnieje.</div>", "text/html");
                 }
 
                 // check if user is admin
-                if (user.Id == house.CompanyAdminId)
+                if (user.Id == company.CompanyAdminId)
                 {
                     try 
                     {
-                        // 1. Usuwamy wszystkie dane powiązane z firmą (czyszczenie kaskadowe ręczne)
-                        
-                        // Operacje finansowe
+                        // Deleting all company related data
+
                         var houseTransactions = await db.FinancialOperations
-                            .Where(t => t.CompanyId == house.Id).ToListAsync();
+                            .Where(t => t.CompanyId == company.Id).ToListAsync();
                         
-                        // Operacje cykliczne powiązane z transakcjami tej firmy
                         var recurringOps = await db.RecurringOperations
-                            .Where(ro => db.FinancialOperations.Any(t => t.Id == ro.TransactionPatternId && t.CompanyId == house.Id))
+                            .Where(ro => db.FinancialOperations.Any(t => t.Id == ro.TransactionPatternId && t.CompanyId == company.Id))
                             .ToListAsync();
                         db.RecurringOperations.RemoveRange(recurringOps);
                         db.FinancialOperations.RemoveRange(houseTransactions);
 
-                        // Faktury
                         var invoices = await db.Invoices
-                            .Where(i => i.CompanyId == house.Id).ToListAsync();
+                            .Where(i => i.CompanyId == company.Id).ToListAsync();
                         db.Invoices.RemoveRange(invoices);
 
-                        // Kontrahenci
                         var contractors = await db.Contractors
-                            .Where(c => c.CompanyId == house.Id).ToListAsync();
+                            .Where(c => c.CompanyId == company.Id).ToListAsync();
                         db.Contractors.RemoveRange(contractors);
 
-                        // Kategorie transakcji
                         var categories = await db.Categories
-                            .Where(cat => cat.CompanyId == house.Id).ToListAsync();
+                            .Where(cat => cat.CompanyId == company.Id).ToListAsync();
                         db.Categories.RemoveRange(categories);
 
-                        // 2. Resetujemy dane użytkowników (członków firmy)
-                        var members = await db.Employees.Where(u => u.CompanyId == house.Id).ToListAsync();
+                        // reset members data
+                        var members = await db.Employees.Where(u => u.CompanyId == company.Id).ToListAsync();
                         foreach (var member in members)
                         {
                             member.CompanyId = null;
@@ -79,8 +74,8 @@ namespace ERP_System.Web.appMaps
                             }
                         }
 
-                        // 3. Usuwamy samą firmę
-                        db.Companies.Remove(house);
+                        // delete old company
+                        db.Companies.Remove(company);
                         
                         await db.SaveChangesAsync();
 
@@ -114,11 +109,11 @@ namespace ERP_System.Web.appMaps
 
                     await db.SaveChangesAsync();
 
-                    // if house empty -> delete it
+                    // if company empty -> delete it
                     bool anyLeft = await db.Employees.AnyAsync(u => u.CompanyId == houseId);
                     if (!anyLeft)
                     {
-                        db.Companies.Remove(house);
+                        db.Companies.Remove(company);
                         await db.SaveChangesAsync();
                     }
 

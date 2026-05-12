@@ -6,10 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ERP_System.Web.appMaps
 {
-    /// <summary>
     /// Handles the main /company route, displaying company information or the choice to create/join one.
     /// Uses HTML templates to avoid inline HTML in C# code.
-    /// </summary>
     public class DashboardCompanyEndpoint : IEndpoint
     {
         public void Map(IEndpointRouteBuilder app)
@@ -33,7 +31,7 @@ namespace ERP_System.Web.appMaps
                     adminBtnHtml = "<button class=\"sidebar-link\" onclick=\"window.location.href='/adminConsole'\"><i class=\"fas fa-fw fa-cogs\"></i> &nbsp; Panel Admina</button>";
                 }
 
-                // CASE 1: User has no company - Show choice page
+                // User has no company - Show choice page
                 if (user.CompanyId == null)
                 {
                     var filePath = Path.Combine(env.WebRootPath, "company.html");
@@ -46,7 +44,7 @@ namespace ERP_System.Web.appMaps
                     return Results.Content(html, "text/html; charset=utf-8");
                 }
 
-                // CASE 2: User has a company - Show details using template
+                // User has a company - Show details using template
                 return await RenderCompanyViewWithTemplate(env, db, user, username ?? "Użytkownik", adminBtnHtml);
             });
 
@@ -72,9 +70,7 @@ namespace ERP_System.Web.appMaps
             });
         }
 
-        /// <summary>
         /// Loads companyDetails.html template and injects company data.
-        /// </summary>
         private static async Task<IResult> RenderCompanyViewWithTemplate(IWebHostEnvironment env, AppDbContext db, DBEmployee user, string username, string adminBtnHtml)
         {
             var company = await db.Companies
