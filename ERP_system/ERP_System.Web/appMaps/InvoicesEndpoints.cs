@@ -6,7 +6,6 @@ namespace ERP_System.Web.appMaps
 {
     public class InvoicesEndpoints : IEndpoint
     {
-        // Struktura danych z formularza HTML, używa Waszych enumów z DBTables!
         public record CreateInvoiceDto(
             int ContractorId, 
             string InvoiceNumber, 
@@ -36,7 +35,7 @@ namespace ERP_System.Web.appMaps
 
         public void Map(IEndpointRouteBuilder app)
         {
-            // 1. ZWRACANIE GŁÓWNEGO WIDOKU LISTY FAKTUR (Stworzymy go za chwilę)
+            // main view
             app.MapGet("/invoices", async (HttpContext context, AppDbContext db) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
@@ -56,7 +55,7 @@ namespace ERP_System.Web.appMaps
                 return Results.Content(html, "text/html");
             });
             
-            // 3. POBIERANIE LISTY FAKTUR (API)
+            // load invoices list
             app.MapGet("/api/invoices", async (HttpContext context, AppDbContext db, InvoiceService invoiceService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
@@ -84,7 +83,7 @@ namespace ERP_System.Web.appMaps
                 return Results.Json(result);
             });
 
-            // NOWY ENDPOINT DLA PULPITU (DASHBOARD) - POBIERA KILKA OSTATNICH FAKTUR JAKO HTML
+            // listSome is used in Dashboard to show a few of the latest transactions
             app.MapGet("/api/invoices/listSome", async (HttpContext context, AppDbContext db, InvoiceService invoiceService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
@@ -98,7 +97,7 @@ namespace ERP_System.Web.appMaps
                 return Results.Content(htmlBuilder.ToString(), "text/html");
             });
 
-            // POBIERANIE SZCZEGÓŁÓW JEDNEJ FAKTURY (API)
+            // load detailed invoice
             app.MapGet("/api/invoices/{id}", async (int id, AppDbContext db) =>
             {
                 var invoice = await db.Invoices
@@ -124,7 +123,7 @@ namespace ERP_System.Web.appMaps
                 });
             });
 
-            // 4. DODAWANIE NOWEJ FAKTURY (API)
+            // add new invoice
             app.MapPost("/api/invoices", async (CreateInvoiceDto dto, HttpContext context, AppDbContext db, InvoiceService invoiceService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
@@ -152,7 +151,7 @@ namespace ERP_System.Web.appMaps
                 return Results.Json(new { success = false, message = result });
             });
 
-            // 5. USUWANIE FAKTURY (API)
+            // Delete invoice
             app.MapDelete("/api/invoices/{id}", async (int id, HttpContext context, AppDbContext db, InvoiceService invoiceService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];
@@ -171,7 +170,7 @@ namespace ERP_System.Web.appMaps
                 return Results.Json(new { success = false, message = result });
             });
 
-            // 6. EDYCJA FAKTURY (API)
+            // Edit invoice
             app.MapPut("/api/invoices/{id}", async (int id, EditInvoiceDto dto, HttpContext context, AppDbContext db, InvoiceService invoiceService) =>
             {
                 var loginUser = context.Request.Cookies["logged_user"];

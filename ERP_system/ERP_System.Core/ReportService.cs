@@ -28,7 +28,6 @@ namespace ERP_System.Core
             int userId,
             DateTime start,
             DateTime end,
-            bool includeCompany,
             string typeFilter,
             int? contractorId = null,
             decimal? minAmount = null,
@@ -37,10 +36,13 @@ namespace ERP_System.Core
             var user = _db.Employees.FirstOrDefault(u => u.Id == userId);
             if (user == null) return Array.Empty<byte>();
 
-            var query = _db.Invoices.Include(i => i.Contractor).AsQueryable();
+            var query = _db.Invoices
+                .Include(i => i.Contractor)
+                .Include(i => i.Category)
+                .AsQueryable();
 
             // user company filtering 
-            if (includeCompany && user.CompanyId.HasValue)
+            if (user.CompanyId.HasValue)
             {
                 query = query.Where(i => i.CompanyId == user.CompanyId);
             }
@@ -56,7 +58,6 @@ namespace ERP_System.Core
             if (contractorId.HasValue && contractorId.Value > 0)
                 query = query.Where(i => i.ContractorId == contractorId.Value);
 
-            // Do Zysków i Strat używamy kwot Netto
             if (minAmount.HasValue && minAmount.Value > 0)
                 query = query.Where(i => i.TotalNet >= minAmount.Value);
 
@@ -76,8 +77,8 @@ namespace ERP_System.Core
             if (showRevenues)
             {
                 revenues = invoicesFromDb
-                    .Where(i => i.Type == InvoiceType.Sales) // Faktury Sprzedażowe = Przychód
-                    .GroupBy(i => i.Contractor != null ? i.Contractor.Name : "Brak przypisanego kontrahenta")
+                    .Where(i => i.Type == InvoiceType.Sales) 
+                    .GroupBy(i => i.Category != null ? i.Category.Name : "Inne / Brak kategorii")
                     .Select(g => new PLReportRow(g.Key, g.Sum(i => i.TotalNet), g.Count()))
                     .OrderByDescending(x => x.TotalSum)
                     .ToList();
@@ -86,8 +87,8 @@ namespace ERP_System.Core
             if (showCosts)
             {
                 costs = invoicesFromDb
-                    .Where(i => i.Type == InvoiceType.Cost) // Faktury Kosztowe = Wydatki
-                    .GroupBy(i => i.Contractor != null ? i.Contractor.Name : "Brak przypisanego kontrahenta")
+                    .Where(i => i.Type == InvoiceType.Cost) 
+                    .GroupBy(i => i.Category != null ? i.Category.Name : "Inne / Brak kategorii")
                     .Select(g => new PLReportRow(g.Key, g.Sum(i => i.TotalNet), g.Count()))
                     .OrderByDescending(x => x.TotalSum)
                     .ToList();
@@ -129,7 +130,7 @@ namespace ERP_System.Core
 
                             if (!dataList.Any())
                             {
-                                column.Item().Text("Brak operacji w tej kategorii dla wybranego okresu.").Italic().FontColor(Colors.Grey.Darken1);
+                                column.Item().Text("Brak operacji w tej sekcji dla wybranego okresu.").Italic().FontColor(Colors.Grey.Darken1);
                                 return;
                             }
 
@@ -144,8 +145,8 @@ namespace ERP_System.Core
 
                                 table.Header(header =>
                                 {
-                                    header.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingVertical(5).Text("Kontrahent / Źródło");
-                                    header.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingVertical(5).Text("Ilość faktur").AlignRight();
+                                    header.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingVertical(5).Text("Kategoria księgowa");
+                                    header.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingVertical(5).Text("Ilość operacji").AlignRight();
                                     header.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingVertical(5).Text("Kwota Netto").AlignRight();
                                 });
 
@@ -248,7 +249,7 @@ namespace ERP_System.Core
         // Auxiliary record to avoid the 'dynamic' type and problems with QuestPDF
         private record AgingReportRow(string ContractorName, string ContractorNip, int InvoiceCount, decimal TotalDebt);
 
-        public byte[] GenerateAgingReport(int requestingUserId, DateTime asOfDate, bool includeCompany)
+        public byte[] GenerateAgingReport(int requestingUserId, DateTime asOfDate, string typeFilter)
         {
             var user = _db.Employees.FirstOrDefault(u => u.Id == requestingUserId);
             if (user == null) return Array.Empty<byte>();
@@ -256,7 +257,7 @@ namespace ERP_System.Core
             IQueryable<DBInvoice> query = _db.Invoices.Include(i => i.Contractor);
             string scopeTitle = "Raport Wiekowania Rozrachunków - Indywidualny";
 
-            if (includeCompany && user.CompanyId.HasValue)
+            if (user.CompanyId.HasValue)
             {
                 query = query.Where(i => i.CompanyId == user.CompanyId);
                 scopeTitle = "Raport Wiekowania Rozrachunków - Firmowy";
@@ -266,34 +267,48 @@ namespace ERP_System.Core
                 query = query.Where(i => i.CompanyId == (user.CompanyId ?? 0));
             }
 
-            var unpaidInvoices = query
+            // Filtrujemy tylko nieopłacone faktury, których termin płatności minął lub mija dzisiaj
+            var overdueInvoices = query
                 .Where(i => (i.Status == InvoiceStatus.Unpaid || i.Status == InvoiceStatus.PartiallyPaid) 
-                        && i.IssueDate <= asOfDate)
+                        && i.DueDate <= asOfDate)
                 .ToList();
 
-            var receivables = unpaidInvoices
-                .Where(i => i.Type == InvoiceType.Sales)
-                .GroupBy(i => i.Contractor)
-                .Select(g => new AgingReportRow(
-                    g.Key?.Name ?? "Nieznany",
-                    g.Key?.TaxId ?? "Brak NIP",
-                    g.Count(),
-                    g.Sum(i => i.TotalGross)
-                ))
-                .OrderByDescending(x => x.TotalDebt)
-                .ToList();
+            string safeFilter = typeFilter?.ToLower()?.Trim() ?? "";
+            bool showReceivables = safeFilter is "wszystko" or "revenue" or "przychody" or "all" or "";
+            bool showPayables = safeFilter is "wszystko" or "costs" or "koszty" or "all" or "";
 
-            var payables = unpaidInvoices
-                .Where(i => i.Type == InvoiceType.Cost)
-                .GroupBy(i => i.Contractor)
-                .Select(g => new AgingReportRow(
-                    g.Key?.Name ?? "Nieznany",
-                    g.Key?.TaxId ?? "Brak NIP", 
-                    g.Count(),
-                    g.Sum(i => i.TotalGross)
-                ))
-                .OrderByDescending(x => x.TotalDebt)
-                .ToList();
+            var receivables = new List<AgingReportRow>();
+            var payables = new List<AgingReportRow>();
+
+            if (showReceivables)
+            {
+                receivables = overdueInvoices
+                    .Where(i => i.Type == InvoiceType.Sales)
+                    .GroupBy(i => i.Contractor)
+                    .Select(g => new AgingReportRow(
+                        g.Key?.Name ?? "Nieznany",
+                        g.Key?.TaxId ?? "Brak NIP",
+                        g.Count(),
+                        g.Sum(i => i.TotalGross)
+                    ))
+                    .OrderByDescending(x => x.TotalDebt)
+                    .ToList();
+            }
+
+            if (showPayables)
+            {
+                payables = overdueInvoices
+                    .Where(i => i.Type == InvoiceType.Cost)
+                    .GroupBy(i => i.Contractor)
+                    .Select(g => new AgingReportRow(
+                        g.Key?.Name ?? "Nieznany",
+                        g.Key?.TaxId ?? "Brak NIP", 
+                        g.Count(),
+                        g.Sum(i => i.TotalGross)
+                    ))
+                    .OrderByDescending(x => x.TotalDebt)
+                    .ToList();
+            }
 
             var document = Document.Create(container =>
             {

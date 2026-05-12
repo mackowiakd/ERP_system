@@ -20,7 +20,6 @@ namespace ERP_System.Core.DBTables
         [Column("company_id")]
         public int CompanyId { get; set; }
 
-        // --- NASZE NOWE POLA (EF dodał je z domyślnymi nazwami, więc nie potrzebują [Column]) ---
         public string Street { get; set; } = string.Empty;
         public string City { get; set; } = string.Empty;
         public string ZipCode { get; set; } = string.Empty;

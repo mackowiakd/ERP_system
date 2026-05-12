@@ -26,7 +26,7 @@ namespace ERP_System.Web.Services
                     {
                         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-                        // 1. Pobierz definicje, których czas nadszedł (NextRunDate <= Teraz) i są aktywne
+                        // Load definitions with NextRunDate <= Now which are also active
                         var tasksToRun = await db.RecurringOperations
                             .Include(rt => rt.Invoice)
                             .Include(rt => rt.BaseInvoice)
@@ -37,7 +37,6 @@ namespace ERP_System.Web.Services
                         {
                             if (rule.Invoice != null)
                             {
-                                // Stary system (FinancialOperations)
                                 var newTransaction = new DBFinancialOperations
                                 {
                                     CompanyId = rule.Invoice.CompanyId,
@@ -54,7 +53,6 @@ namespace ERP_System.Web.Services
                             }
                             else if (rule.BaseInvoice != null)
                             {
-                                // Nowy system (Invoices)
                                 var newInvoice = new DBInvoice
                                 {
                                     CompanyId = rule.BaseInvoice.CompanyId,
@@ -76,7 +74,6 @@ namespace ERP_System.Web.Services
                                 continue;
                             }
 
-                            // 3. Oblicz następną datę wykonania
                             rule.NextRunDate = CalculateNextDate(rule.NextRunDate, rule.IntervalValue, (TransactionIntervalType)rule.IntervalType);
                             
                             _logger.LogInformation($"Wygenerowano transakcję/fakturę cykliczną");
@@ -93,7 +90,7 @@ namespace ERP_System.Web.Services
                     _logger.LogError(ex, "Błąd w workerze transakcji cyklicznych.");
                 }
 
-                // Sprawdzaj co godzinę
+                // Check each hour
                 await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
             }
         }

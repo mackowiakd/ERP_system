@@ -4,7 +4,6 @@ using Microsoft.Extensions.Options;
 public class HashPassword
 {
     private readonly IPasswordHasher<string> _hasher; 
-    // Prosta metoda weryfikująca użytkownika
     public HashPassword(){
         var options = new PasswordHasherOptions();
         

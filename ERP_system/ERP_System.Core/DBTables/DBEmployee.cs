@@ -6,18 +6,16 @@ namespace ERP_System.Core.DBTables
 {
     public enum SystemRole
     {
-        Guest = 0,           // Nowo zarejestrowany, czeka na dołączenie do firmy lub jej utworzenie
-        Employee = 1,        // Zwykły pracownik (widzi tylko swoje operacje / podstawowe widoki)
-        Accountant = 2,      // Księgowy (dodaje faktury, generuje raporty, widzi finanse)
-        CompanyAdmin = 3,    // Właściciel/Szef firmy (odpowiednik dawnego HouseholdAdmin - zarządza ludźmi)
-        SystemAdmin = 4      // Globalny administrator (konsola SQL)
+        Guest = 0,           // new user
+        Employee = 1,        // regular employee who cannot delete a company
+        Accountant = 2,      // ?? not implemented??
+        CompanyAdmin = 3,    // A person who created a company
+        SystemAdmin = 4      // System admin with admin console permission
     }
 
     [Table("roles")]
     public class DBRole
     {
-        // Używamy DatabaseGeneratedOption.None, bo chcemy, aby ID w bazie
-        // dokładnie odpowiadało wartościom z Enuma (0, 1, 2...), a nie było autoincrement
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         [Column("role_id")]

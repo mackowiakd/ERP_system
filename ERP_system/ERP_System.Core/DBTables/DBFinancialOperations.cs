@@ -2,7 +2,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-// TODO: finish all tables
 
 namespace ERP_System.Core.DBTables
 {
@@ -66,13 +65,11 @@ namespace ERP_System.Core.DBTables
 
         public virtual DBRecurringOperations? RecurringOperation { get; set; }
 
-        // --- NOWOŚĆ: Relacja do faktury ---
         [Column("invoice_id")]
-        public int? InvoiceId { get; set; } // Nullable, bo nie każdy wydatek to faktura (np. kawa z kasy)
+        public int? InvoiceId { get; set; } 
 
         [ForeignKey(nameof(InvoiceId))]
         public DBInvoice? Invoice { get; set; }
-        // ----------------------------------
 
     }
 }

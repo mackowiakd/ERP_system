@@ -18,20 +18,19 @@ namespace ERP_System.Core
 
         public DBContractor AddContractor(int companyId, string name, string taxId, string street, string city, string zipCode, string email)
         {
-            // 1. Walidacja NIP (tylko 10 cyfr)
+    // NIP validation (10 numbers)
     string cleanNip = taxId.Replace("-", "").Replace(" ", "").Trim();
     if (!Regex.IsMatch(cleanNip, @"^\d{10}$"))
         throw new Exception("NIP musi składać się z dokładnie 10 cyfr.");
 
-    // 2. Walidacja Email (format nazwa@coś.coś)
+    // email validation
     if (string.IsNullOrWhiteSpace(email) || !Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
         throw new Exception("Podaj poprawny adres e-mail (np. biuro@firma.pl).");
 
-    // 3. Walidacja Kodu Pocztowego (format 00-000)
+    // postal code validation
     if (!string.IsNullOrWhiteSpace(zipCode) && !Regex.IsMatch(zipCode, @"^\d{2}-\d{3}$"))
         throw new Exception("Nieprawidłowy kod pocztowy. Wymagany format: 00-000.");
 
-    // Sugestia co do Miasta: Czyścimy białe znaki i pilnujemy, by nie było puste
     string cleanCity = city?.Trim() ?? "";
     if (string.IsNullOrWhiteSpace(cleanCity))
         throw new Exception("Nazwa miasta nie może być pusta.");

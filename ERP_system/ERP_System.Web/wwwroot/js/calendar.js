@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function fetchEvents() {
         try {
-            // Oblicz zakres dat dla aktualnego widoku
+            // Calculate date range for current view
             let start, end;
             if (currentView === 'month') {
                 start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 end = new Date(currentDate);
             }
 
-            // Dodaj bufor (np. +/- 1 miesiąc) żeby płynniej działało przy nawigacji
+            // load another +-1 month for smooth navigation
             const bufferStart = new Date(start);
             bufferStart.setMonth(start.getMonth() - 1);
             const bufferEnd = new Date(end);
@@ -420,11 +420,11 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderEventsList() {
         eventsList.innerHTML = '';
 
-        // 1. Get upcoming events (today and future)
+        // Get upcoming events (today and future)
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // 2. Filter & Sort
+        // Filter & Sort
         // We need ALL future recurring events to find the 'next' one for each type, 
         // regardless of how far in the future it is (e.g. quarterly bill in 2 months).
         const candidates = events
@@ -434,7 +434,7 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
 
-        // 3. Deduplicate (Smart "Next Only" Logic)
+        // Deduplicate (Smart "Next Only" Logic)
         // Keep only the FIRST occurrence of each event ID.
         // Since list is sorted by date, the first one found is the nearest one.
         const uniqueUpcoming = [];
@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // 4. Render
+        // Render
         if (uniqueUpcoming.length === 0) {
             const noEvents = document.createElement('div');
             noEvents.className = 'no-events';

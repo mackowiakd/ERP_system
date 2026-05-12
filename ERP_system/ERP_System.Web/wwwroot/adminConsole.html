@@ -29,7 +29,6 @@
         </button>
         <span class="mobile-logo">Home Budget Manager</span>
       </div>
-      <!-- Pasek boczny -->
       <aside class="sidebar">
         <p class="sidebar-title">
           <i class="fas fa-wallet"></i> Mini-ERP System
@@ -111,7 +110,6 @@
           </form>
 
           <div id="query-results">
-            <!-- Wyniki pojawią się tutaj -->
           </div>
         </section>
       </main>
@@ -152,7 +150,7 @@
         if (textarea) {
           const editor = CodeMirror.fromTextArea(textarea, {
             mode: "text/x-sql",
-            theme: "dracula", // Ciemny motyw jak w matrixie!
+            theme: "dracula", // dark theme
             lineNumbers: true,
             matchBrackets: true,
             indentUnit: 4,

@@ -42,7 +42,6 @@ namespace ERP_System.Core
 
         public string deleteCategory(int? companyId, int categoryId)
         {
-            // POPRAWKA BŁĘDU: Dodano sprawdzanie c.Id == categoryId
             var category = db.Categories.FirstOrDefault(c => c.CompanyId == companyId && c.Id == categoryId);
 
             if (category == null)

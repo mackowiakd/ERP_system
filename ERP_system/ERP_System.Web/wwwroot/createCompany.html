@@ -84,8 +84,41 @@
               placeholder="np. 1234567890">
             </div>
             <div class="form-group">
-              <label for="address">Adres:</label>
-              <input type="text" id="address" name="address" required class="form-input" placeholder="ul. Sezamkowa 1, 00-001 Miasto">
+              <label>Ulica i numer</label>
+              <input
+                type="text"
+                id="street"
+                name="street"
+                class="form-input"
+                placeholder="ul. Prosta 10/2"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label>Kod pocztowy</label>
+              <input
+                type="text"
+                id="zipCode"
+                name="zipCode"
+                class="form-input"
+                inputmode="numeric"
+                pattern="\d{2}-\d{3}"
+                placeholder="00-000"
+                title="Kod pocztowy musi być w formacie 00-000"
+                maxlength="6"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label>Miasto</label>
+              <input
+                type="text"
+                id="city"
+                name="city"
+                class="form-input"
+                placeholder="Warszawa"
+                required
+              />
             </div>
             <div class="form-group">
               <label for="description">Opis firmy (opcjonalny):</label>
@@ -112,18 +145,6 @@
         </div>
       </main>
     </div>
-
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const toggleBtn = document.getElementById("sidebar-toggle");
-        const sidebar = document.querySelector(".sidebar");
-
-        if (toggleBtn) {
-          toggleBtn.addEventListener("click", () => {
-            sidebar.classList.toggle("open");
-          });
-        }
-      });
-    </script>
+    <script src="/js/contractors.js"></script>
   </body>
 </html>

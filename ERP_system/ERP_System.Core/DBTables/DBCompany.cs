@@ -1,13 +1,11 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Collections.Generic;
 
 namespace ERP_System.Core.DBTables
 {
-    /// <summary>
-    /// Represents a company entity in the system.
-    /// </summary>
+    //Represents a company entity in the system.
     [Table("company")]
     public class DBCompany
     {
@@ -36,6 +34,10 @@ namespace ERP_System.Core.DBTables
         [Column("company_address")]
         [MaxLength(500)]
         public required string Address { get; set; }
+
+        public string Street { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string ZipCode { get; set; } = string.Empty;
 
         [Column("company_description")]
         public string? Description { get; set; }

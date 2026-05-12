@@ -19,7 +19,7 @@ namespace ERP_System.Core.DBTables
         public int Id { get; set; }
 
         [Column("company_id")]
-        public int? CompanyId { get; set; } // Nullable, bo systemowe kategorie nie mają usera
+        public int? CompanyId { get; set; } 
 
         [ForeignKey(nameof(CompanyId))]
         public DBCompany? Company { get; set; }

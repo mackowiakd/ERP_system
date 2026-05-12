@@ -15,7 +15,7 @@ public class RegisterService
 
     public bool IsEmailTaken(string email)
     {
-        return _context.Employees.Any(u => u.Email == email); // Poprawione na Employees
+        return _context.Employees.Any(u => u.Email == email);
     }
 
     public void RegisterUser(string email, string username, string password)
@@ -28,7 +28,7 @@ public class RegisterService
             Role = SystemRole.Guest
         };
 
-        _context.Employees.Add(user); // Poprawione na Employees
+        _context.Employees.Add(user); 
         _context.SaveChanges();
     }
 }
