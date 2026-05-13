@@ -117,13 +117,8 @@ namespace ERP_System.Core
             if (minAmount.HasValue) 
                     query= query.Where(t => t.Value >= minAmount.Value || t.Value <= -minAmount.Value );
 
-<<<<<<< HEAD
-            if (maxAmount.HasValue) query =
-                query.Where(t => Math.Abs(t.Value) <= maxAmount.Value);
-=======
             if (maxAmount.HasValue) 
                     query = query.Where(t => t.Value<= maxAmount.Value && t.Value >= -maxAmount.Value);
->>>>>>> e86037f3fe75d33ff8772871febf96aba2f37f56
 
             // 3. AGREGACJA PO STRONIE BAZY (GROUP BY)
             /* * =================================================================================
