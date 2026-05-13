@@ -9,6 +9,7 @@ using System.Text;
 namespace ERP_System.Web.appMaps
 {
     // Handles HTTP requests for report generation and management.
+
     public class ReportsEndpoint : IEndpoint
     {
         public void Map(IEndpointRouteBuilder app)
@@ -97,30 +98,34 @@ namespace ERP_System.Web.appMaps
                 return Results.File(pdfBytes, "application/pdf", $"Zestawienie_Obrotow_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.pdf");
             });
 
-            // POST /reports/generate/agingReport - Generates an Aging PDF.
             app.MapPost("/reports/generate/agingReport", async (HttpContext context, ReportService reportService) =>
             {
+                // 1. Bezpieczne pobieranie ID użytkownika
                 if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))
                 {
                     return Results.Redirect("/");
                 }
 
-                var form = context.Request.Form;
-                // Aging analysis typically uses the end date as the 'as of' reference
-                if (!DateTime.TryParse(form["endDate"], out DateTime asOfDate))
-                {
-                     return Results.Content("Nieprawidłowa data.");
-                }
-                
+                var form = await context.Request.ReadFormAsync(); // Zalecane asynchroniczne czytanie formularza
+
+                // 2. Parsowanie daty "na dzień" (asOfDate)
+                DateTime asOfDate = DateTime.TryParse(form["endDate"], out var date) ? date : DateTime.Now;
+                // Zabezpieczenie: ustawiamy koniec wybranego dnia (23:59:59)
                 asOfDate = asOfDate.Date.AddDays(1).AddTicks(-1);
 
+                // 3. Określenie zakresu (Firma vs Indywidualny)
                 var scope = form["reportScope"].ToString();
-                bool includeCompany = scope == "company";
+                bool includeCompany = (scope == "company" );
 
-                // Call service to generate the specific aging report
-                var pdfBytes = reportService.GenerateAgingReport(userId, asOfDate, includeCompany);
+                // 4. NOWOŚĆ: Pobieramy typ wiekowania (zabezpieczenie przed NULL)
+                // Jeśli użytkownik nic nie wybrał, domyślnie ustawiamy "Receivables" (Należności)
+                string agingType = form["agingTypeFilter"].FirstOrDefault() ?? "Receivables";
+
+                // 5. Wywołanie serwisu z nowym parametrem agingType
+                // To wywołanie pasuje do nowej metody GenerateAgingReport w ReportService.cs
+                var pdfBytes = reportService.GenerateAgingReport(userId, asOfDate, includeCompany, agingType);
+
                 var filename = $"Raport_Wiekowania_{asOfDate:yyyyMMdd}.pdf";
-
                 return Results.File(pdfBytes, "application/pdf", filename);
             });
         }

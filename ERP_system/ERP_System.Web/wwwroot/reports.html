@@ -88,6 +88,7 @@
               <p class="card-desc">
                   Wybierz zakres dat, ustaw filtry i wygeneruj szczegółowy raport PDF dla swojej firmy.
               </p>
+
               <form class="report-controls" method="post" id="dynamicReportForm">
 
                   <div class="form-group" style="background-color: #e3e6f0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -122,7 +123,7 @@
 
                       <div class="form-group" style="margin-bottom: 10px;">
                           <label>Typ operacji:</label>
-                          <select name="transactionTypeFilter" style="width: 100%; padding: 8px;">
+                          <select name="transactionTypeFilter" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                               <option value="All">Wszystkie operacje (Bilans)</option>
                               <option value="Costs">Tylko Koszty (Wydatki)</option>
                               <option value="Revenue">Tylko Przychody</option>
@@ -132,18 +133,29 @@
                       <div style="display: flex; gap: 1rem; margin-bottom: 10px;">
                           <div class="form-group" style="flex: 1;">
                               <label>Kwota od:</label>
-                              <input type="number" name="minAmount" style="width: 100%; padding: 8px;">
+                              <input type="number" name="minAmount" placeholder="np. 100" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                           </div>
                           <div class="form-group" style="flex: 1;">
                               <label>Kwota do:</label>
-                              <input type="number" name="maxAmount" style="width: 100%; padding: 8px;">
+                              <input type="number" name="maxAmount" placeholder="np. 5000" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                           </div>
                       </div>
 
                       <div class="form-group">
                           <label>Kontrahent (Opcjonalnie):</label>
-                          <select name="contractorId" id="contractorSelect" style="width: 100%; padding: 8px;">
+                          <select name="contractorId" id="contractorSelect" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                               <option value="">Wszyscy kontrahenci</option>
+                          </select>
+                      </div>
+                  </div>
+
+                  <div id="agingFilters" style="display: none; background-color: #f8f9fc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #1cc88a;">
+                      <h4 style="margin-top: 0; margin-bottom: 15px; color: #1cc88a;">Opcje Wiekowania</h4>
+                      <div class="form-group">
+                          <label>Typ dokumentu:</label>
+                          <select name="agingTypeFilter" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                              <option value="Receivables">Należności (Klienci zalegają nam)</option>
+                              <option value="Payables">Zobowiązania (My zalegamy dostawcom)</option>
                           </select>
                       </div>
                   </div>
@@ -156,55 +168,54 @@
               <script>
                   const selector = document.getElementById('reportTypeSelector');
                   const advFilters = document.getElementById('advancedFilters');
+                  const agingFilters = document.getElementById('agingFilters');
                   const startDateContainer = document.getElementById('startDateContainer');
                   const endDateLabel = document.getElementById('endDateLabel');
                   const submitBtn = document.getElementById('mainSubmitBtn');
 
                   selector.addEventListener('change', function () {
                       if (this.value === 'turnover') {
-                          advFilters.style.display = 'block'; // Pokaż filtry kwot i typów
-                          startDateContainer.style.display = 'block'; // Pokaż datę "Od"
+                          // Pokaż opcje dla Zestawienia Obrotów
+                          advFilters.style.display = 'block';
+                          agingFilters.style.display = 'none';
+                          startDateContainer.style.display = 'block';
                           endDateLabel.innerText = "Do:";
-                          submitBtn.formAction = "/reports/generate"; // Endpoint dla Raportu 1
+                          submitBtn.formAction = "/reports/generate";
                           submitBtn.style.background = "#4e73df";
                       } else {
-                          advFilters.style.display = 'none'; // Ukryj filtry
-                          startDateContainer.style.display = 'none'; // Wiekowanie robi się tylko "na dzień"
+                          // Pokaż opcje dla Wiekowania
+                          advFilters.style.display = 'none';
+                          agingFilters.style.display = 'block';
+                          startDateContainer.style.display = 'none';
                           endDateLabel.innerText = "Dane na dzień:";
-                          submitBtn.formAction = "/reports/generate/agingReport"; // Endpoint dla Raportu 2
+                          submitBtn.formAction = "/reports/generate/agingReport";
                           submitBtn.style.background = "#1cc88a";
+                      }
+                  });
+
+                  // Skrypt pobierający kontrahentów do listy
+                  document.addEventListener("DOMContentLoaded", async () => {
+                      try {
+                          const res = await fetch("/api/contractors");
+                          const data = await res.json();
+                          const select = document.getElementById("contractorSelect");
+                          data.forEach((c) => {
+                              select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                          });
+                      } catch (e) {
+                          console.log("Błąd ładowania kontrahentów");
                       }
                   });
               </script>
 
           </section>
 
-          <form action="/reports/generate" method="POST">
-              <input type="date" name="startDate" required>
-              <input type="date" name="endDate" required>
-
-              <select name="transactionTypeFilter">
-                  <option value="All">Wszystko</option>
-                  <option value="Costs">Tylko Koszty</option>
-                  <option value="Revenue">Tylko Przychody</option>
-              </select>
-
-              <input type="number" name="minAmount" placeholder="Kwota od...">
-              <input type="number" name="maxAmount" placeholder="Kwota do...">
-
-              <select name="contractorId" id="contractorSelect">
-                  <option value="">Wszyscy kontrahenci</option>
-              </select>
-
-              <button type="submit">Generuj Zestawienie Obrotów</button>
-          </form>
-
-          <!-- Placeholder slots for additional UI elements or ads -->
           <div class="ads-row">
               <div class="ad-placeholder"><span>Miejsce na reklamę</span></div>
               <div class="ad-placeholder"><span>Miejsce na reklamę</span></div>
           </div>
       </main>
+
     </div>
 
     <!-- Interactive UI Logic -->

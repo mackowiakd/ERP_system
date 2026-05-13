@@ -10,7 +10,10 @@ using System;
 
 namespace ERP_System.Core
 {
+
     // Service responsible for generating PDF reports using QuestPDF.
+
+    public record AgingAggregationDto(string ContractorName, string TaxId, decimal TotalDebt, int OverdueCount);
     public class ReportService
     {
         private readonly AppDbContext _db;
@@ -81,41 +84,41 @@ namespace ERP_System.Core
                 int? contractorId = null,
                 decimal? minAmount = null,
                 decimal? maxAmount = null)
-            {
-                /* * SQL: 
-                 * SELECT * FROM Employees 
-                 * WHERE Id = @userId 
-                 * LIMIT 1; 
-                 */
-                var user = _db.Employees.FirstOrDefault(u => u.Id == userId);
-                if (user == null) return Array.Empty<byte>();
+        {
+            /* * SQL: 
+             * SELECT * FROM Employees 
+             * WHERE Id = @userId 
+             * LIMIT 1; 
+             */
+            var user = _db.Employees.FirstOrDefault(u => u.Id == userId);
+            if (user == null) return Array.Empty<byte>();
 
-                // 1. Definiujemy zakres pracowników
-                /* * SQL (Jeśli includeCompany == true): 
-                 * SELECT Id FROM Employees 
-                 * WHERE CompanyId = @companyId; 
-                 */
-                var employeeIds = (includeCompany && user.CompanyId.HasValue)
-                    ? _db.Employees.Where(e => e.CompanyId == user.CompanyId).Select(e => e.Id).ToList()
-                    : new List<int> { userId };
+            // 1. Definiujemy zakres pracowników
+            /* * SQL (Jeśli includeCompany == true): 
+             * SELECT Id FROM Employees 
+             * WHERE CompanyId = @companyId; 
+             */
+            var employeeIds = (includeCompany && user.CompanyId.HasValue)
+                ? _db.Employees.Where(e => e.CompanyId == user.CompanyId).Select(e => e.Id).ToList()
+                : new List<int> { userId };
 
-                // 2. Budujemy zapytanie (IQueryable - na tym etapie NIE wysyłamy jeszcze nic do bazy!)
-                var query = _db.FinancialOperations.AsQueryable();
+            // 2. Budujemy zapytanie (IQueryable - na tym etapie NIE wysyłamy jeszcze nic do bazy!)
+            var query = _db.FinancialOperations.AsQueryable();
 
-                // DYNAMICZNA FILTRACJA (Entity Framework buduje klauzulę WHERE w pamięci)
-                query = query.Where(t => employeeIds.Contains(t.EmployeeId) && t.Date >= start && t.Date <= end);
+            // DYNAMICZNA FILTRACJA (Entity Framework buduje klauzulę WHERE w pamięci)
+            query = query.Where(t => employeeIds.Contains(t.EmployeeId) && t.Date >= start && t.Date <= end);
 
-                if (typeFilter == "Costs") query = query.Where(t => t.Value < 0);
-                else if (typeFilter == "Revenue") query = query.Where(t => t.Value > 0);
+            if (typeFilter == "Costs") query = query.Where(t => t.Value < 0);
+            else if (typeFilter == "Revenue") query = query.Where(t => t.Value > 0);
 
-            if (contractorId.HasValue) query = 
+            if (contractorId.HasValue) query =
                     query.Where(t => t.Invoice != null && t.Invoice.ContractorId == contractorId.Value);
 
             if (minAmount.HasValue) query
                     = query.Where(t => Math.Abs(t.Value) >= minAmount.Value);
 
-                if (maxAmount.HasValue) query =
-                    query.Where(t => Math.Abs(t.Value) <= maxAmount.Value);
+            if (maxAmount.HasValue) query =
+                query.Where(t => Math.Abs(t.Value) <= maxAmount.Value);
 
             // 3. AGREGACJA PO STRONIE BAZY (GROUP BY)
             /* * =================================================================================
@@ -133,179 +136,57 @@ namespace ERP_System.Core
              * COALESCE(c.Name, 'Brak kategorii');
              * =================================================================================
              */
-               var aggregatedData = query
-                 .GroupBy(t => t.Category != null ? t.Category.Name : "Brak kategorii")
-                 .Select(g => new CategoryAggregationDto( // <--- ZMIANA: Używamy naszego rekordu
-                     g.Key,
-                     g.Sum(x => x.Value),
-                     g.Count()
-                 ))
-                 .ToList();
+            var aggregatedData = query
+              .GroupBy(t => t.Category != null ? t.Category.Name : "Brak kategorii")
+              .Select(g => new CategoryAggregationDto( // <--- ZMIANA: Używamy naszego rekordu
+                  g.Key,
+                  g.Sum(x => x.Value),
+                  g.Count()
+              ))
+              .ToList();
 
             // 4. Generowanie PDF na podstawie ZAGREGOWANYCH danych z bazy
             return CreatePdf(aggregatedData, start, end);
         }
 
-            private byte[] CreatePdf(IEnumerable<CategoryAggregationDto> data, DateTime start, DateTime end)
-            {
-                // (Logika generowania pliku PDF zostaje bez zmian)
-                var document = Document.Create(container =>
-                {
-                    container.Page(page =>
-                    {
-                        page.Size(PageSizes.A4);
-                        page.Margin(1, Unit.Centimetre);
-                        page.Header().Text("Zestawienie Obrotów (Zyski i Straty)").FontSize(20).SemiBold().FontColor(Colors.Blue.Medium);
-
-                        page.Content().PaddingVertical(10).Column(col =>
-                        {
-                            col.Item().Text($"Okres: {start:dd.MM.yyyy} - {end:dd.MM.yyyy}");
-                            col.Item().PaddingTop(10).Table(table =>
-                            {
-                                table.ColumnsDefinition(columns =>
-                                {
-                                    columns.RelativeColumn(3);
-                                    columns.RelativeColumn();
-                                    columns.RelativeColumn();
-                                });
-
-                                table.Header(header =>
-                                {
-                                    header.Cell().Text("Kategoria").SemiBold();
-                                    header.Cell().Text("Ilość").SemiBold();
-                                    header.Cell().Text("Suma").SemiBold();
-                                });
-
-                                foreach (var item in data)
-                                {
-                                    
-                                    table.Cell().Text(item.Category);
-                                    table.Cell().Text(item.Count.ToString());
-                                    table.Cell().Text(item.TotalSum.ToString("C2", new CultureInfo("pl-PL")));
-                                }
-                            });
-                        });
-                    });
-                });
-
-                return document.GeneratePdf();
-            }
-     
-    /*RPORT 2
-
-    Generates an Aging Report to analyze overdue invoices (Accounts Receivable/Payable aging).
-    */
-    public byte[] GenerateAgingReport(int requestingUserId, DateTime asOfDate, bool includeCompany)
+        private byte[] CreatePdf(IEnumerable<CategoryAggregationDto> data, DateTime start, DateTime end)
         {
-            var user = _db.Employees.FirstOrDefault(u => u.Id == requestingUserId);
-            if (user == null) return Array.Empty<byte>();
-
-            IQueryable<DBInvoice> query = _db.Invoices.Include(i => i.Contractor);
-            string scopeTitle = "Raport Wiekowania Rozrachunków - Indywidualny";
-
-            if (includeCompany && user.CompanyId.HasValue)
-            {
-                query = query.Where(i => i.CompanyId == user.CompanyId);
-                scopeTitle = "Raport Wiekowania Rozrachunków - Firmowy";
-            }
-            else
-            {
-                query = query.Where(i => i.CompanyId == (user.CompanyId ?? 0));
-            }
-
-            // Fetch invoices that are not fully paid
-            var unpaidInvoices = query.Where(i => (i.Status == InvoiceStatus.Unpaid || i.Status == InvoiceStatus.PartiallyPaid) && i.IssueDate <= asOfDate)
-                                      .ToList();
-
+            // (Logika generowania pliku PDF zostaje bez zmian)
             var document = Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Size(PageSizes.A4);
-                    page.Margin(2, Unit.Centimetre);
-                    page.PageColor(Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Arial"));
+                    page.Margin(1, Unit.Centimetre);
+                    page.Header().Text("Zestawienie Obrotów (Zyski i Straty)").FontSize(20).SemiBold().FontColor(Colors.Blue.Medium);
 
-                    page.Header().Row(row =>
+                    page.Content().PaddingVertical(10).Column(col =>
                     {
-                        row.RelativeItem().Column(col =>
+                        col.Item().Text($"Okres: {start:dd.MM.yyyy} - {end:dd.MM.yyyy}");
+                        col.Item().PaddingTop(10).Table(table =>
                         {
-                            col.Item().Text("Mini-ERP System").SemiBold().FontSize(20).FontColor(Colors.Blue.Medium);
-                            col.Item().Text(scopeTitle).FontSize(14).FontColor(Colors.Grey.Medium);
-                        });
-                        row.RelativeItem().AlignRight().Text($"Stan na dzień: {asOfDate:dd.MM.yyyy}");
-                    });
-
-                    page.Content().PaddingVertical(1, Unit.Centimetre).Column(column =>
-                    {
-                        column.Item().PaddingBottom(10).Text("Analiza przeterminowanych płatności").FontSize(14).SemiBold();
-
-                        var pl = new CultureInfo("pl-PL");
-
-                        // Define standard aging buckets for grouping
-                        var agingBuckets = new[]
-                        {
-                            new { Name = "Niewymagalne (przed terminem)", Min = int.MinValue, Max = 0 },
-                            new { Name = "1 - 30 dni po terminie", Min = 1, Max = 30 },
-                            new { Name = "31 - 60 dni po terminie", Min = 31, Max = 60 },
-                            new { Name = "61 - 90 dni po terminie", Min = 61, Max = 90 },
-                            new { Name = "Powyżej 90 dni", Min = 91, Max = int.MaxValue }
-                        };
-
-                        foreach (var bucket in agingBuckets)
-                        {
-                            var filtered = unpaidInvoices.Where(i =>
+                            table.ColumnsDefinition(columns =>
                             {
-                                var daysLate = (asOfDate - i.DueDate).Days;
-                                return daysLate >= bucket.Min && daysLate <= bucket.Max;
-                            }).ToList();
-
-                            if (!filtered.Any()) continue;
-
-                            column.Item().PaddingTop(10).Text(bucket.Name).FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
-
-                            column.Item().Table(table =>
-                            {
-                                table.ColumnsDefinition(columns =>
-                                {
-                                    columns.RelativeColumn(2);  // Contractor
-                                    columns.RelativeColumn(2);  // Invoice Number
-                                    columns.ConstantColumn(80); // Due Date
-                                    columns.ConstantColumn(50); // Days
-                                    columns.ConstantColumn(80); // Amount
-                                });
-
-                                table.Header(header =>
-                                {
-                                    header.Cell().Element(HeaderStyle).Text("Kontrahent");
-                                    header.Cell().Element(HeaderStyle).Text("Nr Faktury");
-                                    header.Cell().Element(HeaderStyle).Text("Termin");
-                                    header.Cell().Element(HeaderStyle).Text("Dni").AlignRight();
-                                    header.Cell().Element(HeaderStyle).Text("Kwota").AlignRight();
-                                });
-
-                                foreach (var inv in filtered)
-                                {
-                                    var daysLate = (asOfDate - inv.DueDate).Days;
-                                    table.Cell().Element(CellStyle).Text(inv.Contractor?.Name ?? "Nieznany");
-                                    table.Cell().Element(CellStyle).Text(inv.InvoiceNumber);
-                                    table.Cell().Element(CellStyle).Text($"{inv.DueDate:dd.MM.yyyy}");
-                                    table.Cell().Element(CellStyle).Text(daysLate > 0 ? daysLate.ToString() : "0").AlignRight();
-                                    table.Cell().Element(CellStyle).Text(inv.TotalGross.ToString("C2", pl)).AlignRight();
-                                }
+                                columns.RelativeColumn(3);
+                                columns.RelativeColumn();
+                                columns.RelativeColumn();
                             });
-                        }
 
-                        if (!unpaidInvoices.Any())
-                        {
-                            column.Item().PaddingVertical(20).AlignCenter().Text("Brak nieopłaconych faktur spełniających kryteria.");
-                        }
-                    });
+                            table.Header(header =>
+                            {
+                                header.Cell().Text("Kategoria").SemiBold();
+                                header.Cell().Text("Ilość").SemiBold();
+                                header.Cell().Text("Suma").SemiBold();
+                            });
 
-                    page.Footer().AlignCenter().Text(x =>
-                    {
-                        x.Span("Strona ");
-                        x.CurrentPageNumber();
+                            foreach (var item in data)
+                            {
+
+                                table.Cell().Text(item.Category);
+                                table.Cell().Text(item.Count.ToString());
+                                table.Cell().Text(item.TotalSum.ToString("C2", new CultureInfo("pl-PL")));
+                            }
+                        });
                     });
                 });
             });
@@ -313,15 +194,116 @@ namespace ERP_System.Core
             return document.GeneratePdf();
         }
 
-        // Helper style methods for table layout consistency
-        private static IContainer CellStyle(IContainer container)
+        /*RPORT 2 WIEKOWANIE ROZRACHUNKÓW (AGING REPORT)
+         * 
+         *
+
+        Generates an Aging Report to analyze overdue invoices (Accounts Receivable/Payable aging).
+        Parametry wejściowe:
+
+        -Stan zadłużenia na wybrany dzień: Realizowane przez parametr asOfDate. SQL sprawdza faktury, których DueDate (termin płatności) jest mniejszy lub równy tej dacie.
+        -Typ dokumentu: Realizowane przez parametr agingType. Filtruje po InvoiceType.Sales (Należności) lub InvoiceType.Cost (Zobowiązania).
+
+        -- Zapytanie dla Raportu 2: Wiekowanie Rozrachunków
+            SELECT 
+                c.contractor_name AS Name,
+                c.contractor_tax_id AS NIP,
+                SUM(i.total_gross) AS TotalDebt,
+                COUNT(i.invoice_id) AS OverdueCount
+            FROM invoices i
+            LEFT JOIN contractors c ON i.contractor_id = c.contractor_id
+            WHERE i.company_id IN (@ids) 
+              AND (i.invoice_status = 0 OR i.invoice_status = 2) -- Unpaid lub PartiallyPaid
+              AND i.due_date <= @asOfDate
+              AND i.invoice_type = @selectedType -- 0 dla Należności, 1 dla Zobowiązań
+            GROUP BY c.contractor_name, c.contractor_tax_id;
+         
+         */
+
+        public byte[] GenerateAgingReport(int requestingUserId, DateTime asOfDate, bool includeCompany, string agingType = "All")
         {
-            return container.BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingVertical(5);
+            var user = _db.Employees.FirstOrDefault(u => u.Id == requestingUserId);
+            if (user == null) return Array.Empty<byte>();
+
+            var employeeIds = (includeCompany && user.CompanyId.HasValue)
+                ? _db.Employees.Where(e => e.CompanyId == user.CompanyId).Select(e => e.Id).ToList()
+                : new List<int> { requestingUserId };
+
+            // 1. ZAPYTANIE BAZOWE: IQueryable - praca na silniku DB
+            var query = _db.Invoices.AsQueryable()
+                .Where(i => employeeIds.Contains(i.CompanyId)
+                         && (i.Status == InvoiceStatus.Unpaid || i.Status == InvoiceStatus.PartiallyPaid)
+                         && i.DueDate <= asOfDate);
+
+            // 2. FILTR: Typ dokumentu (Należności / Zobowiązania - specyfikacja tabeli 2)
+            if (agingType == "Receivables") query = query.Where(i => i.Type == InvoiceType.Sales);
+            else if (agingType == "Payables") query = query.Where(i => i.Type == InvoiceType.Cost);
+
+            // 3. AGREGACJA SQL (GROUP BY względem każdego Kontrahenta)
+            var aggregatedData = query
+                .GroupBy(i => new {
+                    Name = i.Contractor != null ? i.Contractor.Name : "Brak kontrahenta",
+                    NIP = i.Contractor != null ? i.Contractor.TaxId : "-"
+                })
+                .Select(g => new AgingAggregationDto(
+                    g.Key.Name,
+                    g.Key.NIP,
+                    g.Sum(x => x.TotalGross), // SUM()
+                    g.Count()                 // COUNT()
+                ))
+                .ToList(); // Wykonanie na bazie - do RAM trafiają tylko gotowe sumy
+
+            // DUMB TESTING: Obsługa braku danych
+            if (!aggregatedData.Any())
+            {
+                return Document.Create(c => c.Page(p => {
+                    p.Margin(2, Unit.Centimetre);
+                    p.Content().Text($"Brak spóźnionych płatności na dzień {asOfDate:dd.MM.yyyy}").FontSize(14).Italic();
+                })).GeneratePdf();
+            }
+
+            // 4. GENEROWANIE PDF
+            return Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(2, Unit.Centimetre);
+                    page.Header().Text("Raport Wiekowania Rozrachunków").FontSize(20).SemiBold().FontColor(Colors.Blue.Medium);
+
+                    page.Content().PaddingVertical(10).Column(column =>
+                    {
+                        column.Item().Text($"Stan zadłużenia na dzień: {asOfDate:dd.MM.yyyy}").FontSize(12);
+                        column.Item().PaddingTop(10).Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn(3); // Nazwa
+                                columns.RelativeColumn(2); // NIP
+                                columns.RelativeColumn(1); // Ilość
+                                columns.RelativeColumn(2); // Suma
+                            });
+
+                            table.Header(header =>
+                            {
+                                header.Cell().Text("Kontrahent").SemiBold();
+                                header.Cell().Text("NIP").SemiBold();
+                                header.Cell().Text("Ilość faktur").SemiBold();
+                                header.Cell().Text("Kwota długu").SemiBold();
+                            });
+
+                            foreach (var item in aggregatedData)
+                            {
+                                table.Cell().Text(item.ContractorName);
+                                table.Cell().Text(item.TaxId);
+                                table.Cell().Text(item.OverdueCount.ToString());
+                                table.Cell().Text(item.TotalDebt.ToString("C2", new CultureInfo("pl-PL"))).FontColor(Colors.Red.Medium);
+                            }
+                        });
+                    });
+                });
+            }).GeneratePdf();
         }
 
-        private static IContainer HeaderStyle(IContainer container)
-        {
-            return container.BorderBottom(1).BorderColor(Colors.Grey.Medium).PaddingVertical(5).DefaultTextStyle(x => x.SemiBold());
-        }
     }
 }
