@@ -35,48 +35,51 @@ namespace ERP_System.Web.Services
 
                         foreach (var rule in tasksToRun)
                         {
-                            if (rule.Invoice != null)
+                            while (rule.NextRunDate <= DateTime.Now && rule.IsActive)
                             {
-                                var newTransaction = new DBFinancialOperations
+                                if (rule.Invoice != null)
                                 {
-                                    CompanyId = rule.Invoice.CompanyId,
-                                    CategoryId = rule.Invoice.CategoryId,
-                                    EmployeeId = rule.Invoice.EmployeeId,
-                                    Value = rule.Invoice.Value,
-                                    TransactionType = rule.Invoice.TransactionType,
-                                    Title = rule.Invoice.Title,
-                                    Description = rule.Invoice.Description + " (Auto)",
-                                    Date = rule.NextRunDate,
-                                    IsRepeatable = false
-                                };
-                                db.FinancialOperations.Add(newTransaction);
-                            }
-                            else if (rule.BaseInvoice != null)
-                            {
-                                var newInvoice = new DBInvoice
+                                    var newTransaction = new DBFinancialOperations
+                                    {
+                                        CompanyId = rule.Invoice.CompanyId,
+                                        CategoryId = rule.Invoice.CategoryId,
+                                        EmployeeId = rule.Invoice.EmployeeId,
+                                        Value = rule.Invoice.Value,
+                                        TransactionType = rule.Invoice.TransactionType,
+                                        Title = rule.Invoice.Title,
+                                        Description = rule.Invoice.Description + " (Auto)",
+                                        Date = rule.NextRunDate,
+                                        IsRepeatable = false
+                                    };
+                                    db.FinancialOperations.Add(newTransaction);
+                                }
+                                else if (rule.BaseInvoice != null)
                                 {
-                                    CompanyId = rule.BaseInvoice.CompanyId,
-                                    ContractorId = rule.BaseInvoice.ContractorId,
-                                    InvoiceNumber = rule.BaseInvoice.InvoiceNumber + " (C)",
-                                    IssueDate = rule.NextRunDate,
-                                    DueDate = rule.NextRunDate.AddDays(14),
-                                    PaymentMethod = rule.BaseInvoice.PaymentMethod,
-                                    TotalNet = rule.BaseInvoice.TotalNet,
-                                    TotalGross = rule.BaseInvoice.TotalGross,
-                                    Type = rule.BaseInvoice.Type,
-                                    Notes = rule.BaseInvoice.Notes,
-                                    Status = InvoiceStatus.Unpaid
-                                };
-                                db.Invoices.Add(newInvoice);
-                            }
-                            else
-                            {
-                                continue;
-                            }
+                                    var newInvoice = new DBInvoice
+                                    {
+                                        CompanyId = rule.BaseInvoice.CompanyId,
+                                        ContractorId = rule.BaseInvoice.ContractorId,
+                                        InvoiceNumber = rule.BaseInvoice.InvoiceNumber + " (C)",
+                                        IssueDate = rule.NextRunDate,
+                                        DueDate = rule.NextRunDate.AddDays(14),
+                                        PaymentMethod = rule.BaseInvoice.PaymentMethod,
+                                        TotalNet = rule.BaseInvoice.TotalNet,
+                                        TotalGross = rule.BaseInvoice.TotalGross,
+                                        Type = rule.BaseInvoice.Type,
+                                        Notes = rule.BaseInvoice.Notes,
+                                        Status = InvoiceStatus.Unpaid,
+                                        CategoryId = rule.BaseInvoice.CategoryId
+                                    };
+                                    db.Invoices.Add(newInvoice);
+                                }
+                                else
+                                {
+                                    break;
+                                }
 
-                            rule.NextRunDate = CalculateNextDate(rule.NextRunDate, rule.IntervalValue, (TransactionIntervalType)rule.IntervalType);
-                            
-                            _logger.LogInformation($"Wygenerowano transakcję/fakturę cykliczną");
+                                rule.NextRunDate = CalculateNextDate(rule.NextRunDate, rule.IntervalValue, (TransactionIntervalType)rule.IntervalType);
+                                _logger.LogInformation($"Wygenerowano transakcję/fakturę cykliczną dla daty {rule.NextRunDate}");
+                            }
                         }
 
                         if (tasksToRun.Any())

@@ -62,10 +62,8 @@ namespace ERP_System.Core
             {
                 try
                 {
-                    DateTime nextRunDate = date;
                     var unit = (TransactionIntervalType)frequencyUnit.Value;
-
-                    nextRunDate = unit switch
+                    DateTime nextRunDate = unit switch
                     {
                         TransactionIntervalType.Days => date.AddDays(transactionInterval.Value),
                         TransactionIntervalType.Weeks => date.AddDays(transactionInterval.Value * 7),
@@ -82,6 +80,33 @@ namespace ERP_System.Core
                         NextRunDate = nextRunDate,
                         IsActive = true
                     };
+
+                    // Immediate generation for past dates
+                    while (newRepTransaction.NextRunDate <= DateTime.Now)
+                    {
+                        var generatedTransaction = new DBFinancialOperations
+                        {
+                            EmployeeId = userId,
+                            CategoryId = categoryId,
+                            Value = value,
+                            TransactionType = type,
+                            Date = newRepTransaction.NextRunDate,
+                            IsRepeatable = false,
+                            Title = title,
+                            Description = (description ?? "") + " (Auto)",
+                            CompanyId = companyId ?? 0
+                        };
+                        db.Add(generatedTransaction);
+
+                        newRepTransaction.NextRunDate = unit switch
+                        {
+                            TransactionIntervalType.Days => newRepTransaction.NextRunDate.AddDays(transactionInterval.Value),
+                            TransactionIntervalType.Weeks => newRepTransaction.NextRunDate.AddDays(transactionInterval.Value * 7),
+                            TransactionIntervalType.Months => newRepTransaction.NextRunDate.AddMonths(transactionInterval.Value),
+                            TransactionIntervalType.Years => newRepTransaction.NextRunDate.AddYears(transactionInterval.Value),
+                            _ => newRepTransaction.NextRunDate.AddMonths(transactionInterval.Value)
+                        };
+                    }
 
                     db.Add(newRepTransaction);
                     db.SaveChanges();
@@ -186,56 +211,6 @@ namespace ERP_System.Core
             .ThenInclude(t => t.Category) 
             .Where(rt => rt.Invoice != null && userId == rt.Invoice.EmployeeId && rt.IsActive).ToList();
             var temp = db.FinancialOperations.Where(t => t.EmployeeId == userId && t.Date <= DateTime.Now).OrderByDescending(t => t.Date).Take(amount).ToList();
-            DateTime now = DateTime.Now;
-            // Project Future Transactions
-            foreach (var rule in recurringRules)
-            {
-                var currentDate = rule.NextRunDate;
-                var unit = (TransactionIntervalType)rule.IntervalType;
-                var occurenceNumber = 1;
-                // Loop to find all occurrences within the requested range
-                while (currentDate <= DateTime.Now)
-                {
-                    if (currentDate >= new DateTime(now.Year, now.Month, 1))
-                    {
-                        // Create a transient transaction object for calculation
-                        var projected = new DBFinancialOperations
-                        {
-                            Id = 0, // transient
-                            CompanyId = rule.Invoice!.CompanyId,  
-                            EmployeeId = rule.Invoice.EmployeeId, 
-                            CategoryId = rule.Invoice.CategoryId,
-                            Category = rule.Invoice.Category,
-                            Value = rule.Invoice.Value,           
-                            Title = "Projected",
-                            TransactionType = rule.Invoice.TransactionType,
-                            Date = currentDate,
-                            IsRepeatable = false
-                        };
-
-                        occurenceNumber++;
-                    }
-
-                    // Advance to next occurrence 
-                    currentDate = unit switch
-                    {
-                        TransactionIntervalType.Days => currentDate.AddDays(rule.IntervalValue),
-                        TransactionIntervalType.Weeks => currentDate.AddDays(rule.IntervalValue * 7),
-                        TransactionIntervalType.Months => currentDate.AddMonths(rule.IntervalValue),
-                        TransactionIntervalType.Years => currentDate.AddYears(rule.IntervalValue),
-                        _ => currentDate.AddMonths(1)
-                    };
-                }
-                //No more occurences
-                foreach (var transaction in temp)
-                {
-                    if (transaction.Id == rule.TransactionPatternId) //Matches by ID
-                    {
-                        transaction.Value = transaction.Value * occurenceNumber; //Multiply to accomodate multiple occurences in one show
-                        break; //No use looping more
-                    }
-                }
-            }
             return temp;
             //return db.FinancialOperations.Where(t => t.EmployeeId == userId && t.Date <= DateTime.Now).OrderByDescending(t => t.Date).Take(amount).ToList();
         }

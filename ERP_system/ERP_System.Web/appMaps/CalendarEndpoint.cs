@@ -65,6 +65,7 @@ namespace ERP_System.Web.appMaps
                 // regular invoice
                 var invoices = await db.Invoices
                     .Include(i => i.Contractor)
+                    .Include(i => i.RecurringOperation)
                     .Where(i => i.CompanyId == companyId && i.IssueDate >= startDate && i.IssueDate <= endDate)
                     .ToListAsync();
 
@@ -83,24 +84,56 @@ namespace ERP_System.Web.appMaps
                         description2 = $"Typ: {(i.Type == InvoiceType.Sales ? "Sprzedażowa" : "Kosztowa")} | Status: {(i.Status == InvoiceStatus.Paid ? "Opłacona" : "Nieopłacona")}",
                         description3 = i.Notes ?? "",
                         color = i.Type == InvoiceType.Cost ? "#e74a3b" : "#1cc88a",
-                        isRecurring = false
+                        isRecurring = false,
+                        hasRecurringRule = i.RecurringOperation != null
                     });
                 }
 
-                // reccuring invoices
+                // regular transactions (FinancialOperations)
+                var transactions = await db.FinancialOperations
+                    .Include(t => t.RecurringOperation)
+                    .Where(t => t.CompanyId == companyId && t.Date >= startDate && t.Date <= endDate)
+                    .ToListAsync();
+
+                foreach (var t in transactions)
+                {
+                    events.Add(new
+                    {
+                        id = "trans_" + t.Id,
+                        title = t.Title,
+                        startTime = t.Date.ToString("yyyy-MM-ddTHH:mm:ss"),
+                        endTime = t.Date.AddHours(1).ToString("yyyy-MM-ddTHH:mm:ss"),
+                        amount = t.Value,
+                        type = (int)t.TransactionType,
+                        status = 1, // consider as paid
+                        description = $"Transakcja: {t.Title}",
+                        description2 = $"Opis: {t.Description ?? "Brak"}",
+                        description3 = "",
+                        color = t.Value < 0 ? "#e74a3b" : "#1cc88a",
+                        isRecurring = false,
+                        hasRecurringRule = t.RecurringOperation != null
+                    });
+                }
+
+                // reccuring items (Invoices and Transactions)
                 var recurringOps = await db.RecurringOperations
                     .Include(r => r.BaseInvoice)
                     .ThenInclude(i => i.Contractor)
-                    .Where(r => r.BaseInvoice != null && r.BaseInvoice.CompanyId == companyId && r.IsActive)
+                    .Include(r => r.Invoice)
+                    .Where(r => (r.BaseInvoice != null && r.BaseInvoice.CompanyId == companyId || r.Invoice != null && r.Invoice.CompanyId == companyId) && r.IsActive)
                     .ToListAsync();
 
                 foreach (var ro in recurringOps)
                 {
-                    var inv = ro.BaseInvoice!;
-                    var current = inv.IssueDate;
+                    var isInvoice = ro.BaseInvoice != null;
+                    var titlePattern = isInvoice ? ro.BaseInvoice!.InvoiceNumber : ro.Invoice!.Title;
+                    var amount = isInvoice ? ro.BaseInvoice!.TotalGross : ro.Invoice!.Value;
+                    var type = isInvoice ? (int)ro.BaseInvoice!.Type : (int)ro.Invoice!.TransactionType;
+                    var description = isInvoice ? $"Faktura CYKLICZNA: {ro.BaseInvoice.InvoiceNumber} | Kontrahent: {ro.BaseInvoice.Contractor?.Name ?? "Nieznany"}" : $"Transakcja CYKLICZNA: {ro.Invoice!.Title}";
+
+                    var current = ro.NextRunDate;
                     var intervalType = (ERP_System.Core.Enums.TransactionIntervalType)ro.IntervalType;
 
-                    // go to start date
                     while (current < startDate)
                     {
                         current = intervalType switch
@@ -113,28 +146,24 @@ namespace ERP_System.Web.appMaps
                         };
                     }
 
-                    // generate reccuring transactions in the future (max 100 for safety)
                     int safety = 0;
-                    while (current <= endDate && safety < 100)
+                    while (current <= endDate && safety < 100) // Project all occurrences within range for the grid
                     {
-                        if (current != inv.IssueDate || !invoices.Any(x => x.Id == inv.Id))
+                        events.Add(new
                         {
-                            events.Add(new
-                            {
-                                id = "rec_" + inv.Id + "_" + current.Ticks,
-                                title = "[CYKL] " + inv.InvoiceNumber,
-                                startTime = current.ToString("yyyy-MM-ddTHH:mm:ss"),
-                                endTime = current.AddDays(1).ToString("yyyy-MM-ddTHH:mm:ss"),
-                                amount = inv.TotalGross,
-                                type = (int)inv.Type,
-                                status = (int)inv.Status,
-                                description = $"Faktura CYKLICZNA: {inv.InvoiceNumber} | Kontrahent: {inv.Contractor?.Name ?? "Nieznany"}",
-                                description2 = $"Typ: {(inv.Type == InvoiceType.Sales ? "Sprzedażowa" : "Kosztowa")} | Status: Planowana",
-                                description3 = inv.Notes ?? "",
-                                color = "#f6c23e", // yelow color for reccuring invoices
-                                isRecurring = true
-                            });
-                        }
+                            id = "rec_" + ro.Id + "_" + current.Ticks,
+                            title = "[CYKL] " + titlePattern,
+                            startTime = current.ToString("yyyy-MM-ddTHH:mm:ss"),
+                            endTime = current.AddDays(1).ToString("yyyy-MM-ddTHH:mm:ss"),
+                            amount = amount,
+                            type = type,
+                            status = 0,
+                            description = description,
+                            description2 = "Status: Planowana",
+                            description3 = "",
+                            color = "#f6c23e",
+                            isRecurring = true
+                        });
 
                         current = intervalType switch
                         {

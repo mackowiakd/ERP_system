@@ -322,13 +322,15 @@
               </div>
               <div
                 id="recurringOptions"
-                style="display: none; flex: 1; gap: 10px"
+                style="display: none; align-items: center; gap: 10px; flex: 1;"
               >
-                <select id="invRecurringType" class="form-input">
-                  <option value="daily">Co dzień</option>
-                  <option value="monthly" selected>Co miesiąc</option>
-                  <option value="quarterly">Co kwartał</option>
-                  <option value="yearly">Co rok</option>
+                <span style="white-space: nowrap; margin-left: 15px;">Co:</span>
+                <input type="number" id="invIntervalValue" class="form-input" value="1" min="1" style="width: 70px; margin: 0;">
+                <select id="invIntervalType" class="form-input" style="margin: 0;">
+                  <option value="0">Dni</option>
+                  <option value="1">Tygodni</option>
+                  <option value="2" selected>Miesięcy</option>
+                  <option value="3">Lat</option>
                 </select>
               </div>
             </div>
@@ -444,6 +446,21 @@
           });
         }
 
+        // Obsługa checkboxa transakcji cyklicznej
+        const invIsRecurring = document.getElementById("invIsRecurring");
+        const recurringOptionsBlock = document.getElementById("recurringOptions");
+        if (invIsRecurring && recurringOptionsBlock) {
+          invIsRecurring.addEventListener("click", function() {
+            recurringOptionsBlock.style.display = this.checked ? "flex" : "none";
+          });
+          // Initial state check
+          if (invIsRecurring.checked) {
+              recurringOptionsBlock.style.display = "flex";
+          } else {
+              recurringOptionsBlock.style.display = "none";
+          }
+        }
+
         const btnSaveQuickCat = document.getElementById("btnSaveQuickCategory");
         if (btnSaveQuickCat) {
           btnSaveQuickCat.addEventListener("click", async (e) => {
@@ -492,26 +509,8 @@
               : false;
 
             if (isRecurring) {
-              const recurringType =
-                document.getElementById("invRecurringType").value;
-              switch (recurringType) {
-                case "daily":
-                  frequencyUnit = 0;
-                  intervalValue = 1;
-                  break;
-                case "monthly":
-                  frequencyUnit = 2;
-                  intervalValue = 1;
-                  break;
-                case "quarterly":
-                  frequencyUnit = 2;
-                  intervalValue = 3;
-                  break;
-                case "yearly":
-                  frequencyUnit = 3;
-                  intervalValue = 1;
-                  break;
-              }
+              frequencyUnit = parseInt(document.getElementById("invIntervalType").value);
+              intervalValue = parseInt(document.getElementById("invIntervalValue").value);
             }
 
             const payload = {
