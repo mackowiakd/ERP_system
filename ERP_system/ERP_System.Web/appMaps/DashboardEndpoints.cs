@@ -29,7 +29,7 @@ namespace ERP_System.Web.appMaps
                 var now = DateTime.Now;
                 var startMonth = new DateTime(966, 1, 1);
 
-                // Liczymy saldo na podstawie faktur z bieżącego miesiąca //to tak nie powinno działać, zrobiłem saldo ze wszystkich faktur
+                // calculate saldo
                 var invoices = await db.Invoices
                     .Where(i => i.CompanyId == (user.CompanyId ?? 0) && i.IssueDate >= startMonth)
                     .ToListAsync();

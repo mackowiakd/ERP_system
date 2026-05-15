@@ -12,10 +12,9 @@ namespace ERP_System.Web.appMaps
     {
         public static void MapContractorEndpoints(this IEndpointRouteBuilder app)
         {
-            // WYSWIETLANIE STRONY HTML
             app.MapGet("/contractors", async (HttpContext context, IWebHostEnvironment env, AppDbContext db) =>
             {
-                // Sprawdzamy ciasteczko user_id (zgodnie z LoginEndpoint)
+                // check if logged in in cookie
                 if (!context.Request.Cookies.ContainsKey("logged_user"))
                     return Results.Redirect("/");
 
@@ -35,16 +34,14 @@ namespace ERP_System.Web.appMaps
                 }
                 html = html.Replace("{admin_panel_button}", adminBtnHtml);
                 return Results.Content(html, "text/html; charset=utf-8");
-                // await context.Response.SendFileAsync("wwwroot/contractors.html");
             });                  
             
-            // POBIERANIE LISTY
+            // load contractors list
             app.MapGet("/api/contractors", async (HttpContext context, ContractorService service, AppDbContext db) =>
             {
                 if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))
                     return Results.Unauthorized();
 
-                // Pobieramy użytkownika z bazy, żeby wyciągnąć jego CompanyId (tak jak w Dashboardzie)
                 var user = await db.Employees.FirstOrDefaultAsync(u => u.Id == userId);
                 if (user == null || user.CompanyId == null) return Results.Json(new List<DBContractor>());
 
@@ -52,7 +49,7 @@ namespace ERP_System.Web.appMaps
                 return Results.Json(contractors);
             });
 
-            // DODAWANIE NOWEGO KONTRAHENTA
+            // add new contractor
             app.MapPost("/api/contractors", async (HttpContext context, ContractorService service, AppDbContext db) =>
             {
                 ContractorRequest? body;
@@ -90,7 +87,7 @@ namespace ERP_System.Web.appMaps
                 }
             });
 
-            // USUWANIE
+            // delete contractor
             app.MapDelete("/api/contractors/{id:int}", async (int id, HttpContext context, ContractorService service, AppDbContext db) =>
             {
                 if (!context.Request.Cookies.TryGetValue("user_id", out var userIdStr) || !int.TryParse(userIdStr, out int userId))

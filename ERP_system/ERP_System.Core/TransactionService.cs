@@ -36,7 +36,6 @@ namespace ERP_System.Core
             }
         }
 
-        // Zmieniono parametr z houseId na companyId
         public void addTransaction(int userId, int categoryId, decimal value, TransactionType type, DateTime date, bool isRepeatable, int? transactionInterval, string title, string? description, int? companyId, int? frequencyUnit)
         {
             if (companyId == null || companyId == 0)                                                                                                                                                             
@@ -75,7 +74,6 @@ namespace ERP_System.Core
                         _ => date.AddMonths(transactionInterval.Value)
                     };
 
-                    // POPRAWKA: Czysta encja cykliczna (bez dublowania tytułu i kategorii)
                     var newRepTransaction = new DBRecurringOperations
                     {
                         TransactionPatternId = newTransaction.Id,
@@ -124,7 +122,6 @@ namespace ERP_System.Core
 
         public void deleteTransaction(int transactionId, int userId)
         {
-            // POPRAWKA: t.EmployeeId
             var transaction = db.FinancialOperations.FirstOrDefault(t => t.Id == transactionId && t.EmployeeId == userId);
 
             if (transaction == null)
@@ -179,24 +176,22 @@ namespace ERP_System.Core
 
         public List<DBFinancialOperations> AllUserTransactions(int userId)
         {
-            // POPRAWKA: t.EmployeeId zamians CompanyId/UserId
             return db.FinancialOperations.Where(t => t.EmployeeId == userId).OrderByDescending(t => t.Date).ToList();
         }
 
         public List<DBFinancialOperations> SomeUserTransactions(int userId, int amount)
         {
-            // POPRAWKA: t.EmployeeId
             var recurringRules = db.RecurringOperations
             .Include(rt => rt.Invoice)
-            .ThenInclude(t => t.Category) // Pobieramy kategorię z podpiętej operacji!
+            .ThenInclude(t => t.Category) 
             .Where(rt => rt.Invoice != null && userId == rt.Invoice.EmployeeId && rt.IsActive).ToList();
             var temp = db.FinancialOperations.Where(t => t.EmployeeId == userId && t.Date <= DateTime.Now).OrderByDescending(t => t.Date).Take(amount).ToList();
             DateTime now = DateTime.Now;
-            // 3. Project Future Transactions
+            // Project Future Transactions
             foreach (var rule in recurringRules)
             {
                 var currentDate = rule.NextRunDate;
-                var unit = (TransactionIntervalType)rule.IntervalType; // ZMIANA z FrequencyUnit
+                var unit = (TransactionIntervalType)rule.IntervalType;
                 var occurenceNumber = 1;
                 // Loop to find all occurrences within the requested range
                 while (currentDate <= DateTime.Now)
@@ -207,11 +202,11 @@ namespace ERP_System.Core
                         var projected = new DBFinancialOperations
                         {
                             Id = 0, // transient
-                            CompanyId = rule.Invoice!.CompanyId,   // POPRAWKA
-                            EmployeeId = rule.Invoice.EmployeeId, // POPRAWKA
+                            CompanyId = rule.Invoice!.CompanyId,  
+                            EmployeeId = rule.Invoice.EmployeeId, 
                             CategoryId = rule.Invoice.CategoryId,
                             Category = rule.Invoice.Category,
-                            Value = rule.Invoice.Value,           // POPRAWKA: Pobieramy kwotę z transakcji, nie z reguły
+                            Value = rule.Invoice.Value,           
                             Title = "Projected",
                             TransactionType = rule.Invoice.TransactionType,
                             Date = currentDate,
@@ -221,7 +216,7 @@ namespace ERP_System.Core
                         occurenceNumber++;
                     }
 
-                    // Advance to next occurrence (ZMIANA z TransactionInterval na IntervalValue)
+                    // Advance to next occurrence 
                     currentDate = unit switch
                     {
                         TransactionIntervalType.Days => currentDate.AddDays(rule.IntervalValue),

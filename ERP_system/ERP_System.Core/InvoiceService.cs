@@ -20,6 +20,7 @@ namespace ERP_System.Core
         {
             return _db.Invoices
                       .Include(i => i.Contractor) // Dociągamy dane kontrahenta (żeby mieć jego nazwę)
+                      .Include(i => i.Category)   // Dociągamy dane kategorii
                       .Where(i => i.CompanyId == companyId)
                       .OrderByDescending(i => i.IssueDate) // Sortujemy od najnowszych
                       .ToList();
@@ -28,6 +29,7 @@ namespace ERP_System.Core
         public string AddInvoice(int companyId, int contractorId, string invoiceNumber, 
                                  DateTime issueDate, DateTime dueDate, PaymentMethod paymentMethod, 
                                  decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status,
+                                 int? categoryId = null,
                                  bool isRecurring = false, int? frequencyUnit = null, int? intervalValue = null)
         {
             try
@@ -56,7 +58,8 @@ namespace ERP_System.Core
                     TotalGross = totalGross,
                     Type = type,
                     Notes = notes,
-                    Status = status
+                    Status = status,
+                    CategoryId = categoryId
                 };
 
                 _db.Invoices.Add(newInvoice);
@@ -65,7 +68,6 @@ namespace ERP_System.Core
                 if (isRecurring && frequencyUnit.HasValue && intervalValue.HasValue)
                 {
                     var nextRunDate = issueDate;
-                    // Obliczamy pierwszą przyszłą datę
                     nextRunDate = CalculateNextDate(nextRunDate, intervalValue.Value, (ERP_System.Core.Enums.TransactionIntervalType)frequencyUnit.Value);
 
                     var recurringOp = new DBRecurringOperations
@@ -100,10 +102,9 @@ namespace ERP_System.Core
             };
         }
 
-        // 3. USUWANIE FAKTURY
         public string DeleteInvoice(int invoiceId, int companyId)
         {
-            // Szukamy faktury, upewniając się, że należy do naszej firmy
+            // search for invoice, making sure user is a member of a company
             var invoice = _db.Invoices.FirstOrDefault(i => i.Id == invoiceId && i.CompanyId == companyId);
 
             if (invoice == null)
@@ -123,7 +124,7 @@ namespace ERP_System.Core
             }
         }
 
-        // 4. GENEROWANIE HTML DLA PULPITU (Dashboard)
+        // generation of html for dashboard
         public System.Text.StringBuilder ListInvoicesForDashboard(int companyId, int count = 8)
         {
             var invoices = _db.Invoices
@@ -139,7 +140,7 @@ namespace ERP_System.Core
             {
                 string date = inv.IssueDate.ToString("dd.MM.yyyy");
                 string amount = inv.TotalGross.ToString("C2", new System.Globalization.CultureInfo("pl-PL"));
-                // Dla faktur kosztowych (zakupowych) dajemy czerwony kolor, dla sprzedażowych zielony
+                // red for cost, green for sales
                 string colorClass = inv.Type == InvoiceType.Cost ? "amount-expense" : "amount-income";
                 string contractor = inv.Contractor?.Name ?? "Nieznany";
                 
@@ -167,10 +168,11 @@ namespace ERP_System.Core
             return sb;
         }
 
-        // 5. EDYTOWANIE ISTNIEJĄCEJ FAKTURY
+        // edit invoice
         public string EditInvoice(int invoiceId, string invoiceNumber,
                                   DateTime issueDate,
-                                  decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status)
+                                  decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status,
+                                  int? categoryId = null)
         {
             var invoice = _db.Invoices.FirstOrDefault(i => i.Id == invoiceId);
             if (invoice == null)
@@ -186,6 +188,7 @@ namespace ERP_System.Core
                 invoice.Type = type;
                 invoice.Notes = notes;
                 invoice.Status = status;
+                invoice.CategoryId = categoryId;
                 _db.SaveChanges();
                 return "Pomyślnie zaktualizowano fakturę";
             }

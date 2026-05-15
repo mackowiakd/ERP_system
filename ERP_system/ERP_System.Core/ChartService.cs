@@ -9,10 +9,8 @@ using System.Linq;
 
 namespace ERP_System.Core
 {
-    /// <summary>
     /// Service for generating financial statistics and chart data based on Invoices.
     /// Transactions (FinancialOperations) are no longer used.
-    /// </summary>
     public class ChartService
     {
         private readonly AppDbContext _db;
@@ -38,10 +36,8 @@ namespace ERP_System.Core
             public InvoiceType Type { get; set; }
         }
 
-        /// <summary>
         /// Calculates expenses and incomes statistics for a company within a date range.
         /// Uses Invoices and projected Recurring Invoices.
-        /// </summary>
         public (List<CategoryStat> Expenses, List<CategoryStat> Incomes) GetStatistics(List<int> companyIds, DateTime startDate, DateTime endDate)
         {
             var statsData = new List<RawStatEntry>();
@@ -62,7 +58,7 @@ namespace ERP_System.Core
                 });
             }
 
-            // 2. Fetch Recurring Invoices (Pattern based on FinancialOperations for now)
+            //  Fetch Recurring Invoices (Pattern based on FinancialOperations for now)
             var recurringRules = _db.RecurringOperations
                 .Include(rt => rt.Invoice)
                 .Where(rt => rt.Invoice != null && companyIds.Contains(rt.Invoice.CompanyId) && rt.IsActive)
@@ -97,7 +93,7 @@ namespace ERP_System.Core
                 }
             }
 
-            // 3. Process Expenses
+            //  Process Expenses
             var rawExpenses = statsData
                 .Where(s => s.Type == InvoiceType.Cost)
                 .GroupBy(s => s.Name)
@@ -106,7 +102,7 @@ namespace ERP_System.Core
 
             var totalExpense = rawExpenses.Sum(x => x.Total);
 
-            // 4. Process Incomes
+            // Process Incomes
             var rawIncomes = statsData
                 .Where(s => s.Type == InvoiceType.Sales)
                 .GroupBy(s => s.Name)
@@ -115,7 +111,7 @@ namespace ERP_System.Core
 
             var totalIncome = rawIncomes.Sum(x => x.Total);
 
-            // 5. Build CategoryStat results
+            // Build CategoryStat results
             var expenseStats = rawExpenses.Select(x => new CategoryStat
             {
                 CategoryName = x.Name,

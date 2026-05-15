@@ -46,6 +46,12 @@ namespace ERP_System.Core.DBTables
         [ForeignKey(nameof(ContractorId))]
         public DBContractor? Contractor { get; set; }
 
+        [Column("category_id")]
+        public int? CategoryId { get; set; }
+
+        [ForeignKey(nameof(CategoryId))]
+        public DBInvoiceCategories? Category { get; set; }
+
         [Required]
         [MaxLength(50)]
         [Column("invoice_number")]

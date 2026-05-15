@@ -61,7 +61,7 @@ namespace ERP_System.Web.appMaps
             // POST /reports/generate - Generates a Turnover PDF.
             app.MapPost("/reports/generate", (HttpContext context, ReportService reportService) =>
             {
-                // 1. Parsowanie userId z ciasteczek
+                // parsing userID from cookies
                 if (!context.Request.Cookies.TryGetValue("user_id", out var userIdString) ||
                     !int.TryParse(userIdString, out int userId))
                 {
@@ -70,19 +70,16 @@ namespace ERP_System.Web.appMaps
 
                 var form = context.Request.Form;
 
-                // 2. Parsowanie dat (Od - Do)
+                // date parsing
                 if (!DateTime.TryParse(form["startDate"], out DateTime startDate) ||
                     !DateTime.TryParse(form["endDate"], out DateTime endDate))
                 {
                     return Results.Content("Nieprawidłowa data");
                 }
 
-                // Przesuwamy datę końcową na 23:59:59 (żeby objąć cały ostatni dzień)
+                // moving end date to 24:59:99 
                 endDate = endDate.Date.AddDays(1).AddTicks(-1);
 
-                // 3. Sprawdzenie zakresu (Firmowy vs Indywidualny)
-                var scope = form["reportScope"].ToString();
-                bool includeCompany = scope == "company" || scope == "household";
 
                 // 4. Pobieranie nowych parametrów filtracji (Nasza nowa baza danych!)
                 string typeFilter = form["transactionTypeFilter"]; // Costs, Revenue, All
@@ -92,7 +89,7 @@ namespace ERP_System.Web.appMaps
 
                 // 5. Wywołanie naszego serwisu z nowymi filtrami
                 var pdfBytes = reportService.GenerateProfitAndLossReport(
-                    userId, startDate, endDate, includeCompany, typeFilter, contractorId, minAmount, maxAmount);
+                    userId, startDate, endDate, typeFilter, contractorId, minAmount, maxAmount);
 
                 return Results.File(pdfBytes, "application/pdf", $"Zestawienie_Obrotow_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.pdf");
             });
@@ -114,11 +111,10 @@ namespace ERP_System.Web.appMaps
                 
                 asOfDate = asOfDate.Date.AddDays(1).AddTicks(-1);
 
-                var scope = form["reportScope"].ToString();
-                bool includeCompany = scope == "company";
+                string typeFilter = form["transactionTypeFilter"];
 
                 // Call service to generate the specific aging report
-                var pdfBytes = reportService.GenerateAgingReport(userId, asOfDate, includeCompany);
+                var pdfBytes = reportService.GenerateAgingReport(userId, asOfDate, typeFilter);
                 var filename = $"Raport_Wiekowania_{asOfDate:yyyyMMdd}.pdf";
 
                 return Results.File(pdfBytes, "application/pdf", filename);
