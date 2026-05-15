@@ -15,6 +15,7 @@ builder.Services.AddScoped<ChartService>();
 builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<ContractorService>();
 builder.Services.AddScoped<InvoiceService>();
+builder.Services.AddHostedService<ERP_System.Web.Services.RecurringTransactionWorker>();
 
 // KONFIGURACJA SESJI - Niezbędna do działania ContractorsEndpoints
 builder.Services.AddDistributedMemoryCache();

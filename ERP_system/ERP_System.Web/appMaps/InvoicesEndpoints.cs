@@ -1,37 +1,70 @@
 using ERP_System.Core;
 using ERP_System.Core.DBTables;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 namespace ERP_System.Web.appMaps
 {
     public class InvoicesEndpoints : IEndpoint
     {
-        public record CreateInvoiceDto(
-            int ContractorId, 
-            string InvoiceNumber, 
-            DateTime IssueDate, 
-            DateTime DueDate, 
-            PaymentMethod PaymentMethod, 
-            decimal TotalNet, 
-            decimal TotalGross, 
-            InvoiceType Type, 
-            string Notes,
-            InvoiceStatus Status,
-            int? CategoryId = null,
-            bool IsRecurring = false,
-            int? FrequencyUnit = null,
-            int? IntervalValue = null
-        );
-        public record EditInvoiceDto(
-            string InvoiceNumber,
-            DateTime IssueDate,
-            decimal TotalNet, 
-            decimal TotalGross, 
-            InvoiceType Type, 
-            string Notes, 
-            InvoiceStatus Status,
-            int? CategoryId = null
-        );
+        public class CreateInvoiceDto
+        {
+            [JsonPropertyName("contractorId")] public int ContractorId { get; set; }
+            [JsonPropertyName("invoiceNumber")] public string InvoiceNumber { get; set; } = "";
+            [JsonPropertyName("issueDate")] public DateTime IssueDate { get; set; }
+            [JsonPropertyName("dueDate")] public DateTime DueDate { get; set; }
+            [JsonPropertyName("paymentMethod")] public int PaymentMethod { get; set; }
+            [JsonPropertyName("totalNet")] public decimal TotalNet { get; set; }
+            [JsonPropertyName("totalGross")] public decimal TotalGross { get; set; }
+            [JsonPropertyName("type")] public JsonElement Type { get; set; }
+            [JsonPropertyName("notes")] public string Notes { get; set; } = "";
+            [JsonPropertyName("status")] public JsonElement Status { get; set; }
+            [JsonPropertyName("categoryId")] public int? CategoryId { get; set; }
+            [JsonPropertyName("isRecurring")] public bool IsRecurring { get; set; }
+            [JsonPropertyName("frequencyUnit")] public int? FrequencyUnit { get; set; }
+            [JsonPropertyName("intervalValue")] public int? IntervalValue { get; set; }
+        }
+
+        public class EditInvoiceDto
+        {
+            [JsonPropertyName("invoiceNumber")] public string InvoiceNumber { get; set; } = "";
+            [JsonPropertyName("issueDate")] public DateTime IssueDate { get; set; }
+            [JsonPropertyName("dueDate")] public DateTime DueDate { get; set; }
+            [JsonPropertyName("totalNet")] public decimal TotalNet { get; set; }
+            [JsonPropertyName("totalGross")] public decimal TotalGross { get; set; }
+            [JsonPropertyName("type")] public JsonElement Type { get; set; }
+            [JsonPropertyName("notes")] public string Notes { get; set; } = "";
+            [JsonPropertyName("status")] public JsonElement Status { get; set; }
+            [JsonPropertyName("categoryId")] public int? CategoryId { get; set; }
+        }
+
+        private int ParseType(JsonElement element)
+        {
+            if (element.ValueKind == JsonValueKind.Number) return element.GetInt32();
+            if (element.ValueKind == JsonValueKind.String)
+            {
+                var s = element.GetString();
+                if (s == "Sales") return 0;
+                if (s == "Cost") return 1;
+                if (int.TryParse(s, out int val)) return val;
+            }
+            return 0;
+        }
+
+        private int ParseStatus(JsonElement element)
+        {
+            if (element.ValueKind == JsonValueKind.Number) return element.GetInt32();
+            if (element.ValueKind == JsonValueKind.String)
+            {
+                var s = element.GetString();
+                if (s == "Unpaid") return 0;
+                if (s == "Paid") return 1;
+                if (s == "PartiallyPaid") return 2;
+                if (int.TryParse(s, out int val)) return val;
+            }
+            return 0;
+        }
 
         public void Map(IEndpointRouteBuilder app)
         {
@@ -103,6 +136,7 @@ namespace ERP_System.Web.appMaps
                 var invoice = await db.Invoices
                     .Include(i => i.Contractor)
                     .Include(i => i.Category)
+                    .Include(i => i.RecurringOperation)
                     .FirstOrDefaultAsync(i => i.Id == id);
 
                 if (invoice == null) return Results.NotFound();
@@ -116,10 +150,12 @@ namespace ERP_System.Web.appMaps
                     categoryId = invoice.CategoryId,
                     issueDate = invoice.IssueDate.ToString("yyyy-MM-dd"),
                     dueDate = invoice.DueDate.ToString("yyyy-MM-dd"),
+                    totalNet = invoice.TotalNet,
                     totalGross = invoice.TotalGross,
                     type = invoice.Type.ToString(),
                     status = invoice.Status.ToString(),
-                    notes = invoice.Notes ?? ""
+                    notes = invoice.Notes ?? "",
+                    isRecurring = invoice.RecurringOperation != null
                 });
             });
 
@@ -135,10 +171,13 @@ namespace ERP_System.Web.appMaps
                 if (string.IsNullOrWhiteSpace(dto.InvoiceNumber))
                     return Results.Json(new { success = false, message = "Numer faktury jest wymagany" });
 
+                int typeVal = ParseType(dto.Type);
+                int statusVal = ParseStatus(dto.Status);
+
                 var result = invoiceService.AddInvoice(
                     employee.CompanyId.Value, dto.ContractorId, dto.InvoiceNumber, 
-                    dto.IssueDate, dto.DueDate, dto.PaymentMethod, 
-                    dto.TotalNet, dto.TotalGross, dto.Type, dto.Notes, dto.Status,
+                    dto.IssueDate, dto.DueDate, (PaymentMethod)dto.PaymentMethod, 
+                    dto.TotalNet, dto.TotalGross, (InvoiceType)typeVal, dto.Notes, (InvoiceStatus)statusVal,
                     dto.CategoryId,
                     dto.IsRecurring, dto.FrequencyUnit, dto.IntervalValue
                 );
@@ -179,8 +218,12 @@ namespace ERP_System.Web.appMaps
                     return Results.Json(new { success = false, message = "Brak autoryzacji lub nie przypisano do firmy." });
                 if (string.IsNullOrWhiteSpace(dto.InvoiceNumber))
                     return Results.Json(new { success = false, message = "Numer faktury jest wymagany" });
-                var result = invoiceService.EditInvoice(id, dto.InvoiceNumber, dto.IssueDate, dto.TotalNet, dto.TotalGross, dto.Type, dto.Notes, dto.Status, dto.CategoryId);
-                if (result == "Pomyślnie edytowano fakturę")
+
+                int typeVal = ParseType(dto.Type);
+                int statusVal = ParseStatus(dto.Status);
+
+                var result = invoiceService.EditInvoice(id, dto.InvoiceNumber, dto.IssueDate, dto.DueDate, dto.TotalNet, dto.TotalGross, (InvoiceType)typeVal, dto.Notes, (InvoiceStatus)statusVal, dto.CategoryId);
+                if (result == "Pomyślnie zaktualizowano fakturę")
                 {
                     return Results.Json(new { success = true });
                 }

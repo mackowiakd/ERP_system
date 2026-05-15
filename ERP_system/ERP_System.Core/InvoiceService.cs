@@ -67,8 +67,8 @@ namespace ERP_System.Core
 
                 if (isRecurring && frequencyUnit.HasValue && intervalValue.HasValue)
                 {
-                    var nextRunDate = issueDate;
-                    nextRunDate = CalculateNextDate(nextRunDate, intervalValue.Value, (ERP_System.Core.Enums.TransactionIntervalType)frequencyUnit.Value);
+                    var intervalType = (ERP_System.Core.Enums.TransactionIntervalType)frequencyUnit.Value;
+                    var nextRunDate = CalculateNextDate(issueDate, intervalValue.Value, intervalType);
 
                     var recurringOp = new DBRecurringOperations
                     {
@@ -78,6 +78,29 @@ namespace ERP_System.Core
                         NextRunDate = nextRunDate,
                         IsActive = true
                     };
+
+                    // Immediate generation for past dates
+                    while (recurringOp.NextRunDate <= DateTime.Now)
+                    {
+                        var generatedInvoice = new DBInvoice
+                        {
+                            CompanyId = companyId,
+                            ContractorId = contractorId,
+                            InvoiceNumber = invoiceNumber + " (C)",
+                            IssueDate = recurringOp.NextRunDate,
+                            DueDate = recurringOp.NextRunDate.AddDays(14),
+                            PaymentMethod = paymentMethod,
+                            TotalNet = totalNet,
+                            TotalGross = totalGross,
+                            Type = type,
+                            Notes = (notes ?? "") + " (Auto)",
+                            Status = InvoiceStatus.Unpaid,
+                            CategoryId = categoryId
+                        };
+                        _db.Invoices.Add(generatedInvoice);
+                        recurringOp.NextRunDate = CalculateNextDate(recurringOp.NextRunDate, intervalValue.Value, intervalType);
+                    }
+
                     _db.RecurringOperations.Add(recurringOp);
                     _db.SaveChanges();
                 }
@@ -170,7 +193,7 @@ namespace ERP_System.Core
 
         // edit invoice
         public string EditInvoice(int invoiceId, string invoiceNumber,
-                                  DateTime issueDate,
+                                  DateTime issueDate, DateTime dueDate,
                                   decimal totalNet, decimal totalGross, InvoiceType type, string notes, InvoiceStatus status,
                                   int? categoryId = null)
         {
@@ -183,6 +206,7 @@ namespace ERP_System.Core
             {
                 invoice.InvoiceNumber = invoiceNumber;
                 invoice.IssueDate = issueDate;
+                invoice.DueDate = dueDate;
                 invoice.TotalNet = totalNet;
                 invoice.TotalGross = totalGross;
                 invoice.Type = type;
